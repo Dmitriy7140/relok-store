@@ -1,15 +1,16 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════
-   Релок v2 — premium backend.
+   Logovo PlayStation — backend.
    node:http + node:sqlite. REST API + статика.
    ═══════════════════════════════════════════════════════════════ */
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
-const { all, get, run } = require('./db');
+const { all, get, run, generateOrderId, shapeOrder } = require('./db');
+const notify = require('./notifications');
 
 const PORT = process.env.PORT || 3000;
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'relok-admin';
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'logovo-admin';
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
 /* ── Логирование ─────────────────────────────────────────────── */
@@ -314,6 +315,129 @@ async function api(req, res, url) {
     return ok(res, { products, hidden, inStock, onSale, cats, media, byType });
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     /api/orders — создание, просмотр, смена статуса
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Создать заказ (публичный — клиент заполняет форму) */
+  if (seg[1] === 'orders' && seg.length === 2 && method === 'POST') {
+    let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+
+    // Валидация обязательных полей
+    const errs = [];
+    if (!b.psnId || !String(b.psnId).trim())      errs.push('Укажите PSN ID');
+    if (!b.nickname || !String(b.nickname).trim()) errs.push('Укажите никнейм');
+    if (!b.productName || !String(b.productName).trim()) errs.push('Укажите товар');
+    if (!b.amount || isNaN(+b.amount) || +b.amount <= 0) errs.push('Некорректная сумма');
+    if (errs.length) return bad(res, errs.join('. '));
+
+    const id = generateOrderId();
+    run(`INSERT INTO orders
+      (id, psn_id, nickname, telegram, product_name, product_id, amount, comment, status, meta)
+      VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      [
+        id,
+        String(b.psnId).trim(),
+        String(b.nickname).trim(),
+        b.telegram ? String(b.telegram).trim() : '',
+        String(b.productName).trim(),
+        b.productId ? +b.productId : null,
+        Math.round(+b.amount),
+        b.comment ? String(b.comment).trim() : '',
+        'pending',
+        JSON.stringify(b.meta || {}),
+      ]
+    );
+
+    const order = shapeOrder(get('SELECT * FROM orders WHERE id=?', [id]));
+    log.info('Order created:', id, '—', order.productName, order.amount + '₽');
+
+    // Уведомить администратора (stub)
+    notify.notifyNewOrder(order).catch(() => {});
+
+    return ok(res, order);
+  }
+
+  /* Список заказов (только админ) */
+  if (seg[1] === 'orders' && seg.length === 2 && method === 'GET') {
+    if (!needAdmin()) return;
+    const q       = url.searchParams;
+    const status  = q.get('status');
+    const where   = status ? 'WHERE status=?' : '';
+    const params  = status ? [status] : [];
+    const limit   = Math.min(+q.get('limit') || 50, 200);
+    const page    = Math.max(+q.get('page') || 1, 1);
+    const offset  = (page - 1) * limit;
+    const total   = get(`SELECT COUNT(*) AS c FROM orders ${where}`, params).c;
+    const rows    = all(
+      `SELECT * FROM orders ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+    return ok(res, { items: rows.map(shapeOrder), total, page, pages: Math.ceil(total / limit) });
+  }
+
+  /* Один заказ по ID */
+  if (seg[1] === 'orders' && seg.length === 3) {
+    const id  = seg[2];
+    const row = get('SELECT * FROM orders WHERE id=?', [id]);
+    if (!row) return bad(res, 'Заказ не найден', 404);
+
+    /* GET — просмотр */
+    if (method === 'GET') return ok(res, shapeOrder(row));
+
+    /* PATCH — смена статуса (только для оплаты — доступна публично по ID заказа,
+               остальные статусы — только для админа) */
+    if (method === 'PATCH') {
+      let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+      const allowed = ['pending', 'paid', 'activated', 'cancelled', 'refunded'];
+
+      if (!b.status || !allowed.includes(b.status))
+        return bad(res, 'Допустимые статусы: ' + allowed.join(', '));
+
+      // Переход в paid доступен публично (платёжная система вызывает по ID),
+      // остальные смены — только для админа
+      if (b.status !== 'paid' && !isAdmin)
+        return json(res, 401, { error: 'Требуется авторизация' });
+
+      const sets = ['status=?', 'updated_at=datetime(\'now\')'];
+      const params = [b.status];
+
+      if (b.status === 'paid') {
+        sets.push('paid_at=datetime(\'now\')');
+      }
+
+      run(`UPDATE orders SET ${sets.join(',')} WHERE id=?`, [...params, id]);
+
+      const updated = shapeOrder(get('SELECT * FROM orders WHERE id=?', [id]));
+      log.info('Order status:', id, '→', b.status);
+
+      // Уведомления по статусу
+      if (b.status === 'paid')      notify.notifyOrderPaid(updated).catch(() => {});
+      if (b.status === 'activated') notify.notifyOrderActivated(updated).catch(() => {});
+      if (b.status === 'cancelled') notify.notifyOrderCancelled(updated).catch(() => {});
+
+      return ok(res, updated);
+    }
+
+    /* DELETE — только для админа */
+    if (method === 'DELETE') {
+      if (!needAdmin()) return;
+      run('DELETE FROM orders WHERE id=?', [id]);
+      log.info('Order deleted:', id);
+      return ok(res, { ok: true });
+    }
+  }
+
+  /* Статистика заказов (для дашборда) */
+  if (seg[1] === 'orders' && seg[2] === 'stats' && method === 'GET') {
+    if (!needAdmin()) return;
+    const total   = get('SELECT COUNT(*) AS c FROM orders').c;
+    const pending = get('SELECT COUNT(*) AS c FROM orders WHERE status=\'pending\'').c;
+    const paid    = get('SELECT COUNT(*) AS c FROM orders WHERE status=\'paid\'').c;
+    const revenue = get('SELECT COALESCE(SUM(amount),0) AS s FROM orders WHERE status=\'paid\'').s;
+    return ok(res, { total, pending, paid, revenue });
+  }
+
   return bad(res, 'Маршрут не найден', 404);
 }
 
@@ -358,7 +482,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  log.info(`Релок v2 запущен`);
+  log.info(`Logovo PlayStation запущен`);
   log.info(`Витрина:       http://localhost:${PORT}/`);
   log.info(`Админ-панель:  http://localhost:${PORT}/admin  (токен: ${ADMIN_TOKEN})`);
 });

@@ -1,7 +1,7 @@
 {
-  "name": "relok-store",
+  "name": "logovo-store",
   "version": "1.0.0",
-  "description": "Релок — магазин PlayStation Турция (Telegram Mini App) с витриной, каталогом и админ-панелью",
+  "description": "Logovo PlayStation — цифровой магазин PS Турция",
   "private": true,
   "type": "commonjs",
   "scripts": {

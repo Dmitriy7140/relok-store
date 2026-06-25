@@ -71,3 +71,15 @@ window.API = (function () {
     if (pill) pill.style.display = 'block';
   }
 })();
+
+// ── Orders API ────────────────────────────────────────────────
+Object.assign(window.API, {
+  createOrder:  (b) => req('POST', '/orders', b),
+  getOrder:     (id) => req('GET', '/orders/' + id),
+  payOrder:     (id) => req('PATCH', '/orders/' + id, { status: 'paid' }),
+  cancelOrder:  (id) => req('PATCH', '/orders/' + id, { status: 'cancelled' }),
+  listOrders:   (params) => req('GET', '/orders' + qs(params)),
+  deleteOrder:  (id) => req('DELETE', '/orders/' + id),
+  orderStats:   () => req('GET', '/orders/stats'),
+  patchOrderAdmin: (id, b) => req('PATCH', '/orders/' + id, b),
+});

@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════
-   Релок v2 — SPA-витрина
+   Logovo PlayStation — SPA
    Роуты: / · /subs · /games · /wish · /cart · /profile
    ═══════════════════════════════════════════════════════════════ */
 
@@ -11,15 +11,15 @@ const el = id => document.getElementById(id);
 const esc = s => String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 /* ── State ─────────────────────────────────────────────────── */
-let cart     = JSON.parse(localStorage.getItem('relok_cart') || '[]');
-let wishlist = JSON.parse(localStorage.getItem('relok_wish') || '[]');
-const saveCart = () => localStorage.setItem('relok_cart', JSON.stringify(cart));
-const saveWish = () => localStorage.setItem('relok_wish', JSON.stringify(wishlist));
+let cart     = JSON.parse(localStorage.getItem('logovo_cart') || '[]');
+let wishlist = JSON.parse(localStorage.getItem('logovo_wish') || '[]');
+const saveCart = () => localStorage.setItem('logovo_cart', JSON.stringify(cart));
+const saveWish = () => localStorage.setItem('logovo_wish', JSON.stringify(wishlist));
 
 /* ── Theme ─────────────────────────────────────────────────── */
 function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
-  localStorage.setItem('relok_theme', t);
+  localStorage.setItem('logovo_theme', t);
 }
 function toggleTheme() {
   applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
@@ -131,29 +131,37 @@ async function loadSubs() {
 }
 
 function subCard(s) {
-  const periods = s.meta?.periods || {};
+  const periods   = s.meta?.periods   || {};
+  const tier      = s.meta?.tier      || 'essential';
+  const features  = s.meta?.features  || [];
   const hasPeriods = Object.keys(periods).length > 0;
-  const sel = subPeriodSel[s.id] || 1;
+  const sel   = subPeriodSel[s.id] || 1;
   const price = hasPeriods ? (periods[sel] ?? s.price) : s.price;
-  const features = s.meta?.features || [];
   const isFeat = s.isFeatured;
-  const bgGrads = {
-    11: 'linear-gradient(135deg,#003791 0%,#0066cc 100%)',
-    12: 'linear-gradient(135deg,#1a4050 0%,#0a7055 100%)',
-    13: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)',
+
+  // Tier-based gradients
+  const bgByTier = {
+    essential: 'linear-gradient(135deg,#1c1c2e 0%,#2a2a44 100%)',
+    extra:     'linear-gradient(135deg,#001a4d 0%,#003380 50%,#0055cc 100%)',
+    deluxe:    'linear-gradient(135deg,#2a1800 0%,#5a3200 50%,#8a5200 100%)',
   };
-  const bg = bgGrads[s.id] || 'linear-gradient(135deg,#1a1a2e 0%,#2a2050 100%)';
+  const bg = bgByTier[tier] || bgByTier.essential;
+
+  // Tier badge labels
+  const tierLabel = { essential:'Essential', extra:'Extra', deluxe:'Deluxe' }[tier] || tier;
+  const tierEmoji = { essential:'🔘', extra:'💠', deluxe:'👑' }[tier] || '💎';
+  const featBadge = { essential:'Базовый', extra:'Популярный ⭐', deluxe:'Максимальный' }[tier] || '';
 
   return `
-    <div class="sub-card${isFeat?' featured':''}" id="sc-${s.id}">
+    <div class="sub-card${isFeat?' featured':''}" data-tier="${tier}" id="sc-${s.id}">
       <div class="sub-cover" style="background:${bg}">
         ${s.image ? `<img src="${esc(s.image)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">` : ''}
         <div class="sub-cover-grad"></div>
-        <div class="sub-cover-emoji">${esc(s.emoji||'💎')}</div>
-        ${isFeat ? '<div class="sub-feat-badge">Популярное</div>' : ''}
+        <div style="font-size:52px;position:relative;z-index:1;filter:drop-shadow(0 4px 16px rgba(0,0,0,.5))">${tierEmoji}</div>
+        ${isFeat ? `<div class="sub-feat-badge">${featBadge}</div>` : ''}
       </div>
       <div class="sub-body">
-        <div class="sub-tier">${esc(s.edition||s.platform||'')}</div>
+        <div class="sub-tier">PS Plus ${tierLabel}</div>
         <div class="sub-name">${esc(s.name)}</div>
         ${s.description ? `<div class="sub-desc">${esc(s.description)}</div>` : ''}
         ${features.length ? `<div class="sub-features">${features.map(f=>`<div class="sub-feat">${esc(f)}</div>`).join('')}</div>` : ''}
@@ -167,7 +175,7 @@ function subCard(s) {
           </div>` : ''}
         <button class="sub-buy-btn${s.inStock?'':' disabled'}" onclick="addSubToCart(${s.id})"
           ${!s.inStock ? 'disabled' : ''}>
-          ${s.inStock ? '🛒 Добавить в корзину — ' + fmt(price) : 'Нет в наличии'}
+          ${s.inStock ? '🛒 Оформить — ' + fmt(price) : 'Нет в наличии'}
         </button>
       </div>
     </div>`;
@@ -183,14 +191,22 @@ function selectSubPeriod(subId, months) {
 }
 
 function addSubToCart(subId) {
-  const s = (window.SEED?.products || []).find(p => p.id === subId) || { id: subId };
-  const period = subPeriodSel[subId] || 1;
-  const existing = cart.find(i => i.id === subId && i.period === period);
-  if (existing) { toast('Уже в корзине', 'ok'); return; }
-  cart.push({ id: subId, period });
-  saveCart();
-  updateBadges();
-  toast('Добавлено в корзину');
+  // Получаем данные товара из seed
+  const s = (window.SEED?.products || []).find(p => p.id === subId) || { id: subId, name: 'Подписка', price: 0, emoji: '💎' };
+  const period  = subPeriodSel[subId] || 1;
+  const periods = s.meta?.periods || {};
+  const price   = periods[period] ?? s.price ?? 0;
+  const PERIOD_L = { 1: '1 месяц', 3: '3 месяца', 12: '12 месяцев' };
+
+  openCheckout({
+    name:      s.name + ' — ' + (PERIOD_L[period] || period + ' мес.'),
+    price,
+    emoji:     s.emoji || '💎',
+    platform:  s.platform || 'PlayStation',
+    type:      'sub',
+    productId: subId,
+    period,
+  });
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -247,31 +263,34 @@ async function loadGames() {
 }
 
 function gameCard(p) {
-  const disc = discPct(p.price, p.oldPrice);
-  const inCart = cart.some(i => i.id === p.id);
-  const imgH = p.image ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">` : '';
-  const badge = p.isNew ? '<div class="gbadge b-new">NEW</div>'
+  const disc  = discPct(p.price, p.oldPrice);
+  const badge = p.isNew     ? '<div class="gbadge b-new">NEW</div>'
     : p.isSale || p.oldPrice ? '<div class="gbadge b-sale">SALE</div>'
-    : p.isPreorder ? '<div class="gbadge b-pre">PRE</div>'
+    : p.isPreorder           ? '<div class="gbadge b-pre">PRE</div>'
     : '';
+  const cover = p.image
+    ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">`
+    : `<div class="gcard-cover-inner">${esc(p.emoji||'🎮')}</div>`;
+
   return `
     <div class="gcard" onclick="openProduct(${p.id})">
       <div class="gcard-cover">
-        ${imgH || `<span style="font-size:38px">${esc(p.emoji||'🎮')}</span>`}
+        ${cover}
         ${badge}
         ${disc>=5 ? `<div class="gdisc">−${disc}%</div>` : ''}
       </div>
       <div class="gcard-body">
         <div class="gcard-plat">${esc(p.platform||'PlayStation')}</div>
         <div class="gcard-name">${esc(p.name)}</div>
+        ${p.description ? `<div class="gcard-desc">${esc(p.description)}</div>` : ''}
         <div class="gcard-prices">
-          <div class="gcard-price">${fmt(p.price)}</div>
+          <div class="gcard-price">${p.price === 0 ? 'Бесплатно' : fmt(p.price)}</div>
           ${p.oldPrice ? `<div class="gcard-old">${fmt(p.oldPrice)}</div>` : ''}
         </div>
-        <button class="gcard-add${inCart?' added':''}${!p.inStock?' oos':''}"
+        <button class="gcard-add${!p.inStock?' oos':''}"
           onclick="event.stopPropagation();quickAdd(${p.id},this)"
           ${!p.inStock?'disabled':''}>
-          ${!p.inStock ? 'Нет в наличии' : inCart ? '✓ В корзине' : '+ В корзину'}
+          ${!p.inStock ? 'Нет в наличии' : '🛒 Купить'}
         </button>
       </div>
     </div>`;
@@ -506,22 +525,20 @@ function toggleWish(id) {
 function buyFromModal() {
   if (!modalProduct) return;
   const p = modalProduct;
-  const key = p.type==='sub' ? p.id+'-'+modalPeriod : p.id;
-  const existing = cart.find(i => (p.type==='sub' ? i.id===p.id&&i.period===modalPeriod : i.id===p.id));
-  if (!existing) {
-    cart.push(p.type==='sub' ? {id:p.id, period:modalPeriod} : {id:p.id});
-    saveCart(); updateBadges();
-  }
-  toast(existing ? 'Уже в корзине' : 'Добавлено в корзину 🛒');
+  const periods = p.meta?.periods || {};
+  const price = (p.type === 'sub' && Object.keys(periods).length > 0)
+    ? (periods[modalPeriod] ?? p.price) : p.price;
+  const PERIOD_L = { 1: '1 месяц', 3: '3 месяца', 12: '12 месяцев' };
+  const nameFull = (p.type === 'sub' && modalPeriod)
+    ? p.name + ' — ' + (PERIOD_L[modalPeriod] || modalPeriod + ' мес.') : p.name;
+  closeModal();
+  openCheckout({ name: nameFull, price, emoji: p.emoji || '🎮', platform: p.platform || '', type: p.type || 'game', productId: p.id, period: p.type === 'sub' ? modalPeriod : null });
 }
 
 function quickAdd(id, btn) {
-  if (cart.some(i=>i.id===id)) { toast('Уже в корзине'); return; }
-  cart.push({id});
-  saveCart(); updateBadges();
-  btn.textContent = '✓ В корзине';
-  btn.classList.add('added');
-  toast('Добавлено в корзину 🛒');
+  // Находим товар и открываем форму оформления
+  const p = productInfo(id);
+  openCheckout({ name: p.name, price: p.price, emoji: p.emoji || '🎮', platform: p.platform || '', type: p.type || 'game', productId: id });
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -616,25 +633,239 @@ function removeCart(id, period) {
   saveCart(); updateBadges(); renderCart();
 }
 
+/* ══════════════════════════════════════════════════════════════
+   CHECKOUT FORM — сбор данных клиента перед оплатой
+   ══════════════════════════════════════════════════════════════ */
+
+// Данные текущего заказа, открытого в форме
+let _checkoutItem = null;
+
+/**
+ * Открыть форму оформления для конкретного товара.
+ * @param {object} item — { name, price, emoji, platform, type, productId?, period? }
+ */
+function openCheckout(item) {
+  _checkoutItem = item;
+  const overlay = el('checkoutOverlay');
+  if (!overlay) return;
+  renderCheckoutForm(item);
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+/** Открыть форму напрямую (без корзины), например для GTA6 */
+function openCheckoutDirect(item) {
+  openCheckout(item);
+}
+
+function closeCheckout(e) {
+  if (e && e.target !== el('checkoutOverlay')) return;
+  _forceCloseCheckout();
+}
+function _forceCloseCheckout() {
+  el('checkoutOverlay')?.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderCheckoutForm(item) {
+  const host = el('checkoutContent');
+  if (!host) return;
+  const price = item.price || 0;
+  host.innerHTML = `
+    <div class="sheet-title">Оформление заказа</div>
+    <div class="sheet-sub">Заполните данные — мы доставим товар и свяжемся с вами.</div>
+
+    <div class="order-item-preview">
+      <div class="oip-ico">${esc(item.emoji || '🎮')}</div>
+      <div>
+        <div class="oip-name">${esc(item.name)}</div>
+        <div class="oip-price">${fmt(price)}</div>
+      </div>
+    </div>
+
+    <div class="form-notice">
+      🔒 Мы никогда не запрашиваем пароли, коды подтверждения или резервные коды аккаунта.
+    </div>
+
+    <form id="orderForm" onsubmit="return false">
+
+      <div class="form-field" id="ff-nickname">
+        <label>Ваш никнейм<span class="req">*</span></label>
+        <input class="form-inp" id="of-nickname" type="text"
+               placeholder="Как к вам обращаться?" autocomplete="nickname">
+        <div class="form-err-msg">Укажите никнейм</div>
+      </div>
+
+      <div class="form-field" id="ff-telegram">
+        <label>Telegram<span class="req">*</span></label>
+        <input class="form-inp" id="of-telegram" type="text"
+               placeholder="@username" autocomplete="off">
+        <div class="form-hint">Ваш @username в Telegram для связи</div>
+        <div class="form-err-msg">Укажите Telegram username</div>
+      </div>
+
+      <div class="form-field" id="ff-psnId">
+        <label>PSN ID<span class="req">*</span></label>
+        <input class="form-inp" id="of-psnId" type="text"
+               placeholder="Ваш PSN ID (публичное имя аккаунта)" autocomplete="off">
+        <div class="form-hint">Публичное имя вашего PlayStation аккаунта — не пароль</div>
+        <div class="form-err-msg">Укажите PSN ID</div>
+      </div>
+
+      <div class="form-field" id="ff-product">
+        <label>Выбранный товар<span class="req">*</span></label>
+        <input class="form-inp" id="of-product" type="text"
+               value="${esc(item.name)}" placeholder="Название товара">
+        <div class="form-hint">Уже заполнено — уточните период если нужно</div>
+        <div class="form-err-msg">Укажите товар</div>
+      </div>
+
+      <div class="form-field" id="ff-comment">
+        <label>Комментарий
+          <span style="color:var(--t4);font-size:10px;letter-spacing:0;text-transform:none;font-weight:500">(необязательно)</span>
+        </label>
+        <textarea class="form-inp" id="of-comment" rows="2"
+                  placeholder="Любые пожелания или уточнения…" style="resize:none"></textarea>
+      </div>
+
+      <button class="submit-btn" id="orderSubmitBtn" onclick="submitOrder()">
+        <div class="spin"></div>
+        <span>Оформить заказ — ${fmt(price)}</span>
+      </button>
+    </form>
+  `;
+}
+
+async function submitOrder() {
+  if (!_checkoutItem) return;
+
+  // Валидация обязательных полей
+  let valid = true;
+  function check(id, fieldId) {
+    const val = el(id)?.value?.trim();
+    const ff  = el(fieldId);
+    if (!val) { ff?.classList.add('has-err'); valid = false; }
+    else ff?.classList.remove('has-err');
+    return val;
+  }
+
+  const nickname    = check('of-nickname',  'ff-nickname');
+  const telegram    = check('of-telegram',  'ff-telegram');
+  const psnId       = check('of-psnId',     'ff-psnId');
+  const productName = check('of-product',   'ff-product');
+  const comment     = el('of-comment')?.value?.trim() || '';
+
+  if (!valid) { toast('Заполните обязательные поля', 'err'); return; }
+
+  const btn = el('orderSubmitBtn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const orderData = {
+    psnId,
+    nickname,
+    telegram,
+    productName,
+    productId: _checkoutItem.productId || null,
+    amount:    Math.round(_checkoutItem.price || 0),
+    comment,
+    meta: {
+      period:   _checkoutItem.period   || null,
+      platform: _checkoutItem.platform || '',
+      type:     _checkoutItem.type     || 'game',
+    },
+  };
+
+  try {
+    let order;
+
+    if (!API.isOffline()) {
+      // Онлайн — сохраняем в БД
+      order = await API.createOrder(orderData);
+    } else {
+      // Офлайн — генерируем локальный ID
+      order = {
+        id: 'LOCAL-' + Date.now(),
+        ...orderData,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
+    }
+
+    // Показываем экран успеха
+    renderOrderSuccess(order, _checkoutItem);
+
+    // Очищаем корзину (если заказ из корзины)
+    if (_checkoutItem._fromCart) {
+      cart = []; saveCart(); updateBadges();
+    }
+
+    // Отправляем данные в Telegram WebApp (для уведомления бота)
+    try {
+      if (window.Telegram?.WebApp?.sendData) {
+        Telegram.WebApp.sendData(JSON.stringify({
+          type:    'order',
+          orderId: order.id,
+          psnId,
+          nickname,
+          product: productName,
+          amount:  orderData.amount,
+        }));
+      }
+    } catch {}
+
+  } catch (err) {
+    console.error('Order error:', err);
+    toast('Ошибка создания заказа: ' + err.message, 'err');
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+}
+
+function renderOrderSuccess(order, item) {
+  const host = el('checkoutContent');
+  if (!host) return;
+  host.innerHTML = `
+    <div class="order-success">
+      <div class="order-success-ico">✅</div>
+      <div class="order-success-ttl">Заказ оформлен!</div>
+      <div class="order-success-sub">
+        Мы получили ваш заказ и свяжемся с вами<br>для завершения оплаты.
+      </div>
+      <div class="order-id-badge">${esc(order.id)}</div>
+      <div class="order-success-sub" style="font-size:12px;color:var(--t4);margin-bottom:20px">
+        Сохраните ID заказа для отслеживания
+      </div>
+      <button class="submit-btn" onclick="_forceCloseCheckout();go('#/')">
+        <span>На главную</span>
+      </button>
+    </div>
+  `;
+}
+
+/* ── Обновим checkout из корзины ──────────────────────────────── */
 function checkout() {
+  if (!cart.length) { toast('Корзина пуста', 'err'); return; }
+
+  // Берём первый товар из корзины для оформления
+  // (или создаём сводный заказ)
   const items = cart.map(ci => {
     const p = productInfo(ci.id);
-    const periods = p.meta?.periods||{};
+    const periods = p.meta?.periods || {};
     const price = (ci.period && periods[ci.period]) ? periods[ci.period] : p.price;
-    return { id:p.id, name:p.name, price, period:ci.period||null };
+    return { ...p, price, period: ci.period || null };
   });
-  const total = items.reduce((s,i)=>s+i.price,0);
-  const data = JSON.stringify({ items, total });
-  try {
-    if (window.Telegram?.WebApp?.sendData) {
-      Telegram.WebApp.sendData(data);
-      toast('Заказ отправлен! ✓');
-    } else {
-      console.log('Order:', data);
-      toast('Заказ оформлен! Свяжемся с вами.');
-    }
-  } catch { toast('Заказ отправлен!'); }
-  setTimeout(() => go('#/'), 700);
+
+  const total = items.reduce((s, i) => s + i.price, 0);
+  const names = items.map(i => i.name + (i.period ? ` (${i.period} мес.)` : '')).join(', ');
+
+  openCheckout({
+    name:       names,
+    price:      total,
+    emoji:      items[0]?.emoji || '🛒',
+    platform:   items.map(i => i.platform).filter(Boolean).join(', '),
+    type:       'mixed',
+    _fromCart:  true,
+    productId:  items.length === 1 ? items[0].id : null,
+  });
 }
 
 function clearData() {
@@ -657,17 +888,19 @@ function setNav(name) {
 }
 
 function showScreen(id, nav) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  // Hide all screens
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+  });
+  // Show target screen
   const s = el('screen-' + id);
-  if (s) s.classList.add('active');
-  setNav(nav || id);
-  // Show/hide hero WebGL canvas — keep rendering but hide on non-home screens
-  const canvas = el('heroCanvas');
-  if (canvas) {
-    canvas.style.transition = 'opacity .4s';
-    canvas.style.opacity = (id === 'home') ? '1' : '0';
+  if (s) {
+    s.classList.add('active');
+    // Reset this screen's own scroll to top instantly
+    s.scrollTop = 0;
   }
-  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+  setNav(nav || id);
+  document.body.classList.toggle('not-home', id !== 'home');
 }
 
 function route() {
@@ -676,7 +909,9 @@ function route() {
   const parts = h.replace(/^#\//, '').split('/');
   const root = parts[0] || '';
 
-  if (root === 'subs') {
+  if (root === 'gta6') {
+    showScreen('gta6', 'gta6');
+  } else if (root === 'subs') {
     showScreen('subs', 'subs');
     loadSubs();
   } else if (root === 'games') {
@@ -697,7 +932,6 @@ function route() {
 }
 
 window.addEventListener('hashchange', route);
-// Close modal on back gesture (mobile)
 window.addEventListener('popstate', () => {
   if (el('pModal')?.classList.contains('open')) closeModal();
 });
@@ -706,27 +940,21 @@ window.addEventListener('popstate', () => {
    INIT
    ══════════════════════════════════════════════════════════════ */
 async function init() {
-  // Theme
-  const saved = localStorage.getItem('relok_theme');
+  const saved = localStorage.getItem('logovo_theme');
   const sys = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   applyTheme(saved || sys);
 
-  // Telegram
   if (window.Telegram?.WebApp) {
     try { Telegram.WebApp.ready(); Telegram.WebApp.expand(); } catch {}
     const u = Telegram.WebApp.initDataUnsafe?.user;
     if (u) {
       const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || 'Пользователь';
-      const nameEl = el('profName');
-      const handleEl = el('profHandle');
-      const avaEl = el('profAva');
-      if (nameEl) nameEl.textContent = name;
-      if (handleEl) handleEl.textContent = u.username ? '@'+u.username : 'ID: '+u.id;
-      if (avaEl) avaEl.textContent = (u.first_name||'U')[0].toUpperCase();
+      if (el('profName'))   el('profName').textContent   = name;
+      if (el('profHandle')) el('profHandle').textContent = u.username ? '@'+u.username : 'ID: '+u.id;
+      if (el('profAva'))    el('profAva').textContent    = (u.first_name||'U')[0].toUpperCase();
     }
   }
 
-  spawnParticles();
   updateBadges();
   route();
 }
@@ -741,5 +969,6 @@ Object.assign(window, {
   loadGames, onGamesSearch, gamesGoPage, resetGames, setGamesCat,
   renderWish, removeWish, wishToCart,
   renderCart, removeCart, checkout,
-  clearData,
+  openCheckout, openCheckoutDirect, closeCheckout, _forceCloseCheckout,
+  submitOrder, clearData,
 });

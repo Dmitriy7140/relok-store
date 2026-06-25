@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════
-   Релок v2 — Панель управления
+   Logovo v2 — Панель управления
    Полный CRUD: товары, категории, медиа, настройки.
    ═══════════════════════════════════════════════════════════════ */
 
@@ -39,11 +39,11 @@ const S = { products: [], categories: [], media: [], tab: 'dash', filter: '', ed
 
 /* ── Авторизация ────────────────────────────────────────────── */
 async function doLogin() {
-  const token = el('tokenInput').value.trim() || 'relok-admin';
+  const token = el('tokenInput').value.trim() || 'logovo-admin';
   toastLoad('Проверка токена…');
   try {
     await API.auth(token);
-    localStorage.setItem('relok_admin_token', token);
+    localStorage.setItem('logovo_admin_token', token);
     el('login').style.display = 'none';
     el('shell').classList.add('on');
     await loadAll();
@@ -52,7 +52,7 @@ async function doLogin() {
     toast(e.message==='offline' ? 'Сервер недоступен. Запустите node server/server.js' : 'Неверный токен', 'err');
   }
 }
-function logout() { localStorage.removeItem('relok_admin_token'); location.reload(); }
+function logout() { localStorage.removeItem('logovo_admin_token'); location.reload(); }
 
 async function loadAll() {
   try {
@@ -101,7 +101,7 @@ function renderDash() {
 
   el('view').innerHTML = `
     <div class="head">
-      <div class="head-txt"><h1>Дашборд</h1><div class="sub">Обзор магазина · Релок</div></div>
+      <div class="head-txt"><h1>Дашборд</h1><div class="sub">Обзор магазина · Logovo</div></div>
       <div class="spacer"></div>
       <button class="btn btn-blue btn-sm" onclick="openEditor(null,'game')">+ Добавить товар</button>
     </div>
@@ -830,7 +830,7 @@ function renderSettings() {
     <div class="settings-card">
       <h3>🏪 Магазин</h3>
       <div class="grid2">
-        <div class="field"><label>Название магазина</label><input class="inp" id="sName" value="${esc(cfg.name||'Релок')}" placeholder="Релок"></div>
+        <div class="field"><label>Название магазина</label><input class="inp" id="sName" value="${esc(cfg.name||'Logovo')}" placeholder="Logovo"></div>
         <div class="field"><label>Подзаголовок</label><input class="inp" id="sTagline" value="${esc(cfg.tagline||'PlayStation Турция')}" placeholder="PlayStation Турция"></div>
       </div>
       <div class="field"><label>Строка объявления (пусто = скрыта)</label>
@@ -842,7 +842,7 @@ function renderSettings() {
       <h3>🔑 Безопасность</h3>
       <p style="font-size:13px;color:var(--t3);margin-bottom:14px">Токен задаётся переменной окружения <code>ADMIN_TOKEN</code> при запуске сервера.<br>Текущий токен сохранён в браузере.</p>
       <div class="field"><label>Токен в браузере</label>
-        <input class="inp" type="password" value="${localStorage.getItem('relok_admin_token')||''}" readonly>
+        <input class="inp" type="password" value="${localStorage.getItem('logovo_admin_token')||''}" readonly>
       </div>
       <button class="btn btn-red btn-sm" onclick="logout()">Выйти из системы</button>
     </div>`;
@@ -850,7 +850,7 @@ function renderSettings() {
 
 async function saveSettings() {
   const store = {
-    name: gval('sName') || 'Релок',
+    name: gval('sName') || 'Logovo',
     tagline: gval('sTagline') || 'PlayStation Турция',
     announcement: gval('sAnn'),
   };
@@ -866,7 +866,7 @@ async function saveSettings() {
 async function init() {
   const saved = localStorage.getItem('relok_theme');
   applyTheme(saved || 'dark');
-  const token = localStorage.getItem('relok_admin_token');
+  const token = localStorage.getItem('logovo_admin_token');
   if (token) {
     toastLoad('Проверяем сессию…');
     try {
@@ -876,7 +876,7 @@ async function init() {
       await loadAll();
       tab('dash');
     } catch {
-      localStorage.removeItem('relok_admin_token');
+      localStorage.removeItem('logovo_admin_token');
     }
   }
 }
