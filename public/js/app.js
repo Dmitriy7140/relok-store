@@ -1,0 +1,745 @@
+'use strict';
+/* ═══════════════════════════════════════════════════════════════
+   Релок v2 — SPA-витрина
+   Роуты: / · /subs · /games · /wish · /cart · /profile
+   ═══════════════════════════════════════════════════════════════ */
+
+const CUR = '₽';
+const fmt = n => Number(n).toLocaleString('ru-RU') + '\u202f' + CUR;
+const $ = s => document.querySelector(s);
+const el = id => document.getElementById(id);
+const esc = s => String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ── State ─────────────────────────────────────────────────── */
+let cart     = JSON.parse(localStorage.getItem('relok_cart') || '[]');
+let wishlist = JSON.parse(localStorage.getItem('relok_wish') || '[]');
+const saveCart = () => localStorage.setItem('relok_cart', JSON.stringify(cart));
+const saveWish = () => localStorage.setItem('relok_wish', JSON.stringify(wishlist));
+
+/* ── Theme ─────────────────────────────────────────────────── */
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('relok_theme', t);
+}
+function toggleTheme() {
+  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
+
+/* ── Toast ─────────────────────────────────────────────────── */
+let toastTimer;
+function toast(msg, type = 'ok') {
+  const t = el('toast'), ico = el('tIco'), txt = el('tMsg');
+  if (!t) return;
+  const ok  = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  const err = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  t.className = 'toast' + (type === 'err' ? ' err' : '');
+  ico.innerHTML = type === 'err' ? err : ok;
+  txt.textContent = msg;
+  requestAnimationFrame(() => t.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  try { if (window.Telegram?.WebApp?.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred(type==='err'?'medium':'light'); } catch {}
+}
+
+/* ── Helpers ───────────────────────────────────────────────── */
+function plural(n, a, b, c) {
+  n = Math.abs(n) % 100;
+  if (n >= 11 && n <= 19) return c;
+  const r = n % 10;
+  if (r === 1) return a;
+  if (r >= 2 && r <= 4) return b;
+  return c;
+}
+function discPct(price, old) {
+  if (!old || old <= price) return 0;
+  return Math.round((1 - price / old) * 100);
+}
+
+/* ── Badges ────────────────────────────────────────────────── */
+function updateBadges() {
+  const wn = wishlist.length, cn = cart.length;
+  ['wishBadge','wishBadge2'].forEach(id => {
+    const b = el(id); if (!b) return;
+    b.textContent = wn;
+    b.style.display = wn ? 'flex' : 'none';
+  });
+  ['cartBadge','cartBadge2'].forEach(id => {
+    const b = el(id); if (!b) return;
+    b.textContent = cn;
+    b.style.display = cn ? 'flex' : 'none';
+  });
+}
+
+/* ── CTA mouse ripple ──────────────────────────────────────── */
+function ctaRipple(e, btn) {
+  const r = btn.getBoundingClientRect();
+  btn.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+  btn.style.setProperty('--my', ((e.clientY - r.top)  / r.height * 100) + '%');
+}
+
+/* ── Particles ─────────────────────────────────────────────── */
+function spawnParticles() {
+  const wrap = el('particles');
+  if (!wrap) return;
+  for (let i = 0; i < 22; i++) {
+    const p = document.createElement('div');
+    p.className = 'p';
+    const dur  = 10 + Math.random() * 14;
+    const del  = Math.random() * dur;
+    const x    = Math.random() * 100;
+    const dx   = (Math.random() - .5) * 120;
+    const size = 1 + Math.random() * 2.5;
+    p.style.cssText = `left:${x}%;--dur:${dur}s;--del:${-del}s;--dx:${dx}px;width:${size}px;height:${size}px;opacity:${.3+Math.random()*.5}`;
+    wrap.appendChild(p);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SUBSCRIPTIONS SCREEN
+   ══════════════════════════════════════════════════════════════ */
+const PERIOD_LABELS = { 1: '1 месяц', 3: '3 месяца', 12: '12 месяцев' };
+
+// Выбранный период для каждой карты: subId → months
+const subPeriodSel = {};
+
+async function loadSubs() {
+  const grid = el('subGrid');
+  if (!grid) return;
+
+  // Skeleton
+  grid.innerHTML = Array(3).fill(`
+    <div class="sk-gcard">
+      <div class="sk-cover sk" style="height:160px"></div>
+      <div class="sk-body"><div class="sk" style="height:14px;width:60%;border-radius:6px"></div>
+      <div class="sk" style="height:20px;border-radius:6px"></div>
+      <div class="sk" style="height:40px;border-radius:6px"></div></div>
+    </div>`).join('');
+
+  try {
+    const data = await API.products({ type: 'sub', sort: 'popular', limit: 50 });
+    const subs = data.items || [];
+    if (!subs.length) {
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-ico">💎</div><div class="empty-h">Скоро появятся</div><div class="empty-p">Подписки добавляются в ближайшее время</div></div>`;
+      return;
+    }
+    subs.forEach(s => { if (!subPeriodSel[s.id]) subPeriodSel[s.id] = 1; });
+    grid.innerHTML = subs.map(s => subCard(s)).join('');
+  } catch (e) {
+    console.error(e);
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-ico">⚠️</div><div class="empty-h">Ошибка загрузки</div><div class="empty-p">Не удалось загрузить подписки</div><button class="empty-btn" onclick="loadSubs()">Повторить</button></div>`;
+  }
+}
+
+function subCard(s) {
+  const periods = s.meta?.periods || {};
+  const hasPeriods = Object.keys(periods).length > 0;
+  const sel = subPeriodSel[s.id] || 1;
+  const price = hasPeriods ? (periods[sel] ?? s.price) : s.price;
+  const features = s.meta?.features || [];
+  const isFeat = s.isFeatured;
+  const bgGrads = {
+    11: 'linear-gradient(135deg,#003791 0%,#0066cc 100%)',
+    12: 'linear-gradient(135deg,#1a4050 0%,#0a7055 100%)',
+    13: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)',
+  };
+  const bg = bgGrads[s.id] || 'linear-gradient(135deg,#1a1a2e 0%,#2a2050 100%)';
+
+  return `
+    <div class="sub-card${isFeat?' featured':''}" id="sc-${s.id}">
+      <div class="sub-cover" style="background:${bg}">
+        ${s.image ? `<img src="${esc(s.image)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">` : ''}
+        <div class="sub-cover-grad"></div>
+        <div class="sub-cover-emoji">${esc(s.emoji||'💎')}</div>
+        ${isFeat ? '<div class="sub-feat-badge">Популярное</div>' : ''}
+      </div>
+      <div class="sub-body">
+        <div class="sub-tier">${esc(s.edition||s.platform||'')}</div>
+        <div class="sub-name">${esc(s.name)}</div>
+        ${s.description ? `<div class="sub-desc">${esc(s.description)}</div>` : ''}
+        ${features.length ? `<div class="sub-features">${features.map(f=>`<div class="sub-feat">${esc(f)}</div>`).join('')}</div>` : ''}
+        ${hasPeriods ? `
+          <div class="sub-periods">
+            ${Object.entries(periods).map(([mo,pr]) => `
+              <div class="period-row${sel==mo?' on':''}" onclick="selectSubPeriod(${s.id},${mo})">
+                <span class="period-label">${PERIOD_LABELS[mo]||mo+' мес.'}</span>
+                <span class="period-price">${fmt(pr)}</span>
+              </div>`).join('')}
+          </div>` : ''}
+        <button class="sub-buy-btn${s.inStock?'':' disabled'}" onclick="addSubToCart(${s.id})"
+          ${!s.inStock ? 'disabled' : ''}>
+          ${s.inStock ? '🛒 Добавить в корзину — ' + fmt(price) : 'Нет в наличии'}
+        </button>
+      </div>
+    </div>`;
+}
+
+function selectSubPeriod(subId, months) {
+  subPeriodSel[subId] = months;
+  // Re-render only that card
+  API.product(subId).then(s => {
+    const cell = el('sc-' + subId);
+    if (cell) cell.outerHTML = subCard(s);
+  }).catch(() => {});
+}
+
+function addSubToCart(subId) {
+  const s = (window.SEED?.products || []).find(p => p.id === subId) || { id: subId };
+  const period = subPeriodSel[subId] || 1;
+  const existing = cart.find(i => i.id === subId && i.period === period);
+  if (existing) { toast('Уже в корзине', 'ok'); return; }
+  cart.push({ id: subId, period });
+  saveCart();
+  updateBadges();
+  toast('Добавлено в корзину');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GAMES SCREEN
+   ══════════════════════════════════════════════════════════════ */
+let gamesState = { q: '', sort: 'popular', page: 1, cat: '' };
+let gamesSearchTimer;
+
+async function loadGames() {
+  const grid   = el('gamesGrid');
+  const pager  = el('gamesPager');
+  const cntEl  = el('gamesCnt');
+  if (!grid) return;
+
+  gamesState.sort = el('gamesSort')?.value || 'popular';
+  gamesState.page = gamesState.page || 1;
+
+  // Skeleton
+  grid.innerHTML = Array(8).fill(`
+    <div class="sk-gcard">
+      <div class="sk-cover sk" style="height:110px"></div>
+      <div class="sk-body"><div class="sk" style="height:10px;width:50%;border-radius:4px"></div>
+      <div class="sk" style="height:14px;border-radius:5px"></div>
+      <div class="sk" style="height:14px;width:70%;border-radius:5px"></div>
+      <div class="sk" style="height:32px;border-radius:8px;margin-top:6px"></div></div>
+    </div>`).join('');
+
+  try {
+    const params = { type: 'game', sort: gamesState.sort, page: gamesState.page, limit: 20 };
+    if (gamesState.q) params.q = gamesState.q;
+    if (gamesState.cat) params.category = gamesState.cat;
+
+    const data = await API.products(params);
+    const items = data.items || [];
+    const total = data.total || 0;
+
+    if (cntEl) cntEl.textContent = `${total.toLocaleString('ru-RU')} ${plural(total,'игра','игры','игр')}`;
+
+    if (!items.length) {
+      grid.innerHTML = `<div class="empty"><div class="empty-ico">🎮</div><div class="empty-h">Ничего не найдено</div>
+        <div class="empty-p">Попробуйте другой запрос или уберите фильтры</div>
+        <button class="empty-btn" onclick="resetGames()">Сбросить</button></div>`;
+      if (pager) pager.innerHTML = '';
+      return;
+    }
+
+    grid.innerHTML = items.map(gameCard).join('');
+    renderGamesPager(data.page, data.pages);
+  } catch (e) {
+    console.error(e);
+    grid.innerHTML = `<div class="empty"><div class="empty-ico">⚠️</div><div class="empty-h">Ошибка</div>
+      <button class="empty-btn" onclick="loadGames()">Повторить</button></div>`;
+  }
+}
+
+function gameCard(p) {
+  const disc = discPct(p.price, p.oldPrice);
+  const inCart = cart.some(i => i.id === p.id);
+  const imgH = p.image ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">` : '';
+  const badge = p.isNew ? '<div class="gbadge b-new">NEW</div>'
+    : p.isSale || p.oldPrice ? '<div class="gbadge b-sale">SALE</div>'
+    : p.isPreorder ? '<div class="gbadge b-pre">PRE</div>'
+    : '';
+  return `
+    <div class="gcard" onclick="openProduct(${p.id})">
+      <div class="gcard-cover">
+        ${imgH || `<span style="font-size:38px">${esc(p.emoji||'🎮')}</span>`}
+        ${badge}
+        ${disc>=5 ? `<div class="gdisc">−${disc}%</div>` : ''}
+      </div>
+      <div class="gcard-body">
+        <div class="gcard-plat">${esc(p.platform||'PlayStation')}</div>
+        <div class="gcard-name">${esc(p.name)}</div>
+        <div class="gcard-prices">
+          <div class="gcard-price">${fmt(p.price)}</div>
+          ${p.oldPrice ? `<div class="gcard-old">${fmt(p.oldPrice)}</div>` : ''}
+        </div>
+        <button class="gcard-add${inCart?' added':''}${!p.inStock?' oos':''}"
+          onclick="event.stopPropagation();quickAdd(${p.id},this)"
+          ${!p.inStock?'disabled':''}>
+          ${!p.inStock ? 'Нет в наличии' : inCart ? '✓ В корзине' : '+ В корзину'}
+        </button>
+      </div>
+    </div>`;
+}
+
+function renderGamesPager(page, pages) {
+  const pager = el('gamesPager');
+  if (!pager || pages <= 1) { if (pager) pager.innerHTML = ''; return; }
+  let html = '';
+  const range = [];
+  for (let i = 1; i <= pages; i++) {
+    if (i===1||i===pages||Math.abs(i-page)<=1) range.push(i);
+    else if (range[range.length-1]!=='…') range.push('…');
+  }
+  range.forEach(r => {
+    if (r==='…') { html += `<button class="pg-btn" disabled>…</button>`; }
+    else { html += `<button class="pg-btn${r===page?' on':''}" onclick="gamesGoPage(${r})">${r}</button>`; }
+  });
+  pager.innerHTML = html;
+}
+
+function gamesGoPage(n) {
+  gamesState.page = n;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  loadGames();
+}
+function resetGames() {
+  gamesState = { q:'', sort:'popular', page:1, cat:'' };
+  el('gamesSearch').value = '';
+  el('gamesSort').value = 'popular';
+  // reset chips
+  document.querySelectorAll('#gamesChips .chip').forEach(c => c.classList.remove('on'));
+  document.querySelector('#gamesChips .chip')?.classList.add('on');
+  loadGames();
+}
+function onGamesSearch() {
+  clearTimeout(gamesSearchTimer);
+  gamesSearchTimer = setTimeout(() => {
+    gamesState.q = el('gamesSearch')?.value || '';
+    gamesState.page = 1;
+    loadGames();
+  }, 380);
+}
+
+async function loadGamesChips() {
+  const wrap = el('gamesChips');
+  if (!wrap) return;
+  try {
+    const cats = await API.categories();
+    const gameCats = (cats||[]).filter(c => !c.hidden && (c.type==='game'||c.slug==='games'));
+    const chips = [{ id:'', title:'Все' }, ...gameCats];
+    wrap.innerHTML = chips.map(c=>`
+      <div class="chip${c.id===''?' on':''}" onclick="setGamesCat('${c.id}')" data-cat="${c.id}">
+        ${esc(c.title)}
+      </div>`).join('');
+  } catch {}
+}
+
+function setGamesCat(catId) {
+  gamesState.cat = catId;
+  gamesState.page = 1;
+  document.querySelectorAll('#gamesChips .chip').forEach(c => c.classList.toggle('on', c.dataset.cat===catId));
+  loadGames();
+}
+
+/* Pager button CSS (added dynamically to avoid duplication) */
+(function(){
+  const s = document.createElement('style');
+  s.textContent=`.pg-btn{min-width:36px;height:36px;border-radius:9px;background:var(--bg2);border:1.5px solid var(--div2);font-size:13px;font-weight:700;cursor:pointer;transition:all .18s;color:var(--t2)}.pg-btn.on{background:var(--blue3);border-color:var(--blue3);color:#fff}.pg-btn:disabled{opacity:.35;cursor:default}.pg-btn:not(.on):not(:disabled):hover{border-color:var(--blue3);color:var(--blue3)}`;
+  document.head.appendChild(s);
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   PRODUCT MODAL
+   ══════════════════════════════════════════════════════════════ */
+let modalProduct = null;
+let modalPeriod  = 1;
+
+async function openProduct(id) {
+  const modal = el('pModal');
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  // Reset
+  el('pmHero').innerHTML = '<div style="font-size:56px">⏳</div>';
+  el('pmTitle').textContent = ''; el('pmEdition').textContent = '';
+  el('pmSeg').innerHTML = ''; el('pmPrice').textContent = '';
+  el('pmOld').textContent = ''; el('pmDisc').innerHTML = '';
+  el('pmStock').innerHTML = ''; el('pmFeatWrap').innerHTML = '';
+  el('pmDescSec').style.display = 'none'; el('pmDesc').textContent = '';
+  el('pmSpecWrap').innerHTML = '';
+  el('pmBuy').textContent = 'В корзину';
+
+  // Back + Wish buttons
+  const existBack = modal.querySelector('.modal-back');
+  if (!existBack) {
+    const bb = document.createElement('button');
+    bb.className = 'modal-back';
+    bb.setAttribute('aria-label','Назад');
+    bb.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>';
+    bb.onclick = closeModal;
+    el('pmHero').appendChild(bb);
+  }
+  const existWish = modal.querySelector('.modal-wish');
+  if (!existWish) {
+    const wb = document.createElement('button');
+    wb.id = 'pmWishBtn'; wb.className = 'modal-wish'; wb.setAttribute('aria-label','Избранное');
+    wb.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+    wb.onclick = () => toggleWish(id);
+    el('pmHero').appendChild(wb);
+  }
+
+  try {
+    const p = await API.product(id);
+    modalProduct = p; modalPeriod = 1;
+    renderModal(p);
+  } catch (e) {
+    el('pmTitle').textContent = 'Ошибка загрузки';
+  }
+}
+
+function renderModal(p) {
+  // Hero image
+  let heroHTML = '';
+  if (p.image) heroHTML = `<img src="${esc(p.image)}" alt="${esc(p.name)}">`;
+  else heroHTML = `<div style="font-size:80px;line-height:1;filter:drop-shadow(0 8px 24px rgba(0,0,0,.5))">${esc(p.emoji||'🎮')}</div>`;
+  heroHTML += '<div class="modal-hero-grad"></div>';
+  // Re-add back/wish buttons
+  heroHTML += `<button class="modal-back" onclick="closeModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>`;
+  const inWish = wishlist.includes(p.id);
+  heroHTML += `<button id="pmWishBtn" class="modal-wish${inWish?' active':''}" onclick="toggleWish(${p.id})"><svg width="16" height="16" viewBox="0 0 24 24" fill="${inWish?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>`;
+  el('pmHero').innerHTML = heroHTML;
+
+  el('pmPlat').textContent = p.platform || '';
+  el('pmTitle').textContent = p.name;
+  el('pmEdition').textContent = p.edition || '';
+
+  // Periods (for subs)
+  const periods = p.meta?.periods || {};
+  if (p.type === 'sub' && Object.keys(periods).length > 0) {
+    const LABELS = { 1:'1 месяц', 3:'3 месяца', 12:'12 месяцев' };
+    el('pmSeg').innerHTML = Object.entries(periods).map(([mo])=>`
+      <button class="seg-btn${+mo===modalPeriod?' on':''}" onclick="setPeriod(${mo})">${LABELS[mo]||mo+' мес.'}</button>
+    `).join('');
+  } else {
+    el('pmSeg').innerHTML = '';
+  }
+
+  updateModalPrice(p);
+
+  // Stock
+  const stk = el('pmStock');
+  if (p.inStock) {
+    stk.className = 'stock-line in-stock';
+    stk.innerHTML = '<span class="dot"></span> В наличии';
+  } else {
+    stk.className = 'stock-line no-stock';
+    stk.innerHTML = '<span class="dot"></span> Нет в наличии';
+  }
+  el('pmBuy').disabled = !p.inStock;
+
+  // Features
+  const feats = p.meta?.features || [];
+  el('pmFeatWrap').innerHTML = feats.length ? `
+    <div class="modal-sec">Что входит</div>
+    ${feats.map(f=>`<div class="feat"><div class="feat-d"></div><span>${esc(f)}</span></div>`).join('')}` : '';
+
+  // Description
+  if (p.description) {
+    el('pmDescSec').style.display = 'block';
+    el('pmDesc').textContent = p.description;
+  } else {
+    el('pmDescSec').style.display = 'none';
+  }
+
+  // Specs
+  const meta = p.meta || {};
+  const specKeys = { size:'Размер', players:'Игроки', rating:'Рейтинг' };
+  const specs = Object.entries(specKeys).filter(([k]) => meta[k]);
+  el('pmSpecWrap').innerHTML = specs.length ? `
+    <div class="modal-sec">Характеристики</div>
+    ${specs.map(([k,l])=>`<div class="spec"><span class="spec-l">${l}</span><span class="spec-v">${esc(meta[k])}</span></div>`).join('')}` : '';
+}
+
+function updateModalPrice(p) {
+  const periods = p.meta?.periods || {};
+  const price = (p.type==='sub' && Object.keys(periods).length > 0)
+    ? (periods[modalPeriod] ?? p.price)
+    : p.price;
+
+  el('pmPrice').textContent = fmt(price);
+  if (p.oldPrice && p.oldPrice > price) {
+    el('pmOld').textContent = fmt(p.oldPrice);
+    const d = discPct(price, p.oldPrice);
+    el('pmDisc').innerHTML = d ? `<div class="pb-disc">−${d}%</div>` : '';
+  } else {
+    el('pmOld').textContent = '';
+    el('pmDisc').innerHTML = '';
+  }
+  el('pmBuy').textContent = `В корзину — ${fmt(price)}`;
+}
+
+function setPeriod(mo) {
+  modalPeriod = +mo;
+  document.querySelectorAll('#pmSeg .seg-btn').forEach(b =>
+    b.classList.toggle('on', +b.textContent.trim().startsWith(mo)?true:false));
+  document.querySelectorAll('#pmSeg .seg-btn').forEach((b,_,arr) => {
+    const labels={1:'1 месяц',3:'3 месяца',12:'12 месяцев'};
+    b.classList.toggle('on', b.textContent.trim()===labels[mo]);
+  });
+  if (modalProduct) updateModalPrice(modalProduct);
+}
+
+function closeModal() {
+  el('pModal')?.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function toggleWish(id) {
+  const idx = wishlist.indexOf(id);
+  if (idx >= 0) { wishlist.splice(idx,1); toast('Убрано из избранного'); }
+  else { wishlist.push(id); toast('Добавлено в избранное ♡'); }
+  saveWish(); updateBadges();
+  const btn = el('pmWishBtn');
+  if (btn) {
+    const inWish = wishlist.includes(id);
+    btn.classList.toggle('active', inWish);
+    btn.querySelector('svg')?.setAttribute('fill', inWish ? 'currentColor' : 'none');
+  }
+}
+
+function buyFromModal() {
+  if (!modalProduct) return;
+  const p = modalProduct;
+  const key = p.type==='sub' ? p.id+'-'+modalPeriod : p.id;
+  const existing = cart.find(i => (p.type==='sub' ? i.id===p.id&&i.period===modalPeriod : i.id===p.id));
+  if (!existing) {
+    cart.push(p.type==='sub' ? {id:p.id, period:modalPeriod} : {id:p.id});
+    saveCart(); updateBadges();
+  }
+  toast(existing ? 'Уже в корзине' : 'Добавлено в корзину 🛒');
+}
+
+function quickAdd(id, btn) {
+  if (cart.some(i=>i.id===id)) { toast('Уже в корзине'); return; }
+  cart.push({id});
+  saveCart(); updateBadges();
+  btn.textContent = '✓ В корзине';
+  btn.classList.add('added');
+  toast('Добавлено в корзину 🛒');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   WISH + CART SCREENS
+   ══════════════════════════════════════════════════════════════ */
+function productInfo(id) {
+  return SEED.products.find(p => p.id === id) || { id, name: 'Товар #'+id, price: 0, emoji:'📦' };
+}
+
+function renderWish() {
+  const host = el('wishContent');
+  if (!host) return;
+  if (!wishlist.length) {
+    host.innerHTML = `<div class="empty"><div class="empty-ico">♡</div><div class="empty-h">Избранное пусто</div><div class="empty-p">Добавляйте товары с помощью значка сердца</div></div>`;
+    return;
+  }
+  host.innerHTML = wishlist.map(id => {
+    const p = productInfo(id);
+    return `<div class="litem">
+      <div class="li-cov" onclick="openProduct(${id})">${p.image?`<img src="${esc(p.image)}" alt="">`:(p.emoji||'📦')}</div>
+      <div class="li-inf" onclick="openProduct(${id})">
+        <div class="li-name">${esc(p.name)}</div>
+        <div class="li-meta">${esc(p.platform||p.type||'')}</div>
+        <div class="li-price">${fmt(p.price)}</div>
+      </div>
+      <div class="rb rb-add" onclick="wishToCart(${id})" title="В корзину">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      </div>
+      <div class="rb rb-del" onclick="removeWish(${id})" title="Убрать">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function removeWish(id) {
+  wishlist = wishlist.filter(i=>i!==id);
+  saveWish(); updateBadges(); renderWish();
+  toast('Убрано из избранного');
+}
+function wishToCart(id) {
+  if (!cart.some(i=>i.id===id)) { cart.push({id}); saveCart(); updateBadges(); }
+  toast('Добавлено в корзину 🛒');
+}
+
+function renderCart() {
+  const host = el('cartContent');
+  if (!host) return;
+  if (!cart.length) {
+    host.innerHTML = `<div class="empty"><div class="empty-ico">🛒</div><div class="empty-h">Корзина пуста</div><div class="empty-p">Добавьте товары из каталога</div><button class="empty-btn" onclick="go('#/games')">Перейти в каталог</button></div>`;
+    return;
+  }
+
+  let total = 0, saved = 0;
+  const items = cart.map(ci => {
+    const p = productInfo(ci.id);
+    const periods = p.meta?.periods||{};
+    const price = (ci.period && periods[ci.period]) ? periods[ci.period] : p.price;
+    const old = p.oldPrice;
+    if (old && old > price) saved += (old - price);
+    total += price;
+    const PERIOD_L = {1:'1 месяц',3:'3 месяца',12:'12 месяцев'};
+    const meta = ci.period ? PERIOD_L[ci.period]||'' : (p.platform||'');
+    return `<div class="litem">
+      <div class="li-cov" onclick="openProduct(${p.id})">${p.image?`<img src="${esc(p.image)}" alt="">`:(p.emoji||'📦')}</div>
+      <div class="li-inf" onclick="openProduct(${p.id})">
+        <div class="li-name">${esc(p.name)}</div>
+        <div class="li-meta">${esc(meta)}</div>
+        <span class="li-price">${fmt(price)}</span>
+        ${old&&old>price?`<span class="li-old">${fmt(old)}</span>`:''}
+      </div>
+      <div class="rb rb-del" onclick="removeCart(${p.id},${ci.period||'undefined'})" title="Удалить">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </div>
+    </div>`;
+  });
+
+  host.innerHTML = `
+    <div>${items.join('')}</div>
+    <div class="summary">
+      <div class="sum-row"><span>Товаров</span><span>${cart.length}</span></div>
+      ${saved>0?`<div class="sum-div"></div><div class="sum-row"><span>Скидка</span><span style="color:var(--green)">−${fmt(saved)}</span></div>`:''}
+      <div class="sum-div"></div>
+      <div class="sum-total"><span>Итого</span><span>${fmt(total)}</span></div>
+      ${saved>0?`<div class="sum-saved">🎉 Вы экономите ${fmt(saved)}</div>`:''}
+      <button class="btn-primary" onclick="checkout()">Оформить заказ →</button>
+    </div>`;
+}
+
+function removeCart(id, period) {
+  cart = cart.filter(i => !(i.id===id && (period===undefined||i.period===period)));
+  saveCart(); updateBadges(); renderCart();
+}
+
+function checkout() {
+  const items = cart.map(ci => {
+    const p = productInfo(ci.id);
+    const periods = p.meta?.periods||{};
+    const price = (ci.period && periods[ci.period]) ? periods[ci.period] : p.price;
+    return { id:p.id, name:p.name, price, period:ci.period||null };
+  });
+  const total = items.reduce((s,i)=>s+i.price,0);
+  const data = JSON.stringify({ items, total });
+  try {
+    if (window.Telegram?.WebApp?.sendData) {
+      Telegram.WebApp.sendData(data);
+      toast('Заказ отправлен! ✓');
+    } else {
+      console.log('Order:', data);
+      toast('Заказ оформлен! Свяжемся с вами.');
+    }
+  } catch { toast('Заказ отправлен!'); }
+  setTimeout(() => go('#/'), 700);
+}
+
+function clearData() {
+  cart = []; wishlist = [];
+  saveCart(); saveWish(); updateBadges();
+  toast('Данные очищены');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ROUTING
+   ══════════════════════════════════════════════════════════════ */
+function go(hash) {
+  if (location.hash === hash) route();
+  else location.hash = hash;
+}
+
+function setNav(name) {
+  document.querySelectorAll('.bnav-item').forEach(n =>
+    n.classList.toggle('active', n.dataset.nav === name));
+}
+
+function showScreen(id, nav) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const s = el('screen-' + id);
+  if (s) s.classList.add('active');
+  setNav(nav || id);
+  // Show/hide hero WebGL canvas — keep rendering but hide on non-home screens
+  const canvas = el('heroCanvas');
+  if (canvas) {
+    canvas.style.transition = 'opacity .4s';
+    canvas.style.opacity = (id === 'home') ? '1' : '0';
+  }
+  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+}
+
+function route() {
+  if (el('pModal')?.classList.contains('open')) { closeModal(); return; }
+  const h = location.hash || '#/';
+  const parts = h.replace(/^#\//, '').split('/');
+  const root = parts[0] || '';
+
+  if (root === 'subs') {
+    showScreen('subs', 'subs');
+    loadSubs();
+  } else if (root === 'games') {
+    showScreen('games', 'games');
+    loadGamesChips();
+    loadGames();
+  } else if (root === 'wish') {
+    showScreen('wish', 'wish');
+    renderWish();
+  } else if (root === 'cart') {
+    showScreen('cart', 'cart');
+    renderCart();
+  } else if (root === 'profile') {
+    showScreen('profile', 'profile');
+  } else {
+    showScreen('home', 'home');
+  }
+}
+
+window.addEventListener('hashchange', route);
+// Close modal on back gesture (mobile)
+window.addEventListener('popstate', () => {
+  if (el('pModal')?.classList.contains('open')) closeModal();
+});
+
+/* ══════════════════════════════════════════════════════════════
+   INIT
+   ══════════════════════════════════════════════════════════════ */
+async function init() {
+  // Theme
+  const saved = localStorage.getItem('relok_theme');
+  const sys = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  applyTheme(saved || sys);
+
+  // Telegram
+  if (window.Telegram?.WebApp) {
+    try { Telegram.WebApp.ready(); Telegram.WebApp.expand(); } catch {}
+    const u = Telegram.WebApp.initDataUnsafe?.user;
+    if (u) {
+      const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || 'Пользователь';
+      const nameEl = el('profName');
+      const handleEl = el('profHandle');
+      const avaEl = el('profAva');
+      if (nameEl) nameEl.textContent = name;
+      if (handleEl) handleEl.textContent = u.username ? '@'+u.username : 'ID: '+u.id;
+      if (avaEl) avaEl.textContent = (u.first_name||'U')[0].toUpperCase();
+    }
+  }
+
+  spawnParticles();
+  updateBadges();
+  route();
+}
+
+init();
+
+// Globals for inline handlers
+Object.assign(window, {
+  go, toggleTheme, ctaRipple,
+  openProduct, closeModal, buyFromModal, quickAdd, toggleWish, setPeriod,
+  loadSubs, selectSubPeriod, addSubToCart,
+  loadGames, onGamesSearch, gamesGoPage, resetGames, setGamesCat,
+  renderWish, removeWish, wishToCart,
+  renderCart, removeCart, checkout,
+  clearData,
+});

@@ -1,0 +1,14 @@
+{
+  "name": "relok-store",
+  "version": "1.0.0",
+  "description": "Релок — магазин PlayStation Турция (Telegram Mini App) с витриной, каталогом и админ-панелью",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}
