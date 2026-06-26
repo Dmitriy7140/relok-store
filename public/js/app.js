@@ -739,13 +739,6 @@ function renderCheckoutForm(item) {
         <div class="form-err">Укажите корректный email</div>
       </div>
 
-      <div class="form-group" id="ff-emailPass">
-        <label class="form-label">Пароль от почты<span class="req">*</span></label>
-        <input class="form-input" id="of-emailPass" type="password"
-               placeholder="Пароль от email" autocomplete="current-password">
-        <div class="form-err">Укажите пароль от почты</div>
-      </div>
-
       <div class="form-group" id="ff-accLogin">
         <label class="form-label">Данные об аккаунте<span class="req">*</span></label>
         <input class="form-input" id="of-accLogin" type="text"
@@ -788,7 +781,6 @@ async function submitOrder() {
   }
 
   const email     = check('of-email',     'ff-email',     v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v));
-  const emailPass = check('of-emailPass', 'ff-emailPass');
   const accLogin  = check('of-accLogin',  'ff-accLogin');
   const accPass   = check('of-accPass',   'ff-accPass');
   const comment   = el('of-comment')?.value?.trim() || '';
@@ -811,7 +803,6 @@ async function submitOrder() {
     comment,
     meta: {
       email,
-      emailPass,    // пароль от почты
       accLogin,     // данные аккаунта
       accPass,      // пароль от аккаунта
       period:   _checkoutItem.period   || null,

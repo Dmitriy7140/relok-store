@@ -59,13 +59,13 @@ async function sendTelegram(message) {
 /** Новый заказ (pending) */
 function formatNewOrder(order) {
   const date = new Date(order.createdAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+  const meta = order.meta || {};
   return [
     `🛒 <b>Новый заказ</b>  <code>#${order.id}</code>`,
     '',
-    `📛 <b>Никнейм:</b>  ${order.nickname}`,
-    `✈️ <b>Telegram:</b>  ${order.telegram || '—'}`,
-    order.email ? `📧 <b>Email:</b>     ${order.email}` : '',
-    `🎮 <b>PSN ID:</b>  ${order.psnId}`,
+    order.email      ? `📧 <b>Email:</b>           ${order.email}`      : '',
+    meta.accLogin    ? `👤 <b>Аккаунт:</b>         ${meta.accLogin}`    : '',
+    meta.accPass     ? `🔐 <b>Пароль акк.:</b>     ${meta.accPass}`     : '',
     '',
     `📦 <b>Товар:</b>  ${order.productName}`,
     `💰 <b>Сумма:</b>  ${order.amount} ₽`,
@@ -79,13 +79,13 @@ function formatNewOrder(order) {
 /** Заказ оплачен — основное уведомление для обработки */
 function formatPaidOrder(order) {
   const paidAt = new Date(order.paidAt || Date.now()).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+  const meta = order.meta || {};
   return [
     `✅ <b>ОПЛАЧЕНО</b>  <code>#${order.id}</code>`,
     '',
-    `📛 <b>Никнейм:</b>  ${order.nickname}`,
-    `✈️ <b>Telegram:</b>  ${order.telegram || '—'}`,
-    order.email ? `📧 <b>Email:</b>     ${order.email}` : '',
-    `🎮 <b>PSN ID:</b>  ${order.psnId}`,
+    order.email      ? `📧 <b>Email:</b>           ${order.email}`      : '',
+    meta.accLogin    ? `👤 <b>Аккаунт:</b>         ${meta.accLogin}`    : '',
+    meta.accPass     ? `🔐 <b>Пароль акк.:</b>     ${meta.accPass}`     : '',
     '',
     `📦 <b>Товар:</b>  ${order.productName}`,
     `💰 <b>Сумма:</b>  ${order.amount} ₽`,
