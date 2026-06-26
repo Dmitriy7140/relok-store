@@ -3,716 +3,1407 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Logovo PlayStation</title>
-<meta name="theme-color" content="#06050f">
+<title>Logovo — PlayStation Store</title>
+<meta name="theme-color" content="#080810">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+/* ══ DESIGN TOKENS ══════════════════════════════════════════ */
 :root{
-  --bg:#06050f;--bg1:#0e0c1e;--bg2:#161428;--bg3:#1e1c34;--bg4:#282640;--bg5:#34324e;
-  --div:rgba(255,255,255,.1);--div2:rgba(255,255,255,.065);--div3:rgba(255,255,255,.035);
-  --t1:#ffffff;--t2:rgba(255,255,255,.72);--t3:rgba(255,255,255,.44);--t4:rgba(255,255,255,.22);
-  --blue:#1d6fff;--blue2:#4d8fff;--blue3:#2e7dff;--blue4:#7ab4ff;
-  --purple:#7c3aed;--purple2:#9d5ff0;
-  --pink:#e91e8c;--pink2:#ff4db8;
-  --accent:linear-gradient(135deg,#7c3aed 0%,#1d6fff 60%,#0ff 120%);
-  --accent-glow:rgba(124,58,237,.35);
-  --blue-d:rgba(46,125,255,.14);--blue-d2:rgba(46,125,255,.07);
-  --green:#30d158;--red:#ff453a;--amber:#ffb020;--cyan:#00e5ff;
-  --r:12px;--r2:16px;--r3:20px;--r4:28px;
-  --shadow:0 24px 80px -16px rgba(0,0,0,.95);
-  --shadow2:0 8px 32px -8px rgba(0,0,0,.7);
-  --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
-  --nb:62px;--maxw:1100px;
+  /* Surface */
+  --bg:   #080810;
+  --s1:   #0d0d1a;
+  --s2:   #111120;
+  --s3:   #161628;
+  --s4:   #1c1c30;
+  --s5:   #222238;
+
+  /* Border */
+  --b1: rgba(255,255,255,.06);
+  --b2: rgba(255,255,255,.09);
+  --b3: rgba(255,255,255,.14);
+
+  /* Text */
+  --tx1: #f1f0fb;
+  --tx2: rgba(241,240,251,.6);
+  --tx3: rgba(241,240,251,.36);
+  --tx4: rgba(241,240,251,.18);
+
+  /* Brand — refined violet-indigo */
+  --v:   #6366f1;   /* indigo */
+  --v2:  #818cf8;   /* indigo light */
+  --v3:  #4f46e5;   /* indigo dark */
+  --vg:  rgba(99,102,241,.12);
+  --vgb: rgba(99,102,241,.22);
+
+  /* Accent — hot rose for GTA/special */
+  --rose: #f43f5e;
+  --roseg: rgba(244,63,94,.12);
+
+  /* Status */
+  --green: #22c55e;
+  --red:   #ef4444;
+  --amber: #f59e0b;
+
+  /* Spacing scale */
+  --sp1: 4px; --sp2: 8px; --sp3: 12px; --sp4: 16px;
+  --sp5: 20px; --sp6: 24px; --sp8: 32px; --sp10: 40px;
+
+  /* Radius */
+  --r1: 6px; --r2: 10px; --r3: 14px; --r4: 18px; --r5: 24px;
+
+  /* Safe areas & nav */
+  --safe-t: env(safe-area-inset-top,  0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --nb: 58px;
+  --topbar: 52px;
+  --maxw: 1120px;
 }
+
 [data-theme="light"]{
-  --bg:#f0eeff;--bg1:#ffffff;--bg2:#f5f3ff;--bg3:#eceaff;--bg4:#e3e0ff;
-  --div:rgba(0,0,0,.08);--div2:rgba(0,0,0,.055);--div3:rgba(0,0,0,.03);
-  --t1:#0a0818;--t2:rgba(10,8,24,.68);--t3:rgba(10,8,24,.44);--t4:rgba(10,8,24,.22);
-  --shadow:0 16px 56px -16px rgba(40,20,100,.2);--shadow2:0 6px 24px -8px rgba(40,20,100,.15);
+  --bg:   #f8f8fc;
+  --s1:   #ffffff;
+  --s2:   #f3f3f9;
+  --s3:   #ebebf5;
+  --s4:   #e2e2ee;
+  --s5:   #d8d8e8;
+  --b1: rgba(0,0,0,.05);
+  --b2: rgba(0,0,0,.07);
+  --b3: rgba(0,0,0,.11);
+  --tx1: #0f0f1f;
+  --tx2: rgba(15,15,31,.6);
+  --tx3: rgba(15,15,31,.38);
+  --tx4: rgba(15,15,31,.18);
 }
-html,body{
-  height:100%;
-  overflow:hidden; /* NO body scroll — screens scroll internally */
-}
-body{
-  background:var(--bg);
-  color:var(--t1);
-  font-family:'Inter',system-ui,-apple-system,sans-serif;
-  -webkit-font-smoothing:antialiased;
-  overflow-x:hidden;
-}
-button{font-family:inherit;border:none;cursor:pointer;background:none;color:inherit}
+
+/* ══ RESET ══ */
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--tx1);font-family:'Inter',-apple-system,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;overflow-x:hidden}
+button{font-family:inherit;border:none;cursor:pointer;background:none;color:inherit;line-height:inherit}
 input,select,textarea{font-family:inherit;outline:none;border:none;background:none;color:inherit}
 *{scrollbar-width:none}*::-webkit-scrollbar{display:none}
-a{color:inherit;text-decoration:none}
 
-@keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+/* ══ ANIMATIONS ══ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes float{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-16px) rotate(1deg)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-@keyframes shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
-@keyframes glow-pulse{0%,100%{box-shadow:0 0 30px -5px var(--accent-glow)}50%{box-shadow:0 0 60px -5px var(--accent-glow),0 0 100px -10px rgba(124,58,237,.2)}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes slide-in-r{from{transform:translateX(100%);opacity:0}to{transform:none;opacity:1}}
-@keyframes wave{0%,100%{transform:scaleX(1)}50%{transform:scaleX(1.04)}}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
-/* ══ SCREENS — SPA model ══
-   Each screen fills the full viewport and scrolls internally.
-   Body/html never scroll. */
-.screen{
-  display:none;
-  position:fixed;
-  inset:0;
-  bottom:var(--nb); /* leave room for bottom nav */
-  overflow-y:auto;
-  overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;
-  background:var(--bg);
-}
-.screen.active{
-  display:block;
-  animation:fadeUp .28s cubic-bezier(.22,1,.36,1) both;
-}
-/* Home screen has no padding-bottom since it has its own content-zone */
-#screen-home{
-  padding-bottom:0;
-}
-#offlinePill{display:none;position:fixed;top:calc(var(--safe-t)+10px);left:50%;transform:translateX(-50%);background:var(--red);color:#fff;font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;z-index:999;box-shadow:0 4px 20px rgba(255,69,58,.5)}
+/* ══ SCREENS ══ */
+.screen{display:none;position:fixed;inset:0;bottom:var(--nb);overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;background:var(--bg)}
+.screen.active{display:block;animation:fadeUp .22s cubic-bezier(.16,1,.3,1) both}
+#screen-home{padding-bottom:0}
 
 /* ══ TOPBAR ══ */
-.topbar{position:fixed;top:0;left:0;right:0;z-index:60;
-  background:color-mix(in srgb,var(--bg) 72%,transparent);
-  backdrop-filter:blur(32px) saturate(160%);-webkit-backdrop-filter:blur(32px) saturate(160%);
-  border-bottom:1px solid var(--div2)}
-.topbar-in{max-width:var(--maxw);margin:0 auto;display:flex;align-items:center;gap:10px;
-  padding:calc(10px + var(--safe-t)) 16px 10px}
-.brand{display:flex;align-items:center;gap:9px;font-size:17px;font-weight:900;letter-spacing:-.4px;cursor:pointer;flex-shrink:0;user-select:none}
-.brand-mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#7c3aed,#2e7dff);display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0;box-shadow:0 3px 12px -2px var(--accent-glow)}
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:80;height:calc(var(--topbar) + var(--safe-t));
+  display:flex;align-items:flex-end;
+  padding:0 var(--sp4) var(--sp3);
+  background:color-mix(in srgb,var(--bg) 80%,transparent);
+  backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--b1);
+}
+.topbar-inner{
+  display:flex;align-items:center;width:100%;max-width:var(--maxw);margin:0 auto;gap:var(--sp3);
+}
+.brand{display:flex;align-items:center;gap:var(--sp2);cursor:pointer;user-select:none;flex-shrink:0}
+.brand-logo{
+  width:28px;height:28px;border-radius:var(--r2);
+  background:var(--v);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff;letter-spacing:-.3px;
+  box-shadow:0 0 0 1px rgba(99,102,241,.3);
+}
+.brand-name{font-size:15px;font-weight:700;letter-spacing:-.4px;color:var(--tx1)}
+.brand-name span{color:var(--tx3);font-weight:500}
 .topbar-gap{flex:1}
-.icon-btn{width:38px;height:38px;border-radius:11px;background:var(--bg2);border:1px solid var(--div2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .14s,background .18s;position:relative}
-.icon-btn:hover{background:var(--bg3)}
-.icon-btn:active{transform:scale(.88)}
-.badge{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;background:var(--red);color:#fff;font-size:9px;font-weight:800;display:none;align-items:center;justify-content:center;padding:0 3px;border:2px solid var(--bg)}
-.theme-btn{width:38px;height:38px;border-radius:11px;background:var(--bg2);border:1px solid var(--div2);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:transform .14s,background .18s}
-.theme-btn:hover{background:var(--bg3)}
-.theme-btn:active{transform:scale(.88)}
+.topbar-btn{
+  width:34px;height:34px;border-radius:var(--r2);
+  display:flex;align-items:center;justify-content:center;
+  background:var(--s2);border:1px solid var(--b1);
+  color:var(--tx2);position:relative;
+  transition:background .15s,color .15s;flex-shrink:0;
+}
+.topbar-btn:hover{background:var(--s3);color:var(--tx1)}
+.topbar-btn:active{transform:scale(.93);transition-duration:.08s}
+.tbadge{
+  position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;
+  border-radius:8px;background:var(--rose);color:#fff;
+  font-size:9px;font-weight:700;display:none;align-items:center;
+  justify-content:center;padding:0 3px;border:1.5px solid var(--bg);
+  letter-spacing:0;
+}
+.theme-toggle{width:34px;height:34px;border-radius:var(--r2);background:var(--s2);
+  border:1px solid var(--b1);display:flex;align-items:center;justify-content:center;
+  font-size:14px;transition:background .15s;color:var(--tx2);flex-shrink:0}
+.theme-toggle:hover{background:var(--s3)}
+.theme-toggle:active{transform:scale(.93)}
 
 /* ══ HOME HERO ══ */
-/* screen-home gets its own styles via .screen above */
+#screen-home{overflow-y:hidden}
 
-/* Canvas zone — top portion */
-.hero-canvas-zone{
+.hero-block{
   position:relative;
-  width:100%;
-  height:clamp(220px, 42vw, 380px);
-  flex-shrink:0;
-  overflow:hidden;
-  padding-top:calc(52px + var(--safe-t));
-  background:linear-gradient(180deg,#06040f 0%,#0c0820 60%,#08051a 100%);
-}
-#heroCanvas{
-  position:absolute;
-  top:0; left:0;
-  display:block;
-  width:100%;
+  width:100%;background:#02010a;overflow:hidden;
+  /* screen is already position:fixed with bottom:nb — so height:100% fills it */
   height:100%;
-  pointer-events:none;
+  min-height:460px;
+  display:flex;flex-direction:column;
 }
-.hero-canvas-zone::after{
-  content:'';
-  position:absolute;
-  bottom:0; left:0; right:0;
-  height:60px;
-  background:linear-gradient(transparent, var(--bg));
-  pointer-events:none;
+.hero-svg{
+  position:absolute;inset:0;width:100%;height:100%;
+  pointer-events:none; /* SVG must not block nav button taps */
 }
 
-/* Content zone — sits below canvas, inside the scrollable screen */
-.hero-content-zone{
-  background:var(--bg);
-  position:relative;
-  z-index:2;
-  width:100%;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  padding:16px 18px 24px;
-}
-.hero-content{
+.hero-over{
+  position:relative;z-index:4;
   text-align:center;
-  max-width:560px;
-  width:100%;
+  /* push from top by topbar height */
+  padding:calc(var(--topbar) + var(--safe-t) + 12px) 20px 0;
+  flex-shrink:0;
+  /* max half the block so gamepad stays visible */
+  max-height:50%;
 }
-
-/* Non-home screens already have background from .screen */
-.screen:not(#screen-home).active{
-  background:var(--bg);
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:7px;
+  background:rgba(99,102,241,.10);border:1px solid rgba(99,102,241,.22);
+  border-radius:20px;padding:5px 14px 5px 10px;
+  font-size:11px;font-weight:600;letter-spacing:.04em;
+  color:rgba(200,198,255,.75);margin-bottom:16px;
 }
-body.not-home #heroCanvas{ opacity:0; transition:opacity .3s }
+.hero-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,#818cf8,#c084fc);flex-shrink:0}
+.hero-title{
+  font-size:clamp(26px,6vw,48px);
+  font-weight:800;letter-spacing:-1.2px;line-height:1.06;
+  color:#fff;margin-bottom:12px;
+  text-shadow:0 2px 32px rgba(0,0,0,.9),0 0 60px rgba(99,102,241,.3);
+}
+.hero-title span{
+  background:linear-gradient(135deg,#a5b4fc 0%,#818cf8 45%,#c084fc 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-desc{
+  font-size:clamp(12px,1.8vw,14px);color:rgba(220,218,255,.42);
+  line-height:1.65;margin-bottom:22px;
+  text-shadow:0 1px 12px rgba(0,0,0,.95);
+}
+.hero-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
+.hbtn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:11px 22px;border-radius:10px;
+  font-size:13px;font-weight:600;letter-spacing:-.15px;
+  cursor:pointer;border:none;
+  transition:opacity .15s,transform .15s;white-space:nowrap;
+}
+.hbtn:active{transform:scale(.96)}
+.hbtn-p{background:#6366f1;color:#fff;box-shadow:0 0 0 1px rgba(99,102,241,.4),0 8px 24px rgba(99,102,241,.35)}
+.hbtn-p:hover{opacity:.88}
+.hbtn-s{background:rgba(255,255,255,.07);color:rgba(255,255,255,.82);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(8px)}
+.hbtn-s:hover{background:rgba(255,255,255,.12)}
+.hero-tags{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+.hero-tag{font-size:11px;color:rgba(255,255,255,.22)}
+.hero-tag-sep{width:2px;height:2px;border-radius:50%;background:rgba(255,255,255,.15)}
 
-/* GTA6 BANNER */
-.gta6-banner{
-  display:flex;align-items:center;gap:0;
-  background:linear-gradient(135deg,rgba(15,3,28,.95),rgba(50,8,70,.95));
-  border:1.5px solid rgba(233,30,140,.45);
-  border-radius:16px;margin-bottom:16px;cursor:pointer;
+/* GTA strip */
+.hero-gta{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 16px;cursor:pointer;
+  border-top:1px solid rgba(255,255,255,.05);
+  background:rgba(6,4,16,.92);transition:background .2s;flex-shrink:0;
+}
+.hero-gta:hover{background:rgba(10,6,22,.96)}
+.hero-gta:active{opacity:.85}
+
+/* GTA badge floating inside hero block (between text and gamepad) */
+.hero-gta-float{
+  position:relative;z-index:4;
+  display:flex;align-items:center;gap:10px;
+  margin:10px auto 0;
+  padding:9px 14px;
+  max-width:280px;width:calc(100% - 32px);
+  background:rgba(8,4,20,.78);
+  border:1px solid rgba(244,63,94,.28);
+  border-radius:12px;
+  cursor:pointer;flex-shrink:0;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  transition:border-color .2s,background .2s;
+}
+.hero-gta-float:hover{border-color:rgba(244,63,94,.55);background:rgba(12,6,28,.88)}
+.hero-gta-float:active{transform:scale(.97);transition-duration:.08s}
+.hgta-img{width:40px;height:40px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#1a0820}
+.hgta-img img{width:100%;height:100%;object-fit:cover;display:block}
+.hgta-info{flex:1;min-width:0}
+.hgta-tag{font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#fb7185;margin-bottom:2px}
+.hgta-name{font-size:13px;font-weight:600;color:rgba(255,255,255,.88);letter-spacing:-.1px}
+.hgta-price{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px}
+.hgta-chev{color:rgba(255,255,255,.25);flex-shrink:0}
+
+
+.hero-content-zone{padding:var(--sp5) var(--sp4) var(--sp10);max-width:560px;margin:0 auto}
+
+/* GTA Banner — editorial style */
+.gta-strip{
+  display:flex;align-items:center;gap:var(--sp3);
+  background:var(--s2);border:1px solid var(--b2);
+  border-radius:var(--r3);padding:var(--sp3) var(--sp4);
+  margin-bottom:var(--sp5);cursor:pointer;
   position:relative;overflow:hidden;
-  animation:fadeUp .6s .1s both;
-  transition:transform .22s cubic-bezier(.22,1,.36,1),border-color .2s,box-shadow .2s;
-  box-shadow:0 4px 24px -8px rgba(233,30,140,.25);
+  transition:border-color .2s,background .2s;
 }
-.gta6-banner::before{
+.gta-strip::before{
   content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,transparent 40%,rgba(233,30,140,.07),transparent);
-  animation:wave 3s ease-in-out infinite;
+  background:linear-gradient(90deg,rgba(244,63,94,.04),rgba(244,63,94,.02),transparent);
   pointer-events:none;
 }
-.gta6-banner:hover{transform:translateY(-2px) scale(1.02);border-color:rgba(233,30,140,.75);box-shadow:0 10px 36px -8px rgba(233,30,140,.5)}
-.gta6-banner:active{transform:scale(.98)}
+.gta-strip:hover{border-color:rgba(244,63,94,.25);background:var(--s3)}
+.gta-strip-img{width:44px;height:44px;border-radius:var(--r2);overflow:hidden;flex-shrink:0;background:var(--s3)}
+.gta-strip-img img{width:100%;height:100%;object-fit:cover;display:block}
+.gta-strip-copy{flex:1;min-width:0}
+.gta-strip-tag{
+  display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--rose);margin-bottom:2px;
+}
+.gta-strip-ttl{font-size:13px;font-weight:600;letter-spacing:-.2px;color:var(--tx1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gta-strip-sub{font-size:11px;color:var(--tx3);margin-top:1px}
+.gta-strip-arrow{
+  width:26px;height:26px;border-radius:50%;background:var(--s3);border:1px solid var(--b2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  color:var(--tx3);transition:color .15s,background .15s;
+}
+.gta-strip:hover .gta-strip-arrow{background:var(--rose);border-color:var(--rose);color:#fff}
 
-/* GTA6 image left side */
-.gta6-img-wrap{
-  width:100px;
-  flex-shrink:0;
-  position:relative;
-  overflow:hidden;
-  border-radius:14px 0 0 14px;
+/* Hero text */
+.hero-label{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--tx3);margin-bottom:var(--sp3);
 }
-.gta6-img-wrap::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,transparent 60%,rgba(15,3,28,.95));
+.hero-label::before{content:'';width:16px;height:1px;background:var(--b3)}
+.hero-h1{
+  font-size:clamp(24px,6vw,42px);font-weight:800;
+  letter-spacing:-1px;line-height:1.08;
+  color:var(--tx1);margin-bottom:var(--sp3);
 }
-.gta6-img{
-  width:100%;
-  aspect-ratio:1/1;
-  object-fit:cover;
-  object-position:center top;
-  display:block;
-  filter:saturate(1.3) brightness(.9);
-}
-/* Fallback emoji icon if image fails */
-.gta6-img-fallback{
-  width:100px;height:80px;display:flex;align-items:center;justify-content:center;
-  font-size:36px;flex-shrink:0;
-  background:linear-gradient(135deg,#1a0030,#3d006a);
-}
-
-.gta6-body{flex:1;padding:12px 14px;text-align:left;min-width:0}
-.gta6-ttl{font-size:14px;font-weight:900;letter-spacing:-.2px;
-  background:linear-gradient(90deg,#fff,#ff9de2);
+.hero-h1 em{
+  font-style:normal;
+  background:linear-gradient(135deg,var(--v2) 0%,#a78bfa 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  margin-bottom:2px}
-.gta6-sub{font-size:11px;color:rgba(255,180,230,.7);font-weight:500}
-.gta6-price{font-size:13px;font-weight:800;color:rgba(255,120,200,.9);margin-top:5px}
-.gta6-arr{font-size:20px;color:rgba(255,100,200,.7);padding:0 14px;flex-shrink:0;transition:transform .2s}
-.gta6-banner:hover .gta6-arr{transform:translateX(4px)}
-.gta6-new{position:absolute;top:-1px;right:12px;background:var(--pink);color:#fff;font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:0 0 8px 8px;z-index:2}
+}
+.hero-sub{font-size:14px;color:var(--tx3);line-height:1.6;margin-bottom:var(--sp6)}
 
-/* HERO TEXT */
-.hero-eyebrow{display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:20px;padding:5px 14px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:rgba(180,150,255,.9);margin-bottom:16px;animation:fadeUp .6s .2s both}
-.hero-dot{width:6px;height:6px;border-radius:50%;background:#9d5ff0;animation:pulse 2s ease-in-out infinite}
-.hero-h1{font-size:clamp(26px,6.5vw,54px);font-weight:900;letter-spacing:-.8px;line-height:1.1;margin-bottom:12px;animation:fadeUp .6s .3s both}
-.hero-h1 em{font-style:normal;background:linear-gradient(90deg,#a78bfa,#60a5fa,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero-sub{font-size:clamp(13px,2.2vw,16px);color:var(--t3);line-height:1.65;margin-bottom:clamp(22px,4vw,36px);animation:fadeUp .6s .4s both}
+/* CTA buttons */
+.hero-actions{display:flex;gap:var(--sp2);flex-wrap:wrap;margin-bottom:var(--sp6)}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:600;letter-spacing:-.2px;
+  border-radius:var(--r3);cursor:pointer;border:none;
+  transition:opacity .15s,transform .15s,box-shadow .15s;
+  white-space:nowrap;
+}
+.btn:active{transform:scale(.96);transition-duration:.08s}
+.btn-primary{
+  padding:10px 18px;background:var(--v);color:#fff;
+  box-shadow:0 1px 2px rgba(0,0,0,.2),0 0 0 1px rgba(99,102,241,.4);
+}
+.btn-primary:hover{opacity:.9;box-shadow:0 4px 12px rgba(99,102,241,.35),0 0 0 1px rgba(99,102,241,.4)}
+.btn-secondary{
+  padding:10px 18px;background:var(--s2);color:var(--tx1);
+  border:1px solid var(--b2);
+}
+.btn-secondary:hover{background:var(--s3);border-color:var(--b3)}
 
-/* CTA BUTTONS */
-.hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:18px;animation:fadeUp .6s .5s both}
-.cta{display:inline-flex;align-items:center;gap:9px;padding:clamp(13px,2.5vw,16px) clamp(20px,4vw,30px);border-radius:15px;font-size:clamp(13px,2vw,15px);font-weight:800;letter-spacing:-.2px;border:none;cursor:pointer;position:relative;overflow:hidden;transition:transform .25s cubic-bezier(.22,1,.36,1),box-shadow .25s}
-.cta::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity .25s;background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.22),transparent 65%)}
-.cta:hover::after{opacity:1}
-.cta-primary{background:linear-gradient(135deg,rgba(124,58,237,.88),rgba(46,125,255,.88));color:#fff;border:1px solid rgba(160,120,255,.35);backdrop-filter:blur(12px);box-shadow:0 8px 32px -8px var(--accent-glow),inset 0 1px 0 rgba(255,255,255,.18)}
-.cta-primary:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 16px 48px -8px rgba(124,58,237,.6)}
-.cta-primary:active{transform:scale(.97)}
-.cta-secondary{background:rgba(255,255,255,.07);color:var(--t1);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(12px);box-shadow:0 8px 28px -8px rgba(0,0,0,.5)}
-.cta-secondary:hover{transform:translateY(-3px) scale(1.02);background:rgba(255,255,255,.12)}
-.cta-secondary:active{transform:scale(.97)}
-.cta-ico{font-size:17px;line-height:1;flex-shrink:0}
+.hero-trust{display:flex;align-items:center;gap:var(--sp4);flex-wrap:wrap}
+.trust-item{font-size:11px;color:var(--tx4);display:flex;align-items:center;gap:5px}
+.trust-dot{width:3px;height:3px;border-radius:50%;background:var(--b3)}
 
-.hero-hints{display:flex;align-items:center;gap:14px;justify-content:center;flex-wrap:wrap;font-size:11px;color:var(--t4);font-weight:500;animation:fadeUp .6s .6s both}
-.hero-hints span{display:flex;align-items:center;gap:5px}
+/* ══ PAGE HEADERS ══ */
+.ph{
+  padding:calc(var(--topbar) + var(--safe-t) + var(--sp6)) var(--sp4) var(--sp5);
+  max-width:var(--maxw);margin:0 auto;
+}
+.ph-back{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:500;color:var(--tx3);
+  cursor:pointer;margin-bottom:var(--sp5);
+  transition:color .15s;
+}
+.ph-back:hover{color:var(--tx2)}
+.ph-back svg{flex-shrink:0}
+.ph-tag{
+  display:inline-block;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--v2);margin-bottom:var(--sp2);
+}
+.ph-h1{font-size:clamp(20px,5vw,30px);font-weight:800;letter-spacing:-.5px;line-height:1.1;margin-bottom:6px}
+.ph-sub{font-size:13px;color:var(--tx3);line-height:1.55}
+
+/* ══ GAMES CATALOG ══ */
+.cat-bar{
+  display:flex;gap:var(--sp2);overflow-x:auto;
+  padding:0 var(--sp4) var(--sp3);
+  max-width:var(--maxw);margin:0 auto;
+}
+.cat-chip{
+  flex-shrink:0;padding:6px 13px;border-radius:20px;
+  font-size:12px;font-weight:500;letter-spacing:-.1px;
+  background:var(--s2);border:1px solid var(--b1);color:var(--tx3);
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.cat-chip.on{background:var(--v);border-color:transparent;color:#fff;font-weight:600}
+.cat-chip:not(.on):hover{border-color:var(--b3);color:var(--tx2)}
+
+.search-row{
+  display:flex;align-items:center;gap:var(--sp2);
+  padding:0 var(--sp4) var(--sp3);max-width:var(--maxw);margin:0 auto;
+}
+.search-wrap{
+  flex:1;display:flex;align-items:center;gap:var(--sp2);
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r3);
+  padding:0 var(--sp3);height:38px;
+  transition:border-color .15s,background .15s;
+}
+.search-wrap:focus-within{border-color:var(--v);background:var(--s3)}
+.search-wrap svg{flex-shrink:0;color:var(--tx4)}
+.search-wrap input{flex:1;font-size:13px;color:var(--tx1)}
+.search-wrap input::placeholder{color:var(--tx4)}
+.sort-sel{
+  height:38px;padding:0 var(--sp3);border-radius:var(--r3);
+  background:var(--s2);border:1px solid var(--b1);
+  font-size:12px;font-weight:500;color:var(--tx2);
+  cursor:pointer;-webkit-appearance:none;appearance:none;
+  transition:border-color .15s;flex-shrink:0;
+}
+.sort-sel:focus{border-color:var(--v)}
+
+.catalog-meta{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 var(--sp4) var(--sp3);max-width:var(--maxw);margin:0 auto;
+}
+.catalog-count{font-size:12px;color:var(--tx4);font-weight:500}
+
+.games-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(146px,1fr));
+  gap:var(--sp2);
+  padding:0 var(--sp4) var(--sp6);max-width:var(--maxw);margin:0 auto;
+}
+@media(min-width:480px){.games-grid{grid-template-columns:repeat(auto-fill,minmax(158px,1fr))}}
+@media(min-width:900px){.games-grid{grid-template-columns:repeat(5,1fr);gap:var(--sp3)}}
+
+/* GAME CARD — editorial flat */
+.gcard{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r3);
+  overflow:hidden;cursor:pointer;display:flex;flex-direction:column;
+  transition:border-color .2s,transform .2s,box-shadow .2s;
+}
+.gcard:hover{
+  border-color:var(--b3);transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,0,0,.2);
+}
+.gcard:active{transform:scale(.98);transition-duration:.08s}
+
+.gcard-art{
+  position:relative;aspect-ratio:16/11;overflow:hidden;
+  background:var(--s3);
+  display:flex;align-items:center;justify-content:center;
+}
+.gcard-art-emoji{
+  font-size:clamp(28px,6vw,40px);
+  filter:grayscale(.15);opacity:.9;
+}
+.gcard-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  transition:transform .4s cubic-bezier(.16,1,.3,1)}
+.gcard:hover .gcard-art img{transform:scale(1.04)}
+
+.gcard-badges{position:absolute;top:var(--sp1);left:var(--sp1);display:flex;gap:3px;z-index:2}
+.gcard-badge{
+  font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 6px;border-radius:4px;
+}
+.gb-new{background:var(--v);color:#fff}
+.gb-sale{background:var(--rose);color:#fff}
+.gb-pre{background:var(--amber);color:#000}
+.gcard-disc{
+  position:absolute;top:var(--sp1);right:var(--sp1);z-index:2;
+  font-size:9px;font-weight:700;color:var(--rose);
+  background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);
+  padding:2px 6px;border-radius:4px;
+}
+
+.gcard-body{padding:10px 10px 11px;display:flex;flex-direction:column;gap:3px;flex:1}
+.gcard-platform{font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--tx4)}
+.gcard-name{font-size:12px;font-weight:600;letter-spacing:-.1px;line-height:1.3;color:var(--tx1);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gcard-prices{display:flex;align-items:baseline;gap:5px;margin-top:3px;flex-wrap:wrap}
+.gcard-price{font-size:13px;font-weight:700;letter-spacing:-.2px;color:var(--tx1)}
+.gcard-old{font-size:10px;color:var(--tx4);text-decoration:line-through}
+.gcard-try{font-size:9px;color:var(--tx4);font-weight:500;letter-spacing:.02em;margin-top:1px}
+.gcard-buy{
+  width:100%;margin-top:auto;padding:7px;
+  border-radius:var(--r2);font-size:11px;font-weight:600;
+  background:var(--vg);color:var(--v2);border:1px solid var(--vgb);
+  transition:background .15s,color .15s,border-color .15s;
+  letter-spacing:-.1px;
+}
+.gcard-buy:hover{background:var(--v);color:#fff;border-color:transparent}
+.gcard-buy:active{transform:scale(.96);transition-duration:.08s}
+.gcard-buy.oos{opacity:.35;pointer-events:none}
+
+/* SKELETON */
+.sk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(146px,1fr));gap:var(--sp2);padding:0 var(--sp4) var(--sp6);max-width:var(--maxw);margin:0 auto}
+.sk-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden}
+.sk-art{aspect-ratio:16/11;background:linear-gradient(90deg,var(--s2) 25%,var(--s3) 50%,var(--s2) 75%);background-size:400px;animation:shimmer 1.4s infinite linear}
+.sk-body{padding:10px 10px 11px}
+.sk-line{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--s2) 25%,var(--s3) 50%,var(--s2) 75%);background-size:400px;animation:shimmer 1.4s infinite linear;margin-bottom:6px}
+
+/* EMPTY */
+.empty-state{display:flex;flex-direction:column;align-items:center;text-align:center;padding:var(--sp10) var(--sp6);grid-column:1/-1}
+.empty-icon{font-size:36px;margin-bottom:var(--sp4);opacity:.4}
+.empty-h{font-size:15px;font-weight:600;color:var(--tx2);margin-bottom:var(--sp2)}
+.empty-p{font-size:12px;color:var(--tx4);line-height:1.6;max-width:200px;margin-bottom:var(--sp5)}
+.empty-btn{padding:8px 18px;border-radius:var(--r2);background:var(--s2);border:1px solid var(--b2);font-size:12px;font-weight:600;color:var(--tx2);cursor:pointer;transition:all .15s}
+.empty-btn:hover{background:var(--s3);color:var(--tx1)}
+
+/* PAGER */
+.pager{display:flex;justify-content:center;gap:6px;padding:0 var(--sp4) var(--sp6);flex-wrap:wrap;max-width:var(--maxw);margin:0 auto}
+.pg{min-width:32px;height:32px;padding:0 8px;border-radius:var(--r2);font-size:12px;font-weight:600;
+  background:var(--s2);border:1px solid var(--b1);color:var(--tx3);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .15s}
+.pg.on{background:var(--v);border-color:transparent;color:#fff}
+.pg:not(.on):hover{border-color:var(--b3);color:var(--tx2)}
+.pg:disabled{opacity:.35;cursor:default;pointer-events:none}
 
 /* ══ SUBSCRIPTIONS ══ */
-/* Content wrappers get bottom padding so content isn't hidden under nav */
-.page-header{padding:calc(72px + var(--safe-t)) 16px 20px;max-width:var(--maxw);margin:0 auto}
-.page-wrap{padding:calc(70px + var(--safe-t)) 16px calc(24px + var(--safe-b));max-width:var(--maxw);margin:0 auto}
-.prof-top{padding:calc(70px + var(--safe-t)) 16px 18px;max-width:var(--maxw);margin:0 auto;display:flex;align-items:center;gap:13px}
-/* Last element in non-home screens needs bottom breathing room */
-.screen:not(#screen-home) > *:last-child{ padding-bottom: calc(16px + var(--safe-b)); }
-.back-btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--blue3);cursor:pointer;padding:5px 0;margin-bottom:10px;transition:opacity .18s}
-.back-btn:hover{opacity:.7}
-.page-eyebrow{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--purple2);margin-bottom:8px;display:flex;align-items:center;gap:7px}
-.page-eyebrow::before{content:'';display:block;width:18px;height:2px;background:var(--purple2);border-radius:1px}
-.page-h1{font-size:clamp(22px,5vw,36px);font-weight:900;letter-spacing:-.6px;line-height:1.15;margin-bottom:7px}
-.page-sub{font-size:13px;color:var(--t3);line-height:1.6}
+.sub-grid{
+  display:grid;grid-template-columns:1fr;gap:var(--sp3);
+  padding:0 var(--sp4) var(--sp8);max-width:var(--maxw);margin:0 auto;
+}
+@media(min-width:600px){.sub-grid{grid-template-columns:1fr 1fr 1fr}}
 
-.sub-grid{display:grid;grid-template-columns:1fr;gap:14px;padding:0 16px 32px;max-width:var(--maxw);margin:0 auto}
-@media(min-width:600px){.sub-grid{grid-template-columns:1fr 1fr}}
-@media(min-width:900px){.sub-grid{grid-template-columns:1fr 1fr 1fr}}
-.sub-card{background:var(--bg1);border:1.5px solid var(--div2);border-radius:var(--r3);overflow:hidden;cursor:pointer;display:flex;flex-direction:column;transition:transform .25s cubic-bezier(.22,1,.36,1),border-color .22s,box-shadow .25s;position:relative}
-.sub-card::before{content:'';position:absolute;inset:0;opacity:0;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.08),transparent 60%);transition:opacity .3s;pointer-events:none;border-radius:inherit}
-.sub-card:hover::before{opacity:1}
-.sub-card:hover{transform:translateY(-5px);box-shadow:0 20px 60px -16px rgba(0,0,0,.8)}
-.sub-card:active{transform:scale(.98)}
-.sub-card[data-tier="essential"]{--tier-c:rgba(160,160,180,.5);--tier-glow:rgba(160,160,190,.15)}
-.sub-card[data-tier="extra"]{--tier-c:rgba(46,125,255,.55);--tier-glow:rgba(46,125,255,.15)}
-.sub-card[data-tier="deluxe"]{--tier-c:rgba(255,196,0,.55);--tier-glow:rgba(255,196,0,.12)}
-.sub-card.featured{border-color:var(--tier-c,rgba(124,58,237,.45));box-shadow:0 0 0 1px var(--tier-c,rgba(124,58,237,.1)),0 0 50px -10px var(--tier-glow,rgba(124,58,237,.2))}
-.sub-card[data-tier="deluxe"].featured{border-color:rgba(255,196,0,.5);box-shadow:0 0 0 1px rgba(255,196,0,.15),0 0 60px -10px rgba(255,196,0,.2)}
-.sub-cover{position:relative;height:clamp(110px,22vw,165px);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:50px}
-.sub-cover-grad{position:absolute;inset:0;background:linear-gradient(0deg,rgba(10,8,24,.95) 0%,rgba(10,8,24,.1) 100%)}
-.sub-feat-badge{position:absolute;top:11px;right:11px;background:linear-gradient(135deg,#7c3aed,#2e7dff);color:#fff;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:4px 10px;border-radius:8px;z-index:2}
-.sub-body{padding:16px;display:flex;flex-direction:column;gap:6px;flex:1}
-.sub-tier{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--purple2)}
-.sub-card[data-tier="essential"] .sub-tier{color:#aab}
-.sub-card[data-tier="extra"] .sub-tier{color:var(--blue3)}
-.sub-card[data-tier="deluxe"] .sub-tier{color:#ffc400}
-.sub-name{font-size:16px;font-weight:800;letter-spacing:-.3px;line-height:1.2}
-.sub-desc{font-size:12px;color:var(--t3);line-height:1.55;flex:1}
-.sub-features{display:flex;flex-direction:column;gap:4px;padding:9px 0}
-.sub-feat{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--t2);font-weight:500}
-.sub-feat::before{content:'✓';color:var(--purple2);font-weight:800;font-size:11px;flex-shrink:0;width:13px}
-.sub-card[data-tier="extra"] .sub-feat::before{color:var(--blue3)}
-.sub-card[data-tier="deluxe"] .sub-feat::before{color:#ffc400}
-.sub-periods{display:flex;flex-direction:column;gap:5px;border-top:1px solid var(--div3);padding-top:11px;margin-top:auto}
-.period-row{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:var(--r);border:1.5px solid var(--div2);cursor:pointer;transition:all .18s;background:var(--bg2)}
-.period-row:hover{border-color:var(--purple2)}
-.period-row.on{border-color:var(--purple2);background:rgba(124,58,237,.12)}
-.period-label{font-size:12px;font-weight:600;flex:1;color:var(--t2)}
-.period-price{font-size:14px;font-weight:800;letter-spacing:-.2px}
-.sub-buy-btn{width:100%;padding:13px;border-radius:11px;font-size:13px;font-weight:800;background:linear-gradient(135deg,#7c3aed,#2e7dff);color:#fff;border:none;cursor:pointer;box-shadow:0 6px 20px -6px var(--accent-glow);transition:transform .18s,box-shadow .18s,opacity .18s;margin-top:10px;letter-spacing:-.15px}
-.sub-buy-btn:hover{transform:translateY(-2px);box-shadow:0 12px 30px -6px var(--accent-glow)}
-.sub-buy-btn:active{transform:scale(.97)}
-.sub-buy-btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+/* Sub card — tier-based design */
+.sub-card{
+  border-radius:var(--r4);overflow:hidden;cursor:pointer;
+  border:1px solid var(--b1);background:var(--s1);
+  display:flex;flex-direction:column;position:relative;
+  transition:border-color .2s,transform .2s,box-shadow .2s;
+}
+.sub-card:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,0,0,.2)}
+.sub-card:active{transform:scale(.99);transition-duration:.08s}
 
-/* ══ GAMES ══ */
-.search-row{display:flex;align-items:center;gap:9px;margin-bottom:12px;padding:0 16px;max-width:var(--maxw);margin-left:auto;margin-right:auto}
-.search-box{flex:1;display:flex;align-items:center;gap:8px;background:var(--bg2);border:1.5px solid var(--div2);border-radius:12px;padding:0 13px;height:42px;transition:border-color .18s,box-shadow .18s}
-.search-box:focus-within{border-color:var(--purple2);box-shadow:0 0 0 3px rgba(124,58,237,.12)}
-.search-box svg{flex-shrink:0;opacity:.35}
-.search-box input{flex:1;font-size:14px;color:var(--t1)}
-.search-box input::placeholder{color:var(--t3)}
-.chips-row{display:flex;gap:6px;overflow-x:auto;padding:0 16px 4px;max-width:var(--maxw);margin:0 auto}
-.chip{flex-shrink:0;padding:6px 13px;border-radius:20px;font-size:12px;font-weight:600;background:var(--bg2);border:1.5px solid var(--div2);cursor:pointer;transition:all .18s;white-space:nowrap}
-.chip.on{background:linear-gradient(135deg,#7c3aed,#2e7dff);border-color:transparent;color:#fff}
-.chip:not(.on):hover{border-color:var(--purple2);color:var(--purple2)}
-.sort-bar{display:flex;align-items:center;gap:8px;padding:6px 16px 10px;max-width:var(--maxw);margin:0 auto}
-.sort-lbl{font-size:12px;color:var(--t3);font-weight:500;flex:1}
-select.sort-sel{background:var(--bg2);border:1.5px solid var(--div2);border-radius:10px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--t1);cursor:pointer;-webkit-appearance:none;appearance:none}
-.games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:11px;padding:0 16px 32px;max-width:var(--maxw);margin:0 auto}
-@media(min-width:480px){.games-grid{grid-template-columns:repeat(auto-fill,minmax(168px,1fr))}}
-@media(min-width:900px){.games-grid{grid-template-columns:repeat(5,1fr)}}
-
-.gcard{background:var(--bg1);border:1.5px solid var(--div2);border-radius:var(--r2);overflow:hidden;cursor:pointer;display:flex;flex-direction:column;transition:transform .22s cubic-bezier(.22,1,.36,1),border-color .22s,box-shadow .22s;position:relative}
-.gcard::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--purple2),transparent);opacity:0;transition:opacity .3s}
-.gcard:hover{transform:translateY(-5px) scale(1.01);border-color:rgba(124,58,237,.4);box-shadow:0 14px 50px -12px rgba(124,58,237,.35),0 4px 20px -6px rgba(0,0,0,.6)}
-.gcard:hover::after{opacity:1}
-.gcard:active{transform:scale(.97)}
-.gcard-cover{position:relative;aspect-ratio:3/2;background:var(--bg2);overflow:hidden;font-size:36px;display:flex;align-items:center;justify-content:center;color:var(--t3)}
-.gcard-cover-inner{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:clamp(28px,7vw,48px);background:linear-gradient(135deg,var(--bg3) 0%,var(--bg2) 100%);position:relative}
-.gcard-cover-inner::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 30%,rgba(124,58,237,.1),transparent 60%)}
-.gcard-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .45s cubic-bezier(.22,1,.36,1)}
-.gcard:hover .gcard-cover img{transform:scale(1.08)}
-.gbadge{position:absolute;top:7px;left:7px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:3px 8px;border-radius:7px;color:#fff;z-index:2;backdrop-filter:blur(4px)}
-.b-new{background:rgba(124,58,237,.85);border:1px solid rgba(160,100,255,.4)}
-.b-sale{background:rgba(255,69,58,.85);border:1px solid rgba(255,100,80,.4)}
-.b-pre{background:rgba(255,176,32,.85);color:#000;border:1px solid rgba(255,200,50,.4)}
-.gdisc{position:absolute;top:7px;right:7px;font-size:10px;font-weight:800;background:rgba(255,69,58,.15);color:var(--red);border:1px solid rgba(255,69,58,.3);padding:3px 8px;border-radius:7px;backdrop-filter:blur(4px)}
-.gcard-body{padding:10px 12px 12px;display:flex;flex-direction:column;gap:4px;flex:1}
-.gcard-plat{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--purple2)}
-.gcard-name{font-size:12px;font-weight:700;letter-spacing:-.15px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--t1)}
-.gcard-desc{font-size:10px;color:var(--t3);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:1px}
-.gcard-prices{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px}
-.gcard-price{font-size:14px;font-weight:900;letter-spacing:-.3px;color:var(--t1)}
-.gcard-old{font-size:10px;color:var(--t3);text-decoration:line-through;font-weight:500}
-.gcard-add{width:100%;padding:8px;border-radius:10px;font-size:11px;font-weight:800;background:rgba(124,58,237,.1);color:var(--purple2);border:1px solid rgba(124,58,237,.22);transition:background .2s,color .2s,transform .12s,box-shadow .2s;margin-top:auto;letter-spacing:.1px}
-.gcard-add:hover{background:linear-gradient(135deg,#7c3aed,#2e7dff);color:#fff;border-color:transparent;box-shadow:0 4px 16px -4px rgba(124,58,237,.5)}
-.gcard-add:active{transform:scale(.95)}
-.gcard-add.added{background:rgba(48,209,88,.1);color:var(--green);border-color:rgba(48,209,88,.2)}
-.gcard-add.oos{opacity:.35;cursor:not-allowed;pointer-events:none}
-.pg-btn{min-width:36px;height:36px;padding:0 6px;border-radius:9px;background:var(--bg2);border:1.5px solid var(--div2);font-size:12px;font-weight:700;cursor:pointer;transition:all .18s;color:var(--t2)}
-.pg-btn.on{background:linear-gradient(135deg,#7c3aed,#2e7dff);border-color:transparent;color:#fff}
-.pg-btn:disabled{opacity:.35;cursor:default}
-.pg-btn:not(.on):not(:disabled):hover{border-color:var(--purple2);color:var(--purple2)}
-
-/* Skeleton */
-.sk{background:linear-gradient(90deg,var(--bg2) 25%,var(--bg3) 50%,var(--bg2) 75%);background-size:600px 100%;animation:shimmer 1.3s infinite linear;border-radius:8px}
-.sk-gcard{background:var(--bg1);border:1.5px solid var(--div2);border-radius:var(--r2);overflow:hidden}
-.sk-body{padding:9px 11px 11px;display:flex;flex-direction:column;gap:7px}
-.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;padding:48px 24px;grid-column:1/-1}
-.empty-ico{font-size:40px}.empty-h{font-size:16px;font-weight:700;letter-spacing:-.3px}
-.empty-p{font-size:13px;color:var(--t3);max-width:220px;line-height:1.55}
-.empty-btn{margin-top:4px;padding:10px 20px;border-radius:11px;background:linear-gradient(135deg,#7c3aed,#2e7dff);color:#fff;font-size:13px;font-weight:700;border:none;cursor:pointer;transition:transform .14s}
-.empty-btn:active{transform:scale(.96)}
-
-/* ══ GTA6 PAGE ══ */
-#screen-gta6{background:linear-gradient(160deg,#08011a 0%,#120025 40%,#1a0035 70%,#0d0018 100%)}
-.gta6-page{padding:calc(64px + var(--safe-t)) 0 40px;max-width:700px;margin:0 auto}
-.gta6-page .back-btn{padding:0 16px}
-
-/* Hero image — premium neon frame */
-.gta6-hero-img-wrap{
-  position:relative;
-  width:calc(100% - 32px);
-  margin:0 16px 28px;
-  border-radius:20px;
-  overflow:visible; /* allow glow to bleed outside */
+/* Tier accents via data-tier */
+.sub-card[data-tier="essential"]{border-color:rgba(148,163,184,.15)}
+.sub-card[data-tier="extra"]    {border-color:rgba(99,102,241,.2)}
+.sub-card[data-tier="deluxe"]   {border-color:rgba(234,179,8,.2)}
+.sub-card[data-tier="extra"].featured{
+  border-color:rgba(99,102,241,.35);
+  box-shadow:0 0 0 1px rgba(99,102,241,.12);
+}
+.sub-card[data-tier="deluxe"].featured{
+  border-color:rgba(234,179,8,.3);
+  box-shadow:0 0 0 1px rgba(234,179,8,.08);
 }
 
-/* Neon border glow — outer */
-.gta6-hero-img-wrap::before{
-  content:'';
-  position:absolute;
-  inset:-2px;
-  border-radius:22px;
-  background:linear-gradient(135deg,#ff4db8,#c026d3,#ff9de2,#e91e8c,#ff4db8);
-  background-size:300% 300%;
-  animation:neonBorder 4s linear infinite;
-  z-index:0;
-  filter:blur(0px);
+.sub-cover{
+  position:relative;padding:var(--sp8) var(--sp5) var(--sp5);
+  display:flex;flex-direction:column;justify-content:flex-end;
+  min-height:140px;
 }
-/* Glow layer */
-.gta6-hero-img-wrap::after{
-  content:'';
-  position:absolute;
-  inset:-12px;
-  border-radius:28px;
-  background:radial-gradient(ellipse at 50% 50%,rgba(233,30,140,.35) 0%,rgba(192,38,211,.2) 40%,transparent 70%);
-  z-index:0;
-  animation:glowPulse 3s ease-in-out infinite;
-  pointer-events:none;
+.sub-cover-essential{background:linear-gradient(135deg,#1a1a2a 0%,#1e1e30 100%)}
+.sub-cover-extra    {background:linear-gradient(135deg,#0f0f25 0%,#141432 100%)}
+.sub-cover-deluxe   {background:linear-gradient(135deg,#1a1400 0%,#221c00 100%)}
+
+/* Tier mark */
+.sub-tier-mark{
+  position:absolute;top:var(--sp4);left:var(--sp4);
+  font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 9px;border-radius:4px;
 }
-@keyframes neonBorder{
-  0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}
-}
-@keyframes glowPulse{
-  0%,100%{opacity:.7;filter:blur(12px)}
-  50%{opacity:1;filter:blur(18px)}
+.tm-essential{background:rgba(148,163,184,.1);color:rgba(148,163,184,.7);border:1px solid rgba(148,163,184,.15)}
+.tm-extra     {background:rgba(99,102,241,.1); color:var(--v2);             border:1px solid rgba(99,102,241,.2)}
+.tm-deluxe    {background:rgba(234,179,8,.08); color:#fbbf24;               border:1px solid rgba(234,179,8,.15)}
+.sub-popular-badge{
+  position:absolute;top:var(--sp4);right:var(--sp4);
+  font-size:10px;font-weight:600;color:#fff;
+  background:var(--v);padding:2px 8px;border-radius:4px;
 }
 
-/* Inner image container */
-.gta6-img-inner{
-  position:relative;
-  border-radius:18px;
-  overflow:hidden;
-  z-index:1;
-  transition:transform .35s cubic-bezier(.22,1,.36,1),filter .35s;
-}
-.gta6-hero-img-wrap:hover .gta6-img-inner{
-  transform:scale(1.025) translateY(-3px);
-  filter:brightness(1.08) saturate(1.15);
-}
-.gta6-hero-img{
-  width:100%;
-  height:clamp(180px,52vw,360px);
-  object-fit:cover;
-  object-position:center 22%;
-  display:block;
-  filter:saturate(1.15) brightness(.88);
-}
-.gta6-hero-img-grad{
-  position:absolute;inset:0;
-  background:
-    linear-gradient(0deg,rgba(8,1,26,.9) 0%,rgba(8,1,26,.3) 45%,transparent 75%),
-    linear-gradient(90deg,rgba(8,1,26,.4),transparent 25%,transparent 75%,rgba(8,1,26,.4));
-  pointer-events:none;
-}
-.gta6-hero-logo{
-  position:absolute;bottom:18px;left:50%;transform:translateX(-50%);
-  text-align:center;width:100%;pointer-events:none;
-}
-.gta6-logo-txt{
-  font-size:clamp(42px,12vw,84px);
-  font-weight:900;letter-spacing:-3px;line-height:.9;
-  background:linear-gradient(180deg,#ffffff 0%,#ff9de2 40%,#ff4db8 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  filter:drop-shadow(0 4px 28px rgba(233,30,140,.7)) drop-shadow(0 0 60px rgba(233,30,140,.3));
-}
-.gta6-vi-txt{
-  display:block;
-  background:linear-gradient(90deg,#ff4db8,#ff9de2,#c026d3);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.gta6-desc{font-size:14px;color:rgba(255,200,240,.65);line-height:1.65;margin:0 16px 24px;text-align:center}
-.gta6-preorder-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:calc(100% - 32px);margin:0 16px 24px;padding:16px 32px;border-radius:16px;font-size:15px;font-weight:900;letter-spacing:-.2px;cursor:pointer;border:none;color:#fff;background:linear-gradient(135deg,#c026d3,#e91e8c,#ff4db8);box-shadow:0 8px 40px -8px rgba(233,30,140,.6),inset 0 1px 0 rgba(255,255,255,.2);transition:transform .22s cubic-bezier(.22,1,.36,1),box-shadow .22s}
-.gta6-preorder-btn:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 16px 60px -8px rgba(233,30,140,.8)}
-.gta6-preorder-btn:active{transform:scale(.97)}
-.gta6-info{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px;text-align:left}
-@media(min-width:500px){.gta6-info{grid-template-columns:1fr 1fr 1fr 1fr}}
-.gta6-info-card{background:rgba(255,100,200,.06);border:1px solid rgba(255,100,200,.15);border-radius:14px;padding:14px;text-align:center;transition:border-color .2s,transform .2s}
-.gta6-info-card:hover{border-color:rgba(255,100,200,.35);transform:translateY(-2px)}
-.gta6-info-ico{font-size:22px;margin-bottom:6px}
-.gta6-info-ttl{font-size:12px;font-weight:800;color:rgba(255,180,230,.9);letter-spacing:.2px}
-.gta6-info-sub{font-size:11px;color:rgba(255,150,200,.55);margin-top:2px}
+.sub-cover-icon{font-size:36px;margin-bottom:var(--sp3);display:block;line-height:1}
+.sub-cover-name{font-size:18px;font-weight:800;letter-spacing:-.5px;color:var(--tx1);line-height:1.1}
 
-/* ══ CHECKOUT MODAL ══ */
-.modal-overlay{position:fixed;inset:0;z-index:150;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .3s}
-.modal-overlay.open{opacity:1;pointer-events:auto}
-.checkout-sheet{background:var(--bg1);border-radius:24px 24px 0 0;width:100%;max-width:600px;max-height:90dvh;overflow-y:auto;padding:24px 20px calc(20px + var(--safe-b));transform:translateY(100%);transition:transform .38s cubic-bezier(.22,1,.36,1)}
-.modal-overlay.open .checkout-sheet{transform:none}
-.sheet-drag{width:44px;height:4px;border-radius:2px;background:var(--div);margin:0 auto 20px}
-.sheet-title{font-size:20px;font-weight:900;letter-spacing:-.4px;margin-bottom:4px}
-.sheet-sub{font-size:13px;color:var(--t3);margin-bottom:22px;line-height:1.5}
-.order-item-preview{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1.5px solid var(--div2);border-radius:13px;padding:12px;margin-bottom:20px}
-.oip-ico{font-size:28px;width:46px;height:46px;background:var(--bg3);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.oip-name{font-size:14px;font-weight:700;letter-spacing:-.2px}
-.oip-price{font-size:18px;font-weight:900;color:var(--purple2);margin-top:2px}
-
-/* FORM */
-.form-notice{
-  background:rgba(48,209,88,.07);
-  border:1px solid rgba(48,209,88,.2);
-  border-radius:10px;
-  padding:10px 13px;
-  font-size:11px;
-  color:rgba(100,220,130,.85);
-  line-height:1.5;
-  margin-bottom:18px;
+.sub-body{padding:var(--sp4) var(--sp4) var(--sp5);display:flex;flex-direction:column;gap:var(--sp3);flex:1}
+.sub-desc{font-size:12px;color:var(--tx3);line-height:1.6}
+.sub-features{display:flex;flex-direction:column;gap:6px}
+.sub-feat{
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;color:var(--tx2);font-weight:500;
 }
-.form-field{margin-bottom:14px}
-.form-field label{display:block;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--t3);margin-bottom:6px}
-.form-field label .req{color:var(--red);margin-left:2px}
-.form-inp{width:100%;background:var(--bg2);border:1.5px solid var(--div2);border-radius:11px;padding:11px 14px;font-size:14px;color:var(--t1);transition:border-color .18s,box-shadow .18s}
-.form-inp:focus{border-color:var(--purple2);box-shadow:0 0 0 3px rgba(124,58,237,.12)}
-.form-inp::placeholder{color:var(--t4)}
-.form-inp.err{border-color:var(--red);box-shadow:0 0 0 3px rgba(255,69,58,.1)}
-.form-hint{font-size:11px;color:var(--t4);margin-top:4px;line-height:1.4}
-.form-err-msg{font-size:11px;color:var(--red);margin-top:4px;display:none}
-.form-field.has-err .form-err-msg{display:block}
-.form-divider{height:1px;background:var(--div2);margin:18px 0;position:relative}
-.form-divider span{position:absolute;left:50%;transform:translateX(-50%);top:-9px;background:var(--bg1);padding:0 12px;font-size:11px;color:var(--t4);font-weight:600;white-space:nowrap}
-.submit-btn{width:100%;padding:15px;border-radius:13px;font-size:15px;font-weight:800;background:linear-gradient(135deg,#7c3aed,#2e7dff);color:#fff;border:none;cursor:pointer;box-shadow:0 6px 24px -6px var(--accent-glow);transition:transform .18s,box-shadow .18s,opacity .18s;letter-spacing:-.2px;position:relative;overflow:hidden}
-.submit-btn:hover{transform:translateY(-2px);box-shadow:0 12px 36px -6px var(--accent-glow)}
-.submit-btn:active{transform:scale(.97)}
-.submit-btn:disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
-.submit-btn .spin{display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px}
-.submit-btn.loading .spin{display:block}
-.submit-btn.loading span{display:none}
+.sub-feat-dot{
+  width:4px;height:4px;border-radius:50%;flex-shrink:0;
+}
+.feat-dot-essential{background:rgba(148,163,184,.5)}
+.feat-dot-extra     {background:var(--v2)}
+.feat-dot-deluxe    {background:#fbbf24}
 
-/* Success state */
-.order-success{text-align:center;padding:24px 0;animation:fadeIn .4s both}
-.order-success-ico{font-size:56px;margin-bottom:16px;filter:drop-shadow(0 0 20px rgba(48,209,88,.5))}
-.order-success-ttl{font-size:20px;font-weight:900;letter-spacing:-.4px;margin-bottom:8px}
-.order-success-sub{font-size:14px;color:var(--t3);line-height:1.6;margin-bottom:4px}
-.order-id-badge{display:inline-block;background:var(--bg2);border:1px solid var(--div);border-radius:8px;padding:5px 12px;font-family:monospace;font-size:13px;color:var(--purple2);margin:12px 0 20px;font-weight:700}
+.sub-divider{height:1px;background:var(--b1)}
+
+.sub-periods{display:flex;flex-direction:column;gap:6px}
+.period-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px var(--sp3);border-radius:var(--r2);
+  border:1px solid var(--b1);cursor:pointer;background:var(--s2);
+  transition:border-color .15s,background .15s;
+}
+.period-row.on{border-color:var(--v);background:var(--vg)}
+.period-row:not(.on):hover{border-color:var(--b3);background:var(--s3)}
+.period-label{font-size:12px;font-weight:500;color:var(--tx2)}
+.period-price{font-size:14px;font-weight:700;letter-spacing:-.2px;color:var(--tx1)}
+.period-row.on .period-label{color:var(--tx1);font-weight:600}
+
+.sub-buy{
+  width:100%;padding:11px;border-radius:var(--r2);font-size:13px;font-weight:600;
+  background:var(--s3);color:var(--tx1);border:1px solid var(--b2);
+  cursor:pointer;transition:all .15s;letter-spacing:-.1px;
+}
+.sub-card[data-tier="extra"] .sub-buy{background:var(--v);color:#fff;border-color:transparent}
+.sub-card[data-tier="deluxe"] .sub-buy{background:rgba(234,179,8,.15);color:#fbbf24;border-color:rgba(234,179,8,.25)}
+.sub-buy:hover{opacity:.85}
+.sub-buy:active{transform:scale(.97);transition-duration:.08s}
+.sub-buy:disabled{opacity:.35;pointer-events:none}
 
 /* ══ CART / WISH ══ */
-.page-wrap{padding:calc(70px + var(--safe-t)) 16px calc(28px + var(--safe-b));max-width:var(--maxw);margin:0 auto}
-.page-title{font-size:22px;font-weight:900;letter-spacing:-.5px;margin-bottom:16px}
-.litem{display:flex;align-items:center;gap:11px;background:var(--bg1);border:1.5px solid var(--div2);border-radius:var(--r2);padding:11px;margin-bottom:9px;transition:border-color .18s}
-.litem:hover{border-color:var(--div)}
-.li-cov{width:50px;height:50px;border-radius:9px;background:var(--bg2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer}
-.li-cov img{width:100%;height:100%;object-fit:cover}
-.li-inf{flex:1;min-width:0;cursor:pointer}
-.li-name{font-size:13px;font-weight:700;letter-spacing:-.15px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.li-meta{font-size:11px;color:var(--t3);margin-bottom:3px}
-.li-price{font-size:13px;font-weight:800;letter-spacing:-.2px;display:inline}
-.li-old{font-size:10px;color:var(--t3);text-decoration:line-through;margin-left:5px;display:inline}
-.rb{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .18s,transform .14s}
-.rb:active{transform:scale(.88)}
-.rb-del{background:rgba(255,69,58,.1)}.rb-del:hover{background:rgba(255,69,58,.18)}
-.rb-add{background:rgba(124,58,237,.12)}.rb-add:hover{background:linear-gradient(135deg,#7c3aed,#2e7dff);color:#fff}
-.summary{background:var(--bg1);border:1.5px solid var(--div2);border-radius:var(--r2);padding:16px;margin-top:4px}
-.sum-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px}
-.sum-row span:first-child{color:var(--t3)}.sum-row span:last-child{font-weight:700}
-.sum-div{height:1px;background:var(--div2);margin:10px 0}
-.sum-total{display:flex;justify-content:space-between;font-size:17px;font-weight:900;letter-spacing:-.3px;margin-bottom:12px}
-.sum-saved{font-size:12px;color:var(--green);text-align:center;margin-bottom:10px;font-weight:600}
-.btn-primary{width:100%;padding:14px;border-radius:13px;font-size:14px;font-weight:800;background:linear-gradient(135deg,#7c3aed,#2e7dff);color:#fff;border:none;cursor:pointer;box-shadow:0 6px 20px -6px var(--accent-glow);transition:transform .14s,box-shadow .14s}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 28px -6px var(--accent-glow)}
-.btn-primary:active{transform:scale(.97)}
+.list-screen{padding:calc(var(--topbar) + var(--safe-t) + var(--sp5)) var(--sp4) var(--sp8);max-width:var(--maxw);margin:0 auto}
+.screen-title{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:var(--sp5)}
+
+.cart-item{
+  display:flex;align-items:center;gap:var(--sp3);
+  padding:var(--sp3);
+  border-bottom:1px solid var(--b1);
+  transition:background .15s;
+}
+.cart-item:last-of-type{border-bottom:none}
+.cart-art{
+  width:52px;height:44px;border-radius:var(--r2);overflow:hidden;
+  background:var(--s3);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;
+}
+.cart-art img{width:100%;height:100%;object-fit:cover}
+.cart-info{flex:1;min-width:0;cursor:pointer}
+.cart-name{font-size:13px;font-weight:600;letter-spacing:-.1px;color:var(--tx1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.cart-meta{font-size:11px;color:var(--tx4);margin-bottom:2px}
+.cart-price{font-size:13px;font-weight:700;letter-spacing:-.2px;color:var(--tx1);display:inline}
+.cart-old{font-size:10px;color:var(--tx4);text-decoration:line-through;margin-left:4px;display:inline}
+.cart-remove{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--s2);border:1px solid var(--b1);color:var(--tx4);
+  cursor:pointer;transition:all .15s;
+}
+.cart-remove:hover{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.2);color:var(--red)}
+.cart-remove:active{transform:scale(.9)}
+
+.cart-block{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden;margin-bottom:var(--sp4)}
+
+.cart-summary{padding:var(--sp4);border-top:1px solid var(--b1)}
+.sum-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:8px;color:var(--tx3)}
+.sum-row b{color:var(--tx1);font-weight:600}
+.sum-total{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--sp4)}
+.sum-total-label{font-size:14px;font-weight:600;color:var(--tx2)}
+.sum-total-value{font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--tx1)}
+.sum-saved{font-size:11px;color:var(--green);font-weight:500;margin-bottom:var(--sp4)}
+
+.btn-full{
+  width:100%;padding:12px;border-radius:var(--r3);font-size:14px;font-weight:600;
+  background:var(--v);color:#fff;border:none;cursor:pointer;
+  transition:opacity .15s,transform .15s;letter-spacing:-.2px;
+}
+.btn-full:hover{opacity:.88}
+.btn-full:active{transform:scale(.98);transition-duration:.08s}
+.btn-full:disabled{opacity:.35;pointer-events:none}
 
 /* ══ PROFILE ══ */
-.prof-top{padding:calc(70px + var(--safe-t)) 16px 18px;max-width:var(--maxw);margin:0 auto;display:flex;align-items:center;gap:13px}
-.prof-ava{width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#2e7dff);display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;color:#fff;box-shadow:0 4px 16px -4px var(--accent-glow);flex-shrink:0}
-.prof-name{font-size:18px;font-weight:800;letter-spacing:-.3px}
-.prof-handle{font-size:12px;color:var(--t3);margin-top:2px}
-.menu-section{font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--t4);padding:10px 0 5px}
-.menu-wrap{max-width:var(--maxw);margin:0 auto;padding:0 16px}
-.menu-item{display:flex;align-items:center;gap:11px;padding:12px;background:var(--bg1);border:1.5px solid var(--div2);border-radius:var(--r2);margin-bottom:7px;cursor:pointer;transition:border-color .18s,transform .18s}
-.menu-item:hover{border-color:rgba(124,58,237,.3);transform:translateX(3px)}
-.menu-ico{font-size:18px;width:32px;text-align:center}
-.menu-lbl{flex:1;font-size:13px;font-weight:700;letter-spacing:-.15px}
-.menu-sub{font-size:11px;color:var(--t3)}
-.menu-arr{color:var(--t4);font-size:13px}
-.prof-ver{text-align:center;padding:22px;font-size:11px;color:var(--t4)}
+.prof-header{
+  padding:calc(var(--topbar) + var(--safe-t) + var(--sp6)) var(--sp4) var(--sp5);
+  max-width:var(--maxw);margin:0 auto;
+  display:flex;align-items:center;gap:var(--sp4);
+}
+.prof-avatar{
+  width:52px;height:52px;border-radius:50%;flex-shrink:0;
+  background:var(--v);display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:700;color:#fff;
+}
+.prof-name{font-size:17px;font-weight:700;letter-spacing:-.3px;color:var(--tx1)}
+.prof-handle{font-size:12px;color:var(--tx4);margin-top:2px}
 
-/* ══ MODAL (product) ══ */
-.modal{position:fixed;inset:0;z-index:100;background:var(--bg);transform:translateY(100%);transition:transform .42s cubic-bezier(.32,0,.67,0);overflow-y:auto}
-.modal.open{transform:none;transition-timing-function:cubic-bezier(.22,1,.36,1)}
-.modal-hero{position:relative;height:clamp(220px,48vw,340px);background:var(--bg2);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:76px}
-.modal-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.modal-hero-grad{position:absolute;inset:0;background:linear-gradient(0deg,var(--bg) 0%,transparent 55%)}
-.modal-back{position:absolute;top:calc(12px + var(--safe-t));left:12px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.55);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
-.modal-wish{position:absolute;top:calc(12px + var(--safe-t));right:12px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.55);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;transition:background .2s}
-.modal-wish.active{background:rgba(255,69,58,.55)}
-.modal-body{padding:16px 15px 36px;max-width:620px;margin:0 auto}
-.modal-eyebrow{font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--purple2);margin-bottom:4px}
-.modal-title{font-size:clamp(18px,4.5vw,26px);font-weight:900;letter-spacing:-.5px;margin-bottom:3px;line-height:1.15}
-.modal-edition{font-size:12px;color:var(--t3);margin-bottom:13px}
-.seg{display:flex;gap:5px;margin-bottom:13px;flex-wrap:wrap}
-.seg-btn{padding:6px 13px;border-radius:9px;border:1.5px solid var(--div2);font-size:12px;font-weight:700;background:var(--bg2);transition:all .18s;cursor:pointer;color:var(--t2)}
-.seg-btn.on{background:linear-gradient(135deg,#7c3aed,#2e7dff);border-color:transparent;color:#fff}
-.price-block{display:flex;align-items:center;gap:9px;margin-bottom:11px;flex-wrap:wrap}
-.pb-price{font-size:26px;font-weight:900;letter-spacing:-.5px}
-.pb-old{font-size:15px;color:var(--t3);text-decoration:line-through;font-weight:500}
-.pb-disc{background:rgba(255,69,58,.12);color:var(--red);font-size:12px;font-weight:800;padding:4px 8px;border-radius:7px;border:1px solid rgba(255,69,58,.22)}
-.stock-line{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;margin-bottom:14px}
-.dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
-.in-stock{color:var(--green)}.no-stock{color:var(--t3)}
-.modal-actions{display:flex;gap:9px;margin-bottom:22px}
-.btn-buy{flex:1;padding:14px;border-radius:14px;font-size:14px;font-weight:800;background:linear-gradient(135deg,#7c3aed,#2e7dff);color:#fff;border:none;cursor:pointer;box-shadow:0 8px 24px -6px var(--accent-glow);transition:transform .14s,box-shadow .14s,opacity .14s;letter-spacing:-.15px}
-.btn-buy:hover{transform:translateY(-2px);box-shadow:0 14px 30px -6px var(--accent-glow)}
-.btn-buy:active{transform:scale(.97)}
-.btn-buy:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
-.modal-sec{font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--t3);margin:3px 0 9px}
-.feat{display:flex;align-items:flex-start;gap:7px;padding:9px 0;border-bottom:1px solid var(--div3)}
-.feat:last-child{border-bottom:none}
-.feat-d{width:5px;height:5px;border-radius:50%;background:var(--purple2);flex-shrink:0;margin-top:4px}
-.feat span{font-size:12px;color:var(--t2);line-height:1.45}
-.spec{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--div3)}
-.spec:last-child{border-bottom:none}
-.spec-l{font-size:12px;color:var(--t3);flex:1;font-weight:500}
-.spec-v{font-size:12px;font-weight:700;text-align:right}
-.modal-desc{font-size:13px;line-height:1.65;color:var(--t2);margin-bottom:18px}
+.prof-wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--sp4)}
+.prof-section{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--tx4);padding:var(--sp4) 0 var(--sp2)}
+
+.menu-block{border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden;margin-bottom:var(--sp3);background:var(--s1)}
+.menu-item{
+  display:flex;align-items:center;gap:var(--sp3);
+  padding:12px var(--sp4);cursor:pointer;
+  border-bottom:1px solid var(--b1);
+  transition:background .15s;
+}
+.menu-item:last-child{border-bottom:none}
+.menu-item:hover{background:var(--s2)}
+.menu-item:active{background:var(--s3)}
+.menu-ico-wrap{
+  width:30px;height:30px;border-radius:var(--r2);
+  background:var(--s3);border:1px solid var(--b1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;
+}
+.menu-texts{flex:1;min-width:0}
+.menu-label{font-size:13px;font-weight:500;color:var(--tx1);letter-spacing:-.1px}
+.menu-sub{font-size:11px;color:var(--tx4);margin-top:1px}
+.menu-chevron{color:var(--tx4);flex-shrink:0}
+.prof-footer{text-align:center;padding:var(--sp8) var(--sp4);font-size:11px;color:var(--tx4)}
+
+/* ══ GTA6 PAGE ══ */
+#screen-gta6{background:#050510}
+.gta6-wrap{max-width:680px;margin:0 auto;padding-bottom:var(--sp8)}
+
+.gta6-header{
+  position:relative;width:100%;overflow:hidden;
+  height:clamp(220px,58vw,420px);
+  background:#050510;
+}
+.gta6-back{
+  position:absolute;top:calc(var(--sp3) + var(--safe-t));left:var(--sp4);z-index:3;
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:rgba(255,255,255,.7);
+  border:1px solid rgba(255,255,255,.08);
+  transition:color .15s,background .15s;
+}
+.gta6-back:hover{background:rgba(0,0,0,.8);color:#fff}
+.gta6-hero-img{width:100%;height:100%;object-fit:cover;object-position:center 20%;
+  filter:brightness(.75) saturate(1.1);display:block}
+.gta6-img-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(0deg,#050510 0%,rgba(5,5,16,.5) 50%,rgba(5,5,16,.1) 100%);
+}
+.gta6-title-block{
+  position:absolute;bottom:var(--sp6);left:50%;transform:translateX(-50%);
+  text-align:center;width:100%;padding:0 var(--sp4);
+}
+.gta6-logo{
+  font-size:clamp(38px,10vw,72px);font-weight:900;letter-spacing:-3px;line-height:.9;
+  color:#fff;text-shadow:0 4px 40px rgba(244,63,94,.4);
+}
+.gta6-vi{
+  background:linear-gradient(90deg,#fb7185,#f43f5e,#e11d48);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  display:block;
+}
+
+.gta6-body{padding:var(--sp5) var(--sp4) 0}
+.gta6-desc{font-size:14px;line-height:1.65;color:rgba(241,240,251,.5);margin-bottom:var(--sp5)}
+.gta6-cta{
+  width:100%;padding:14px;border-radius:var(--r3);border:none;cursor:pointer;
+  font-size:14px;font-weight:700;letter-spacing:-.2px;color:#fff;
+  background:linear-gradient(135deg,#e11d48,#f43f5e);
+  box-shadow:0 4px 20px rgba(244,63,94,.3);
+  transition:opacity .15s,transform .15s;margin-bottom:var(--sp5);
+}
+.gta6-cta:hover{opacity:.9}
+.gta6-cta:active{transform:scale(.98);transition-duration:.08s}
+
+.gta6-meta{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp2)}
+@media(min-width:480px){.gta6-meta{grid-template-columns:repeat(4,1fr)}}
+.gta6-meta-card{
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+  border-radius:var(--r3);padding:var(--sp3) var(--sp3) var(--sp4);text-align:center;
+}
+.gta6-meta-ico{font-size:18px;margin-bottom:6px}
+.gta6-meta-ttl{font-size:11px;font-weight:600;color:rgba(255,255,255,.5);letter-spacing:.02em}
+.gta6-meta-val{font-size:12px;color:rgba(255,255,255,.3);margin-top:2px}
+
+/* ══ PRODUCT MODAL ══ */
+.modal{
+  position:fixed;inset:0;z-index:100;
+  background:var(--bg);
+  transform:translateY(100%);
+  transition:transform .38s cubic-bezier(.16,.68,0,1);
+  overflow-y:auto;
+}
+.modal.open{transform:none}
+.modal-art{
+  position:relative;height:clamp(200px,46vw,320px);
+  background:var(--s3);overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.modal-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.modal-art-fade{
+  position:absolute;inset:0;
+  background:linear-gradient(0deg,var(--bg) 0%,transparent 60%);
+}
+.modal-art-emoji{font-size:72px;opacity:.8;filter:grayscale(.1)}
+.modal-close{
+  position:absolute;top:calc(var(--sp3) + var(--safe-t));left:var(--sp3);z-index:2;
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.08);
+  transition:background .15s,color .15s;
+}
+.modal-close:hover{background:rgba(0,0,0,.8);color:#fff}
+.modal-wish-btn{
+  position:absolute;top:calc(var(--sp3) + var(--safe-t));right:var(--sp3);z-index:2;
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.08);
+  transition:background .15s,color .15s;
+}
+.modal-wish-btn.active{background:rgba(239,68,68,.5);color:#fff;border-color:transparent}
+
+.modal-content{padding:var(--sp4) var(--sp4) var(--sp10);max-width:640px;margin:0 auto}
+.modal-eyebrow{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--tx4);margin-bottom:var(--sp1)}
+.modal-title{font-size:clamp(18px,4.5vw,24px);font-weight:800;letter-spacing:-.5px;line-height:1.1;margin-bottom:4px}
+.modal-edition{font-size:12px;color:var(--tx4);margin-bottom:var(--sp4)}
+
+.period-seg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--sp4)}
+.period-btn{
+  padding:6px 14px;border-radius:var(--r2);font-size:12px;font-weight:500;
+  background:var(--s2);border:1px solid var(--b1);color:var(--tx3);
+  cursor:pointer;transition:all .15s;
+}
+.period-btn.on{background:var(--v);border-color:transparent;color:#fff;font-weight:600}
+.period-btn:not(.on):hover{border-color:var(--b3);color:var(--tx2)}
+
+.modal-price-row{display:flex;align-items:baseline;gap:var(--sp2);margin-bottom:4px}
+.modal-price{font-size:28px;font-weight:800;letter-spacing:-.5px}
+.modal-price-old{font-size:15px;color:var(--tx4);text-decoration:line-through;font-weight:500}
+.modal-disc{
+  font-size:11px;font-weight:700;color:var(--rose);
+  background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.16);
+  padding:2px 7px;border-radius:4px;
+}
+
+.modal-price-meta{display:flex;align-items:center;gap:var(--sp3);flex-wrap:wrap;margin-bottom:var(--sp4)}
+.pm-try{
+  font-size:11px;font-weight:600;color:var(--tx4);
+  background:var(--s2);border:1px solid var(--b1);
+  padding:3px 8px;border-radius:4px;letter-spacing:.02em;
+}
+.pm-updated{font-size:11px;color:var(--tx4)}
+
+.modal-stock{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;margin-bottom:var(--sp5)}
+.stock-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.in-stock .stock-dot{background:var(--green)}
+.in-stock{color:var(--green)}
+.out-stock{color:var(--tx4)}
+
+.modal-buy{
+  width:100%;padding:13px;border-radius:var(--r3);font-size:14px;font-weight:700;
+  background:var(--v);color:#fff;border:none;cursor:pointer;
+  transition:opacity .15s,transform .15s;letter-spacing:-.2px;margin-bottom:var(--sp5);
+}
+.modal-buy:hover{opacity:.88}
+.modal-buy:active{transform:scale(.98);transition-duration:.08s}
+.modal-buy:disabled{opacity:.35;pointer-events:none}
+
+.modal-section{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--tx4);margin-bottom:var(--sp3);padding-bottom:var(--sp2);border-bottom:1px solid var(--b1)}
+.modal-features{display:flex;flex-direction:column;gap:0;margin-bottom:var(--sp5)}
+.modal-feat{display:flex;align-items:flex-start;gap:var(--sp3);padding:10px 0;border-bottom:1px solid var(--b1)}
+.modal-feat:last-child{border-bottom:none}
+.mf-dot{width:4px;height:4px;border-radius:50%;background:var(--v2);flex-shrink:0;margin-top:5px}
+.mf-text{font-size:12px;color:var(--tx2);line-height:1.5}
+
+.modal-specs{margin-bottom:var(--sp5)}
+.spec-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1)}
+.spec-row:last-child{border-bottom:none}
+.spec-key{font-size:12px;color:var(--tx4);flex:1;font-weight:500}
+.spec-val{font-size:12px;font-weight:600;color:var(--tx2)}
+
+.modal-about{font-size:13px;color:var(--tx3);line-height:1.65;margin-bottom:var(--sp5)}
+
+/* ══ CHECKOUT SHEET ══ */
+.sheet-overlay{
+  position:fixed;inset:0;z-index:150;
+  background:rgba(0,0,0,.65);backdrop-filter:blur(6px);
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .28s;
+}
+.sheet-overlay.open{opacity:1;pointer-events:auto}
+.sheet{
+  background:var(--s1);border-radius:var(--r5) var(--r5) 0 0;
+  width:100%;max-width:560px;max-height:90dvh;overflow-y:auto;
+  padding:var(--sp5) var(--sp5) calc(var(--sp5) + var(--safe-b));
+  transform:translateY(100%);transition:transform .32s cubic-bezier(.16,1,.3,1);
+  border-top:1px solid var(--b2);
+}
+.sheet-overlay.open .sheet{transform:none}
+.sheet-handle{width:36px;height:3px;border-radius:2px;background:var(--b3);margin:0 auto var(--sp5)}
+.sheet-title{font-size:18px;font-weight:700;letter-spacing:-.4px;margin-bottom:var(--sp2)}
+.sheet-sub{font-size:13px;color:var(--tx4);margin-bottom:var(--sp5);line-height:1.5}
+
+/* Item preview in sheet */
+.order-preview{
+  display:flex;align-items:center;gap:var(--sp3);
+  padding:var(--sp3);background:var(--s2);border:1px solid var(--b1);
+  border-radius:var(--r3);margin-bottom:var(--sp5);
+}
+.order-preview-ico{
+  width:42px;height:42px;border-radius:var(--r2);background:var(--s3);
+  display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;
+}
+.order-preview-name{font-size:13px;font-weight:600;color:var(--tx1);margin-bottom:2px}
+.order-preview-price{font-size:16px;font-weight:800;letter-spacing:-.3px;color:var(--v2)}
+
+/* Security notice */
+.form-notice{
+  display:flex;align-items:flex-start;gap:var(--sp2);
+  padding:10px var(--sp3);background:rgba(34,197,94,.05);
+  border:1px solid rgba(34,197,94,.12);border-radius:var(--r2);
+  margin-bottom:var(--sp5);
+}
+.notice-icon{flex-shrink:0;margin-top:1px;color:var(--green);font-size:13px}
+.notice-text{font-size:11px;color:var(--tx4);line-height:1.55}
+
+/* Form fields */
+.form-group{margin-bottom:var(--sp4)}
+.form-label{
+  display:block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--tx4);margin-bottom:var(--sp2);
+}
+.req{color:var(--rose);margin-left:2px}
+.form-input{
+  width:100%;height:40px;padding:0 var(--sp3);
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);
+  font-size:14px;color:var(--tx1);
+  transition:border-color .15s,background .15s;
+}
+.form-input:focus{border-color:var(--v);background:var(--s3)}
+.form-input::placeholder{color:var(--tx4)}
+.form-input.err{border-color:var(--red)}
+.form-hint{font-size:11px;color:var(--tx4);margin-top:4px;line-height:1.4}
+.form-err{font-size:11px;color:var(--red);margin-top:4px;display:none}
+.form-group.has-err .form-err{display:block}
+.form-group.has-err .form-input{border-color:var(--red)}
+.form-textarea{
+  width:100%;padding:var(--sp2) var(--sp3);min-height:72px;resize:none;
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);
+  font-size:14px;color:var(--tx1);line-height:1.5;
+  transition:border-color .15s,background .15s;
+}
+.form-textarea:focus{border-color:var(--v);background:var(--s3)}
+.form-textarea::placeholder{color:var(--tx4)}
+
+.submit-btn{
+  width:100%;padding:13px;border-radius:var(--r3);font-size:14px;font-weight:700;
+  background:var(--v);color:#fff;border:none;cursor:pointer;
+  transition:opacity .15s,transform .15s;letter-spacing:-.2px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.submit-btn:hover{opacity:.88}
+.submit-btn:active{transform:scale(.98);transition-duration:.08s}
+.submit-btn:disabled{opacity:.4;pointer-events:none}
+.submit-spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
+  border-radius:50%;animation:spin .7s linear infinite;display:none;flex-shrink:0}
+.submit-btn.loading .submit-spin{display:block}
+.submit-btn.loading .submit-text{display:none}
+
+/* Order success */
+.order-success{text-align:center;padding:var(--sp8) 0;animation:fadeIn .4s both}
+.success-icon{font-size:48px;margin-bottom:var(--sp4)}
+.success-title{font-size:18px;font-weight:700;letter-spacing:-.3px;margin-bottom:var(--sp2)}
+.success-sub{font-size:13px;color:var(--tx4);line-height:1.6;margin-bottom:var(--sp2)}
+.order-id{
+  display:inline-block;font-family:monospace;font-size:12px;font-weight:700;
+  color:var(--v2);background:var(--vg);border:1px solid var(--vgb);
+  padding:4px 12px;border-radius:var(--r2);margin:var(--sp3) 0 var(--sp5);
+}
 
 /* ══ BOTTOM NAV ══ */
-nav.bnav{position:fixed;bottom:0;left:0;right:0;z-index:60;background:color-mix(in srgb,var(--bg1) 88%,transparent);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);border-top:1px solid var(--div2);padding-bottom:calc(var(--safe-b) + 2px)}
-.bnav-row{display:flex;max-width:var(--maxw);margin:0 auto}
-.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:7px 4px 5px;cursor:pointer;position:relative;transition:color .18s}
-.bnav-ico{font-size:20px;line-height:1;transition:transform .22s cubic-bezier(.34,1.56,.64,1)}
-.bnav-lbl{font-size:9.5px;font-weight:600;color:var(--t3);transition:color .18s}
-.bnav-item.active .bnav-lbl{color:var(--purple2)}
-.bnav-item.active .bnav-ico{transform:scale(1.12)}
+nav.bnav{
+  position:fixed;bottom:0;left:0;right:0;z-index:80;
+  height:calc(var(--nb) + var(--safe-b));
+  padding-bottom:var(--safe-b);
+  background:color-mix(in srgb,var(--bg) 90%,transparent);
+  backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-top:1px solid var(--b1);
+}
+.bnav-inner{
+  display:flex;height:var(--nb);max-width:var(--maxw);margin:0 auto;
+}
+.bnav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;cursor:pointer;position:relative;
+  transition:opacity .15s;
+}
+.bnav-item:active{opacity:.6;transition-duration:.08s}
+.nav-ico{
+  width:22px;height:22px;display:flex;align-items:center;justify-content:center;
+  transition:transform .2s cubic-bezier(.16,1,.3,1);
+}
+.nav-ico svg{width:18px;height:18px;stroke:var(--tx4);transition:stroke .15s}
+.nav-lbl{font-size:9px;font-weight:500;color:var(--tx4);letter-spacing:.02em;transition:color .15s}
+.bnav-item.active .nav-ico svg{stroke:var(--v2)}
+.bnav-item.active .nav-lbl{color:var(--v2);font-weight:600}
+.bnav-item.active .nav-ico{transform:translateY(-1px) scale(1.1)}
+.nav-badge{
+  position:absolute;top:6px;right:calc(50% - 20px);
+  min-width:15px;height:15px;border-radius:8px;
+  background:var(--rose);color:#fff;
+  font-size:8px;font-weight:700;letter-spacing:0;
+  display:none;align-items:center;justify-content:center;
+  padding:0 3px;border:1.5px solid var(--bg);
+}
 
 /* ══ TOAST ══ */
-.toast{position:fixed;bottom:calc(var(--nb) + var(--safe-b) + 12px);left:50%;transform:translateX(-50%) translateY(18px);opacity:0;transition:transform .26s cubic-bezier(.34,1.56,.64,1),opacity .22s;background:var(--bg3);border:1px solid var(--div);border-radius:12px;z-index:200;display:flex;align-items:center;gap:8px;padding:10px 15px;font-size:12px;font-weight:600;white-space:nowrap;pointer-events:none;box-shadow:var(--shadow2)}
-.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
-.toast.err{background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.25);color:var(--red)}
-.t-ic{width:18px;height:18px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.toast:not(.err) .t-ic{background:var(--green)}
-.toast.err .t-ic{background:var(--red)}
-
-@media(min-width:768px){
-  .topbar-in,.page-header,.search-row,.chips-row,.sort-bar,.games-grid,
-  .sub-grid,.page-wrap,.prof-top,.menu-wrap{padding-left:28px;padding-right:28px}
+.toast{
+  position:fixed;bottom:calc(var(--nb) + var(--safe-b) + 10px);
+  left:50%;transform:translateX(-50%) translateY(8px);opacity:0;
+  transition:transform .24s cubic-bezier(.16,1,.3,1),opacity .2s;
+  background:var(--s3);border:1px solid var(--b2);border-radius:var(--r2);
+  z-index:200;display:flex;align-items:center;gap:var(--sp2);
+  padding:8px 14px;font-size:12px;font-weight:500;white-space:nowrap;
+  pointer-events:none;color:var(--tx2);
+  box-shadow:0 4px 16px rgba(0,0,0,.2);
 }
-@media(min-width:1024px){body{padding-bottom:0}nav.bnav{display:none}}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.err{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.16);color:var(--red)}
+.toast-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.toast:not(.err) .toast-dot{background:var(--green)}
+.toast.err .toast-dot{background:var(--red)}
+
+/* ══ OFFLINE PILL ══ */
+#offlinePill{
+  display:none;position:fixed;top:calc(var(--safe-t) + 8px);left:50%;transform:translateX(-50%);
+  background:var(--amber);color:#000;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+  padding:4px 12px;border-radius:20px;z-index:999;
+}
+
+/* ══ RESPONSIVE ══ */
+@media(min-width:768px){
+  .ph,.cat-bar,.search-row,.games-grid,.sub-grid,.list-screen,.prof-wrap,.prof-header,.catalog-meta,.pager{
+    padding-left:var(--sp8);padding-right:var(--sp8);
+  }
+}
+@media(min-width:1024px){
+  nav.bnav{display:none}
+  .games-grid{grid-template-columns:repeat(6,1fr)}
+}
 </style>
 </head>
 <body>
 
-<div id="offlinePill">⚡ Офлайн</div>
-<canvas id="heroCanvas"></canvas>
+<div id="offlinePill">Офлайн</div>
 
 <!-- TOPBAR -->
 <header class="topbar">
-  <div class="topbar-in">
+  <div class="topbar-inner">
     <div class="brand" onclick="go('#/')">
-      <div class="brand-mark">🎮</div>Logovo PS
+      <div class="brand-logo">L</div>
+      <div class="brand-name">Logovo <span>PS</span></div>
     </div>
     <div class="topbar-gap"></div>
-    <button class="icon-btn" onclick="go('#/cart')" aria-label="Корзина">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-      <div class="badge" id="cartBadge">0</div>
+    <button class="topbar-btn" onclick="go('#/cart')" aria-label="Корзина">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <div class="tbadge" id="cartBadge">0</div>
     </button>
-    <button class="theme-btn" onclick="toggleTheme()" aria-label="Тема">🌓</button>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Тема">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
   </div>
 </header>
 
 <!-- ═══ HOME ═══ -->
 <div class="screen active" id="screen-home">
 
-  <!-- TOP: animation only, no text -->
-  <div class="hero-canvas-zone">
-    <canvas id="heroCanvas"></canvas>
-  </div>
+  <!-- HERO BLOCK -->
+  <div class="hero-block">
 
-  <!-- BOTTOM: solid background, text & buttons -->
-  <div class="hero-content-zone">
-    <div class="hero-content">
+    <!-- ════ GAMEPAD + LIGHTNING SVG ════ -->
+    <!--
+      Layout logic:
+        viewBox 0 0 480 700  →  top 300px = empty (behind text overlay)
+                                bottom 400px = gamepad + lightning
+        gamepad center: cx=240, cy=500
+        lightning radiates from gamepad center outward and upward
+    -->
+    <svg class="hero-svg" viewBox="0 0 480 700" preserveAspectRatio="xMidYMax meet"
+         xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <radialGradient id="hBg" cx="50%" cy="72%" r="65%">
+          <stop offset="0%"   stop-color="#160840"/>
+          <stop offset="45%"  stop-color="#08031a"/>
+          <stop offset="100%" stop-color="#02010a"/>
+        </radialGradient>
+        <radialGradient id="hBurst" cx="50%" cy="72%" r="38%">
+          <stop offset="0%"   stop-color="#7c3aed" stop-opacity=".95"/>
+          <stop offset="40%"  stop-color="#4c1d95" stop-opacity=".55"/>
+          <stop offset="100%" stop-color="#2e1065" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="hCorona" cx="50%" cy="72%" r="72%">
+          <stop offset="0%"   stop-color="#6d28d9" stop-opacity=".28"/>
+          <stop offset="65%"  stop-color="#4c1d95" stop-opacity=".10"/>
+          <stop offset="100%" stop-color="#02010a"  stop-opacity="0"/>
+        </radialGradient>
+        <!-- Gamepad gradients -->
+        <linearGradient id="gpBody" x1="20%" y1="0%" x2="80%" y2="100%">
+          <stop offset="0%"   stop-color="#eae6f8"/>
+          <stop offset="45%"  stop-color="#d6d0ee"/>
+          <stop offset="100%" stop-color="#bab2e2"/>
+        </linearGradient>
+        <linearGradient id="gpUnder" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%"   stop-color="#9c93cc"/>
+          <stop offset="100%" stop-color="#7a70a8"/>
+        </linearGradient>
+        <linearGradient id="gpEdge" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stop-color="#f2eeff"/>
+          <stop offset="100%" stop-color="#a89fd8" stop-opacity=".4"/>
+        </linearGradient>
+        <!-- Glow filters -->
+        <filter id="fGlowSm" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="2.5" result="b"/>
+          <feBlend in="SourceGraphic" in2="b" mode="screen"/>
+        </filter>
+        <filter id="fGlowMd" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="6" result="b"/>
+          <feBlend in="SourceGraphic" in2="b" mode="screen"/>
+        </filter>
+        <filter id="fGlowLg" x="-120%" y="-120%" width="340%" height="340%">
+          <feGaussianBlur stdDeviation="12" result="b"/>
+          <feBlend in="SourceGraphic" in2="b" mode="screen"/>
+        </filter>
+        <filter id="fGlowXL" x="-160%" y="-160%" width="420%" height="420%">
+          <feGaussianBlur stdDeviation="22" result="b"/>
+          <feBlend in="SourceGraphic" in2="b" mode="screen"/>
+        </filter>
+        <filter id="fPad" x="-15%" y="-15%" width="130%" height="130%">
+          <feGaussianBlur stdDeviation="4" result="b"/>
+          <feColorMatrix in="b" type="matrix"
+            values="0.3 0 0.9 0 0.05  0 0 0.6 0 0.05  0.8 0 1 0 0.1  0 0 0 0.5 0"/>
+          <feBlend in="SourceGraphic" in2="b" mode="screen"/>
+        </filter>
+        <!-- Vignette -->
+        <radialGradient id="hVig" cx="50%" cy="70%" r="55%">
+          <stop offset="35%"  stop-color="#02010a" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#02010a" stop-opacity=".88"/>
+        </radialGradient>
+        <!-- Top fade (hides the empty area above gamepad) -->
+        <linearGradient id="hTopFade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="#02010a" stop-opacity="1"/>
+          <stop offset="38%" stop-color="#02010a" stop-opacity=".75"/>
+          <stop offset="58%" stop-color="#02010a" stop-opacity="0"/>
+        </linearGradient>
+        <!-- Bottom fade -->
+        <linearGradient id="hBotFade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="78%" stop-color="#02010a" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#02010a" stop-opacity="1"/>
+        </linearGradient>
+      </defs>
 
-      <!-- GTA6 PRE-ORDER BANNER -->
-      <div class="gta6-banner" onclick="go('#/gta6')">
-        <div class="gta6-new">HOT</div>
-        <div class="gta6-img-wrap">
-          <img class="gta6-img" src="gta6.jpg" alt="GTA VI"
-               onerror="this.parentElement.innerHTML='<div class=\'gta6-img-fallback\'>🎮</div>'">
-        </div>
-        <div class="gta6-body">
-          <div class="gta6-ttl">GTA VI — Предзаказ доступен!</div>
-          <div class="gta6-sub">Получи игру в первый день выхода</div>
-          <div class="gta6-price">от 8 990 ₽</div>
-        </div>
-        <div class="gta6-arr">›</div>
+      <!-- Background -->
+      <rect width="480" height="700" fill="url(#hBg)"/>
+      <rect width="480" height="700" fill="url(#hCorona)"/>
+      <rect width="480" height="700" fill="url(#hBurst)"/>
+
+      <!-- ══════════════════════════════════════════════
+           LIGHTNING — all bolts radiate from pad center
+           Gamepad center: 240, 498
+           ══════════════════════════════════════════════ -->
+
+      <!-- UP-LEFT main bolt -->
+      <g filter="url(#fGlowLg)">
+        <polyline points="240,498 215,455 188,410 158,368 186,325 162,278 134,228 102,175 68,118 35,60"
+          fill="none" stroke="#7c3aed" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" opacity=".82"/>
+        <polyline points="240,498 215,455 188,410 158,368 186,325 162,278 134,228 102,175 68,118 35,60"
+          fill="none" stroke="#d8b4fe" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/>
+      </g>
+      <!-- UL branch -->
+      <g filter="url(#fGlowSm)" opacity=".7">
+        <polyline points="188,410 162,395 136,376 108,362"
+          fill="none" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round"/>
+        <polyline points="188,410 162,395 136,376 108,362"
+          fill="none" stroke="#ede9fe" stroke-width=".6" stroke-linecap="round"/>
+      </g>
+      <g filter="url(#fGlowSm)" opacity=".55">
+        <polyline points="158,368 138,352 118,330"
+          fill="none" stroke="#8b5cf6" stroke-width="1.4" stroke-linecap="round"/>
+      </g>
+
+      <!-- UP-RIGHT main bolt -->
+      <g filter="url(#fGlowLg)">
+        <polyline points="240,498 265,455 292,410 322,368 294,325 318,278 346,228 378,175 412,118 445,60"
+          fill="none" stroke="#7c3aed" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" opacity=".82"/>
+        <polyline points="240,498 265,455 292,410 322,368 294,325 318,278 346,228 378,175 412,118 445,60"
+          fill="none" stroke="#d8b4fe" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/>
+      </g>
+      <!-- UR branch -->
+      <g filter="url(#fGlowSm)" opacity=".7">
+        <polyline points="292,410 318,395 344,376 372,362"
+          fill="none" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round"/>
+        <polyline points="292,410 318,395 344,376 372,362"
+          fill="none" stroke="#ede9fe" stroke-width=".6" stroke-linecap="round"/>
+      </g>
+      <g filter="url(#fGlowSm)" opacity=".55">
+        <polyline points="322,368 342,352 362,330"
+          fill="none" stroke="#8b5cf6" stroke-width="1.4" stroke-linecap="round"/>
+      </g>
+
+      <!-- STRAIGHT UP bolt (center) -->
+      <g filter="url(#fGlowLg)">
+        <polyline points="240,498 228,440 245,378 232,315 248,250 238,185 252,120 240,55"
+          fill="none" stroke="#9333ea" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" opacity=".65"/>
+        <polyline points="240,498 228,440 245,378 232,315 248,250 238,185 252,120 240,55"
+          fill="none" stroke="#e9d5ff" stroke-width=".9" stroke-linecap="round" stroke-linejoin="round" opacity=".75"/>
+      </g>
+
+      <!-- LEFT horizontal bolt -->
+      <g filter="url(#fGlowLg)">
+        <polyline points="240,498 198,492 155,480 106,472 62,458 20,440"
+          fill="none" stroke="#6d28d9" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity=".80"/>
+        <polyline points="240,498 198,492 155,480 106,472 62,458 20,440"
+          fill="none" stroke="#c4b5fd" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity=".90"/>
+      </g>
+      <g filter="url(#fGlowSm)" opacity=".65">
+        <polyline points="155,480 144,462 128,448 108,438"
+          fill="none" stroke="#8b5cf6" stroke-width="1.6" stroke-linecap="round"/>
+      </g>
+
+      <!-- RIGHT horizontal bolt -->
+      <g filter="url(#fGlowLg)">
+        <polyline points="240,498 282,492 325,480 374,472 418,458 460,440"
+          fill="none" stroke="#6d28d9" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity=".80"/>
+        <polyline points="240,498 282,492 325,480 374,472 418,458 460,440"
+          fill="none" stroke="#c4b5fd" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity=".90"/>
+      </g>
+      <g filter="url(#fGlowSm)" opacity=".65">
+        <polyline points="325,480 336,462 352,448 372,438"
+          fill="none" stroke="#8b5cf6" stroke-width="1.6" stroke-linecap="round"/>
+      </g>
+
+      <!-- DOWN-LEFT bolt -->
+      <g filter="url(#fGlowMd)">
+        <polyline points="240,498 218,528 198,562 175,598 148,635 118,668"
+          fill="none" stroke="#7c3aed" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" opacity=".72"/>
+        <polyline points="240,498 218,528 198,562 175,598 148,635 118,668"
+          fill="none" stroke="#c084fc" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>
+      </g>
+
+      <!-- DOWN-RIGHT bolt -->
+      <g filter="url(#fGlowMd)">
+        <polyline points="240,498 262,528 282,562 305,598 332,635 362,668"
+          fill="none" stroke="#7c3aed" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" opacity=".72"/>
+        <polyline points="240,498 262,528 282,562 305,598 332,635 362,668"
+          fill="none" stroke="#c084fc" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>
+      </g>
+
+      <!-- Micro bolts close to pad -->
+      <g filter="url(#fGlowSm)" opacity=".55">
+        <polyline points="240,498 222,475 204,452 188,428" fill="none" stroke="#c084fc" stroke-width="1" stroke-linecap="round"/>
+        <polyline points="240,498 258,475 276,452 292,428" fill="none" stroke="#c084fc" stroke-width="1" stroke-linecap="round"/>
+        <polyline points="240,498 225,518 214,542 206,568" fill="none" stroke="#c084fc" stroke-width="1" stroke-linecap="round"/>
+        <polyline points="240,498 255,518 266,542 274,568" fill="none" stroke="#c084fc" stroke-width="1" stroke-linecap="round"/>
+      </g>
+
+      <!-- ══════════════════════════════════════════════
+           GAMEPAD — center 240, 498 (width ~210, height ~148)
+           ══════════════════════════════════════════════ -->
+
+      <!-- Glow halos behind pad -->
+      <ellipse cx="240" cy="498" rx="120" ry="88" fill="#7c3aed" opacity=".40" filter="url(#fGlowXL)"/>
+      <ellipse cx="240" cy="498" rx="90"  ry="66" fill="#a855f7" opacity=".28" filter="url(#fGlowLg)"/>
+      <ellipse cx="240" cy="498" rx="60"  ry="44" fill="#c084fc" opacity=".18" filter="url(#fGlowMd)"/>
+
+      <!-- LEFT GRIP -->
+      <ellipse cx="176" cy="514" rx="52" ry="66" fill="url(#gpBody)" filter="url(#fPad)"/>
+      <!-- RIGHT GRIP -->
+      <ellipse cx="304" cy="514" rx="52" ry="66" fill="url(#gpBody)" filter="url(#fPad)"/>
+      <!-- CENTER BRIDGE -->
+      <rect x="152" y="455" width="176" height="84" rx="24" fill="url(#gpBody)" filter="url(#fPad)"/>
+
+      <!-- Underside (darker lower half) -->
+      <ellipse cx="176" cy="550" rx="50" ry="40" fill="url(#gpUnder)" opacity=".68"/>
+      <ellipse cx="304" cy="550" rx="50" ry="40" fill="url(#gpUnder)" opacity=".68"/>
+      <rect x="152" y="516" width="176" height="26" rx="6" fill="url(#gpUnder)" opacity=".45"/>
+
+      <!-- Top edge highlight -->
+      <path d="M 162,457 Q 240,447 318,457"
+        fill="none" stroke="url(#gpEdge)" stroke-width="2.2" stroke-linecap="round" opacity=".85"/>
+
+      <!-- ── TOUCHPAD (center) ── -->
+      <rect x="206" y="468" width="68" height="42" rx="9"
+        fill="#cec8ea" stroke="#b8b2de" stroke-width="1" opacity=".88"/>
+      <line x1="206" y1="489" x2="274" y2="489"
+        stroke="#a89fd0" stroke-width=".7" opacity=".55"/>
+      <rect x="206" y="468" width="68" height="42" rx="9"
+        fill="none" stroke="#a78bfa" stroke-width=".9" opacity=".5" filter="url(#fGlowSm)"/>
+
+      <!-- ── LEFT STICK ── -->
+      <circle cx="192" cy="498" r="21" fill="#9f98c8" opacity=".92"/>
+      <circle cx="192" cy="498" r="17" fill="#b8b2d8"/>
+      <circle cx="192" cy="498" r="12" fill="#cec8e8"/>
+      <ellipse cx="188" cy="494" rx="5.5" ry="4.5" fill="#f2eeff" opacity=".72"/>
+      <circle cx="192" cy="498" r="21" fill="none" stroke="#a78bfa" stroke-width="1.2"
+        opacity=".65" filter="url(#fGlowSm)"/>
+
+      <!-- ── RIGHT STICK ── -->
+      <circle cx="298" cy="516" r="21" fill="#9f98c8" opacity=".92"/>
+      <circle cx="298" cy="516" r="17" fill="#b8b2d8"/>
+      <circle cx="298" cy="516" r="12" fill="#cec8e8"/>
+      <ellipse cx="294" cy="512" rx="5.5" ry="4.5" fill="#f2eeff" opacity=".72"/>
+      <circle cx="298" cy="516" r="21" fill="none" stroke="#a78bfa" stroke-width="1.2"
+        opacity=".65" filter="url(#fGlowSm)"/>
+
+      <!-- ── D-PAD ── -->
+      <g transform="translate(176,534)">
+        <rect x="-8" y="-24" width="16" height="17" rx="3.5" fill="#b8b2d8"/>
+        <rect x="-8" y="7"   width="16" height="17" rx="3.5" fill="#b8b2d8"/>
+        <rect x="-24" y="-8" width="17" height="16" rx="3.5" fill="#b8b2d8"/>
+        <rect x="7"   y="-8" width="17" height="16" rx="3.5" fill="#b8b2d8"/>
+        <rect x="-8" y="-8" width="16" height="16" rx="2.5" fill="#cec8e8"/>
+        <rect x="-24" y="-24" width="48" height="48" rx="4"
+          fill="none" stroke="#8b5cf6" stroke-width=".7" opacity=".5" filter="url(#fGlowSm)"/>
+      </g>
+
+      <!-- ── FACE BUTTONS △ ○ × □ ── -->
+      <g transform="translate(312,486)">
+        <!-- △ top — lime -->
+        <circle cx="0" cy="-23" r="10" fill="#0f1f10"/>
+        <text x="0" y="-23" text-anchor="middle" dominant-baseline="central"
+          font-size="12" font-family="Arial,sans-serif" fill="#4ade80" font-weight="700">△</text>
+        <circle cx="0" cy="-23" r="10" fill="none" stroke="#4ade80" stroke-width="1.1"
+          opacity=".75" filter="url(#fGlowSm)"/>
+
+        <!-- ○ right — rose -->
+        <circle cx="23" cy="0" r="10" fill="#2a1018"/>
+        <circle cx="23" cy="0" r="6.5" fill="none" stroke="#fb7185" stroke-width="2.4"/>
+        <circle cx="23" cy="0" r="10" fill="none" stroke="#fb7185" stroke-width="1.1"
+          opacity=".75" filter="url(#fGlowSm)"/>
+
+        <!-- × bottom — indigo -->
+        <circle cx="0" cy="23" r="10" fill="#0e0e20"/>
+        <text x="0" y="23" text-anchor="middle" dominant-baseline="central"
+          font-size="13" font-family="Arial,sans-serif" fill="#818cf8" font-weight="700">×</text>
+        <circle cx="0" cy="23" r="10" fill="none" stroke="#818cf8" stroke-width="1.1"
+          opacity=".75" filter="url(#fGlowSm)"/>
+
+        <!-- □ left — pink -->
+        <circle cx="-23" cy="0" r="10" fill="#200c18"/>
+        <rect x="-29" y="-6" width="12" height="12" rx="2" fill="none" stroke="#f472b6" stroke-width="2.4"/>
+        <circle cx="-23" cy="0" r="10" fill="none" stroke="#f472b6" stroke-width="1.1"
+          opacity=".75" filter="url(#fGlowSm)"/>
+      </g>
+
+      <!-- ── L1 / R1 shoulder buttons ── -->
+      <rect x="148" y="450" width="50" height="12" rx="6" fill="#cec8e8" opacity=".88"/>
+      <rect x="148" y="450" width="50" height="12" rx="6"
+        fill="none" stroke="#a78bfa" stroke-width=".7" opacity=".55"/>
+      <rect x="282" y="450" width="50" height="12" rx="6" fill="#cec8e8" opacity=".88"/>
+      <rect x="282" y="450" width="50" height="12" rx="6"
+        fill="none" stroke="#a78bfa" stroke-width=".7" opacity=".55"/>
+
+      <!-- ── Create / Options ── -->
+      <circle cx="220" cy="462" r="5.5" fill="#b8b2d8" opacity=".82"/>
+      <circle cx="220" cy="462" r="5.5" fill="none" stroke="#c084fc" stroke-width=".7" opacity=".55"/>
+      <rect x="255" y="457" width="11" height="11" rx="3" fill="#b8b2d8" opacity=".82"/>
+      <rect x="255" y="457" width="11" height="11" rx="3"
+        fill="none" stroke="#c084fc" stroke-width=".7" opacity=".55"/>
+
+      <!-- Neon edge accent lines on grips -->
+      <path d="M 138,510 Q 128,530 134,552 Q 140,572 153,582"
+        fill="none" stroke="#7c3aed" stroke-width="1.6"
+        opacity=".72" filter="url(#fGlowSm)" stroke-linecap="round"/>
+      <path d="M 342,510 Q 352,530 346,552 Q 340,572 327,582"
+        fill="none" stroke="#7c3aed" stroke-width="1.6"
+        opacity=".72" filter="url(#fGlowSm)" stroke-linecap="round"/>
+
+      <!-- Contact sparks where bolts meet pad -->
+      <g filter="url(#fGlowMd)">
+        <circle cx="176" cy="468" r="3.5" fill="#ede9fe" opacity=".95"/>
+        <circle cx="304" cy="468" r="3.5" fill="#ede9fe" opacity=".95"/>
+        <circle cx="240" cy="457" r="3"   fill="#f5f3ff" opacity=".90"/>
+        <circle cx="156" cy="492" r="2.5" fill="#d8b4fe" opacity=".85"/>
+        <circle cx="324" cy="492" r="2.5" fill="#d8b4fe" opacity=".85"/>
+      </g>
+      <circle cx="176" cy="468" r="10" fill="#9333ea" opacity=".35" filter="url(#fGlowXL)"/>
+      <circle cx="304" cy="468" r="10" fill="#9333ea" opacity=".35" filter="url(#fGlowXL)"/>
+
+      <!-- Vignette -->
+      <rect width="480" height="700" fill="url(#hVig)"/>
+      <!-- Top fade (covers empty area, blends into dark bg behind text) -->
+      <rect width="480" height="700" fill="url(#hTopFade)"/>
+      <!-- Bottom fade -->
+      <rect width="480" height="700" fill="url(#hBotFade)"/>
+    </svg>
+
+    <!-- TEXT OVERLAY -->
+    <div class="hero-over">
+      <div class="hero-eyebrow">
+        <span class="hero-eyebrow-dot"></span>
+        PlayStation Turkey · Цифровой магазин
       </div>
-
-      <div class="hero-eyebrow"><span class="hero-dot"></span>Logovo · Цифровой магазин</div>
-      <h1 class="hero-h1">Всё для PlayStation<br><em>в одном месте</em></h1>
-      <p class="hero-sub">Подписки, игры и цифровые товары<br>с моментальной доставкой.</p>
+      <h1 class="hero-title">Игры и подписки<br><span>без границ</span></h1>
+      <p class="hero-desc">Официальный PS Store Турция. Моментальная доставка.</p>
       <div class="hero-btns">
-        <button class="cta cta-primary" onclick="go('#/subs')" onmousemove="ctaRipple(event,this)">
-          <span class="cta-ico">💎</span> Купить подписку
-        </button>
-        <button class="cta cta-secondary" onclick="go('#/games')" onmousemove="ctaRipple(event,this)">
-          <span class="cta-ico">🎮</span> Купить игру
-        </button>
+        <button class="hbtn hbtn-p" onclick="go('#/subs')">PS Plus</button>
+        <button class="hbtn hbtn-s" onclick="go('#/games')">Каталог игр</button>
       </div>
-      <div class="hero-hints">
-        <span>💳 Коды пополнения</span>
-        <span>⚡ Моментально</span>
-        <span>🔒 Безопасно</span>
+      <div class="hero-tags">
+        <span class="hero-tag">228 игр</span>
+        <div class="hero-tag-sep"></div>
+        <span class="hero-tag">Моментально</span>
+        <div class="hero-tag-sep"></div>
+        <span class="hero-tag">Безопасно</span>
       </div>
-
     </div>
-  </div>
-</div>
 
-<!-- ═══ GTA6 PAGE ═══ -->
+    <!-- GTA BADGE — inside hero-block, floating above gamepad -->
+    <div class="hero-gta-float" onclick="go('#/gta6')">
+      <div class="hgta-img">
+        <img src="gta6.jpg" alt="GTA VI" onerror="this.style.display='none'">
+      </div>
+      <div class="hgta-info">
+        <div class="hgta-tag">🔥 Предзаказ открыт</div>
+        <div class="hgta-name">GTA VI — PlayStation 5</div>
+        <div class="hgta-price">от 6 440 ₽</div>
+      </div>
+      <div class="hgta-chev">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+  </div><!-- /hero-block -->
+
+</div><!-- /screen-home -->
+
+<!-- ═══ GTA6 ═══ -->
 <div class="screen" id="screen-gta6">
-  <div class="gta6-page">
-    <div class="back-btn" onclick="go('#/')" style="justify-content:flex-start;color:rgba(255,180,230,.7);margin-bottom:12px">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Назад
-    </div>
-
-    <!-- Big GTA6 image with neon frame -->
-    <div class="gta6-hero-img-wrap">
-      <div class="gta6-img-inner">
-        <img src="gta6.jpg" alt="GTA VI" class="gta6-hero-img"
-             onerror="this.style.display='none'">
-        <div class="gta6-hero-img-grad"></div>
-        <div class="gta6-hero-logo">
-          <div class="gta6-logo-txt">GTA <span class="gta6-vi-txt">VI</span></div>
-        </div>
+  <div class="gta6-wrap">
+    <div class="gta6-header">
+      <div class="gta6-back" onclick="go('#/')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </div>
+      <img src="gta6.jpg" alt="GTA VI" class="gta6-hero-img" onerror="this.style.opacity='0'">
+      <div class="gta6-img-overlay"></div>
+      <div class="gta6-title-block">
+        <div class="gta6-logo">GTA<span class="gta6-vi">VI</span></div>
       </div>
     </div>
-
-    <p class="gta6-desc">Самая ожидаемая игра поколения. Предзаказ уже доступен — оформи сейчас и получи цифровую копию в день выхода на PlayStation 5.</p>
-    <button class="gta6-preorder-btn" onclick="openCheckoutDirect({name:'GTA VI — Предзаказ PS5', price:8990, emoji:'🎮', platform:'PS5', type:'game'})">
-      🛒 Оформить предзаказ — 8 990 ₽
-    </button>
-    <div class="gta6-info">
-      <div class="gta6-info-card">
-        <div class="gta6-info-ico">📅</div>
-        <div class="gta6-info-ttl">Дата выхода</div>
-        <div class="gta6-info-sub">2026 год</div>
-      </div>
-      <div class="gta6-info-card">
-        <div class="gta6-info-ico">🎮</div>
-        <div class="gta6-info-ttl">Платформа</div>
-        <div class="gta6-info-sub">PlayStation 5</div>
-      </div>
-      <div class="gta6-info-card">
-        <div class="gta6-info-ico">⚡</div>
-        <div class="gta6-info-ttl">Доставка</div>
-        <div class="gta6-info-sub">В день выхода</div>
-      </div>
-      <div class="gta6-info-card">
-        <div class="gta6-info-ico">🔒</div>
-        <div class="gta6-info-ttl">Гарантия</div>
-        <div class="gta6-info-sub">100% безопасно</div>
+    <div class="gta6-body">
+      <p class="gta6-desc">Самая ожидаемая игра поколения. Вице-Сити возвращается с Люсией и Джейсоном. Предзакажи сейчас — получи цифровую копию в день выхода на PS5.</p>
+      <button class="gta6-cta" onclick="openCheckoutDirect({name:'GTA VI — Предзаказ PS5',price:6440,emoji:'🎮',platform:'PS5',type:'game'})">
+        Оформить предзаказ — 6 440 ₽
+      </button>
+      <div class="gta6-meta">
+        <div class="gta6-meta-card"><div class="gta6-meta-ico">📅</div><div class="gta6-meta-ttl">Выход</div><div class="gta6-meta-val">2026</div></div>
+        <div class="gta6-meta-card"><div class="gta6-meta-ico">🎮</div><div class="gta6-meta-ttl">Платформа</div><div class="gta6-meta-val">PS5</div></div>
+        <div class="gta6-meta-card"><div class="gta6-meta-ico">⚡</div><div class="gta6-meta-ttl">Доставка</div><div class="gta6-meta-val">В день выхода</div></div>
+        <div class="gta6-meta-card"><div class="gta6-meta-ico">🔒</div><div class="gta6-meta-ttl">Гарантия</div><div class="gta6-meta-val">100%</div></div>
       </div>
     </div>
   </div>
@@ -720,116 +1411,175 @@ nav.bnav{position:fixed;bottom:0;left:0;right:0;z-index:60;background:color-mix(
 
 <!-- ═══ SUBS ═══ -->
 <div class="screen" id="screen-subs">
-  <div class="page-header">
-    <div class="back-btn" onclick="go('#/')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Назад</div>
-    <div class="page-eyebrow">Подписки</div>
-    <h1 class="page-h1">PlayStation Plus<br>и другие подписки</h1>
-    <p class="page-sub">Онлайн-игры, бесплатные игры каждый месяц и каталог хитов</p>
+  <div class="ph">
+    <div class="ph-back" onclick="go('#/')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Назад
+    </div>
+    <div class="ph-tag">Подписки</div>
+    <h1 class="ph-h1">PlayStation Plus</h1>
+    <p class="ph-sub">Онлайн-мультиплеер, игры каждый месяц и каталог хитов</p>
   </div>
   <div class="sub-grid" id="subGrid"></div>
 </div>
 
 <!-- ═══ GAMES ═══ -->
 <div class="screen" id="screen-games">
-  <div class="page-header">
-    <div class="back-btn" onclick="go('#/')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Назад</div>
-    <div class="page-eyebrow">Каталог</div>
-    <h1 class="page-h1">Игры PS4 / PS5</h1>
+  <div class="ph" style="padding-bottom:var(--sp3)">
+    <div class="ph-back" onclick="go('#/')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Назад
+    </div>
+    <div class="ph-tag">Каталог</div>
+    <h1 class="ph-h1">Игры PS4 / PS5</h1>
   </div>
   <div class="search-row">
-    <div class="search-box">
+    <div class="search-wrap">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input id="gamesSearch" type="search" placeholder="Поиск игр…" oninput="onGamesSearch()">
+      <input id="gamesSearch" type="search" placeholder="Поиск…" oninput="onGamesSearch()">
     </div>
     <select class="sort-sel" id="gamesSort" onchange="loadGames()">
       <option value="popular">Популярные</option>
       <option value="new">Новинки</option>
-      <option value="price_asc">Цена ↑</option>
-      <option value="price_desc">Цена ↓</option>
-      <option value="sale">Акции</option>
+      <option value="price_asc">Дешевле</option>
+      <option value="price_desc">Дороже</option>
+      <option value="sale">Скидки</option>
       <option value="name">А–Я</option>
     </select>
   </div>
-  <div class="chips-row" id="gamesChips"></div>
-  <div class="sort-bar"><span class="sort-lbl" id="gamesCnt"></span></div>
+  <div class="cat-bar" id="gamesChips"></div>
+  <div class="catalog-meta">
+    <span class="catalog-count" id="gamesCnt"></span>
+  </div>
   <div class="games-grid" id="gamesGrid"></div>
-  <div id="gamesPager" style="display:flex;justify-content:center;gap:6px;padding:0 16px 20px;flex-wrap:wrap"></div>
+  <div class="pager" id="gamesPager"></div>
 </div>
 
 <!-- ═══ WISH ═══ -->
 <div class="screen" id="screen-wish">
-  <div class="page-wrap"><div class="page-title">Избранное</div><div id="wishContent"></div></div>
+  <div class="list-screen"><div class="screen-title">Избранное</div><div id="wishContent"></div></div>
 </div>
 
 <!-- ═══ CART ═══ -->
 <div class="screen" id="screen-cart">
-  <div class="page-wrap"><div class="page-title">Корзина</div><div id="cartContent"></div></div>
+  <div class="list-screen"><div class="screen-title">Корзина</div><div id="cartContent"></div></div>
 </div>
 
 <!-- ═══ PROFILE ═══ -->
 <div class="screen" id="screen-profile">
-  <div class="prof-top">
-    <div class="prof-ava" id="profAva">👤</div>
-    <div><div class="prof-name" id="profName">Пользователь</div><div class="prof-handle" id="profHandle">PlayStation Turkey</div></div>
+  <div class="prof-header">
+    <div class="prof-avatar" id="profAva">U</div>
+    <div>
+      <div class="prof-name" id="profName">Пользователь</div>
+      <div class="prof-handle" id="profHandle">PlayStation Turkey</div>
+    </div>
   </div>
-  <div class="menu-wrap">
-    <div class="menu-section" style="padding-top:0">Магазин</div>
-    <div class="menu-item" onclick="go('#/gta6')"><div class="menu-ico">🔥</div><div><div class="menu-lbl">GTA VI — Предзаказ</div><div class="menu-sub">Оформить предзаказ</div></div><div class="menu-arr">›</div></div>
-    <div class="menu-item" onclick="go('#/subs')"><div class="menu-ico">💎</div><div><div class="menu-lbl">Подписки</div><div class="menu-sub">PS Plus и другие</div></div><div class="menu-arr">›</div></div>
-    <div class="menu-item" onclick="go('#/games')"><div class="menu-ico">🎮</div><div><div class="menu-lbl">Игры</div><div class="menu-sub">PS4 / PS5 каталог</div></div><div class="menu-arr">›</div></div>
-    <div class="menu-item" onclick="go('#/wish')"><div class="menu-ico">♡</div><div><div class="menu-lbl">Избранное</div></div><div class="menu-arr">›</div></div>
-    <div class="menu-item" onclick="go('#/cart')"><div class="menu-ico">🛒</div><div><div class="menu-lbl">Корзина</div></div><div class="menu-arr">›</div></div>
-    <div class="menu-section">Настройки</div>
-    <div class="menu-item" onclick="toggleTheme()"><div class="menu-ico">🌓</div><div><div class="menu-lbl">Тема</div></div></div>
-    <div class="menu-item" onclick="clearData()"><div class="menu-ico">🗑️</div><div><div class="menu-lbl">Очистить данные</div><div class="menu-sub">Корзина и избранное</div></div></div>
-    <div class="prof-ver">Logovo PlayStation</div>
+  <div class="prof-wrap">
+    <div class="prof-section">Магазин</div>
+    <div class="menu-block">
+      <div class="menu-item" onclick="go('#/gta6')">
+        <div class="menu-ico-wrap">🔥</div>
+        <div class="menu-texts"><div class="menu-label">GTA VI — Предзаказ</div></div>
+        <div class="menu-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>
+      <div class="menu-item" onclick="go('#/subs')">
+        <div class="menu-ico-wrap">💎</div>
+        <div class="menu-texts"><div class="menu-label">Подписки PS Plus</div><div class="menu-sub">Essential, Extra, Deluxe</div></div>
+        <div class="menu-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>
+      <div class="menu-item" onclick="go('#/games')">
+        <div class="menu-ico-wrap">🎮</div>
+        <div class="menu-texts"><div class="menu-label">Каталог игр</div><div class="menu-sub">228 игр PS4 / PS5</div></div>
+        <div class="menu-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>
+      <div class="menu-item" onclick="go('#/cart')">
+        <div class="menu-ico-wrap">🛒</div>
+        <div class="menu-texts"><div class="menu-label">Корзина</div></div>
+        <div class="menu-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>
+    </div>
+    <div class="prof-section">Настройки</div>
+    <div class="menu-block">
+      <div class="menu-item" onclick="toggleTheme()">
+        <div class="menu-ico-wrap">🌓</div>
+        <div class="menu-texts"><div class="menu-label">Тема интерфейса</div></div>
+      </div>
+      <div class="menu-item" onclick="clearData()">
+        <div class="menu-ico-wrap">🗑</div>
+        <div class="menu-texts"><div class="menu-label">Очистить данные</div><div class="menu-sub">Корзина и избранное</div></div>
+      </div>
+    </div>
+    <div class="prof-footer">Logovo PlayStation · Turkey Store</div>
   </div>
 </div>
 
 <!-- BOTTOM NAV -->
 <nav class="bnav">
-  <div class="bnav-row">
-    <div class="bnav-item active" data-nav="home" onclick="go('#/')"><div class="bnav-ico">🏠</div><div class="bnav-lbl">Главная</div></div>
-    <div class="bnav-item" data-nav="gta6" onclick="go('#/gta6')"><div class="bnav-ico">🔥</div><div class="bnav-lbl">GTA VI</div></div>
-    <div class="bnav-item" data-nav="subs" onclick="go('#/subs')"><div class="bnav-ico">💎</div><div class="bnav-lbl">Подписки</div></div>
-    <div class="bnav-item" data-nav="games" onclick="go('#/games')"><div class="bnav-ico">🎮</div><div class="bnav-lbl">Игры</div></div>
-    <div class="bnav-item" data-nav="cart" onclick="go('#/cart')" style="position:relative"><div class="bnav-ico">🛒</div><div class="bnav-lbl">Корзина</div><div class="badge" id="cartBadge2" style="top:4px;right:8px">0</div></div>
-    <div class="bnav-item" data-nav="profile" onclick="go('#/profile')"><div class="bnav-ico">👤</div><div class="bnav-lbl">Профиль</div></div>
+  <div class="bnav-inner">
+    <div class="bnav-item active" data-nav="home" onclick="go('#/')">
+      <div class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div class="nav-lbl">Главная</div>
+    </div>
+    <div class="bnav-item" data-nav="gta6" onclick="go('#/gta6')">
+      <div class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+      <div class="nav-lbl">GTA VI</div>
+    </div>
+    <div class="bnav-item" data-nav="subs" onclick="go('#/subs')">
+      <div class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div>
+      <div class="nav-lbl">Подписки</div>
+    </div>
+    <div class="bnav-item" data-nav="games" onclick="go('#/games')">
+      <div class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01M7 12h.01"/><path d="M17 10v4"/><path d="M15 12h4"/></svg></div>
+      <div class="nav-lbl">Игры</div>
+    </div>
+    <div class="bnav-item" data-nav="cart" onclick="go('#/cart')" style="position:relative">
+      <div class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+      <div class="nav-lbl">Корзина</div>
+      <div class="nav-badge" id="cartBadge2">0</div>
+    </div>
+    <div class="bnav-item" data-nav="profile" onclick="go('#/profile')">
+      <div class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+      <div class="nav-lbl">Профиль</div>
+    </div>
   </div>
 </nav>
 
 <!-- PRODUCT MODAL -->
 <div class="modal" id="pModal">
-  <div class="modal-hero" id="pmHero"></div>
-  <div class="modal-body">
+  <div class="modal-art" id="pmHero"></div>
+  <div class="modal-content">
     <div class="modal-eyebrow" id="pmPlat"></div>
     <div class="modal-title" id="pmTitle"></div>
     <div class="modal-edition" id="pmEdition"></div>
-    <div id="pmSeg"></div>
-    <div class="price-block"><div class="pb-price" id="pmPrice"></div><div class="pb-old" id="pmOld"></div><div id="pmDisc"></div></div>
-    <div class="stock-line" id="pmStock"></div>
-    <div class="modal-actions"><button class="btn-buy" id="pmBuy" onclick="buyFromModal()">В корзину</button></div>
+    <div class="period-seg" id="pmSeg"></div>
+    <div class="modal-price-row">
+      <div class="modal-price" id="pmPrice"></div>
+      <div class="modal-price-old" id="pmOld"></div>
+      <div id="pmDisc"></div>
+    </div>
+    <div class="modal-price-meta" id="pmPriceMeta"></div>
+    <div id="pmStock"></div>
+    <button class="modal-buy" id="pmBuy" onclick="buyFromModal()">Оформить</button>
     <div id="pmFeatWrap"></div>
-    <div class="modal-sec" id="pmDescSec" style="display:none">Об игре</div>
-    <div class="modal-desc" id="pmDesc"></div>
+    <div class="modal-about" id="pmDesc"></div>
     <div id="pmSpecWrap"></div>
   </div>
 </div>
 
 <!-- CHECKOUT SHEET -->
-<div class="modal-overlay" id="checkoutOverlay" onclick="closeCheckout(event)">
-  <div class="checkout-sheet" id="checkoutSheet">
-    <div class="sheet-drag"></div>
+<div class="sheet-overlay" id="checkoutOverlay" onclick="closeCheckout(event)">
+  <div class="sheet" id="checkoutSheet">
+    <div class="sheet-handle"></div>
     <div id="checkoutContent"></div>
   </div>
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast"><div class="t-ic" id="tIco"></div><span id="tMsg"></span></div>
+<div class="toast" id="toast">
+  <div class="toast-dot" id="tIco"></div>
+  <span id="tMsg"></span>
+</div>
 
 <script src="js/seed.js"></script>
 <script src="js/api.js"></script>
-<script src="js/ps5-hero.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

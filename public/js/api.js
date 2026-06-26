@@ -83,3 +83,14 @@ Object.assign(window.API, {
   orderStats:   () => req('GET', '/orders/stats'),
   patchOrderAdmin: (id, b) => req('PATCH', '/orders/' + id, b),
 });
+
+// ── Prices API ────────────────────────────────────────────────
+Object.assign(window.API, {
+  priceFormula:    ()        => req('GET',  '/prices/formula'),
+  priceConvert:    (priceTRY)=> req('POST', '/prices/convert', { priceTRY }),
+  priceDetail:     (id)      => req('GET',  `/prices/${id}`),
+  priceHistory:    (id)      => req('GET',  `/prices/${id}/history`),
+  priceUpdate:     (id, priceTRY) => req('POST', `/prices/update/${id}`, { priceTRY }),
+  priceBulk:       (items)   => req('POST', '/prices/bulk',       { items }),
+  priceRecalculate:()        => req('POST', '/prices/recalculate', {}),
+});

@@ -8,6 +8,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { all, get, run, generateOrderId, shapeOrder } = require('./db');
 const notify = require('./notifications');
+const price  = require('./priceService');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'logovo-admin';
@@ -52,6 +53,10 @@ function shapeProduct(r) {
     name: r.name, description: r.description, emoji: r.emoji, image: r.image,
     platform: r.platform, edition: r.edition,
     price: r.price, oldPrice: r.old_price || null, sale,
+    // Ценовые поля PriceCalculatorService
+    originalPriceTRY:  r.price_try     || 0,
+    exchangeMultiplier: r.multiplier   || 0,
+    lastPriceUpdate:   r.price_updated || null,
     inStock: !!r.in_stock, popularity: r.popularity,
     isNew: !!r.is_new, isSale: !!r.is_sale, isPreorder: !!r.is_preorder,
     isFeatured: !!r.is_featured, position: r.position, hidden: !!r.hidden,
@@ -325,25 +330,26 @@ async function api(req, res, url) {
 
     // Валидация обязательных полей
     const errs = [];
-    if (!b.psnId || !String(b.psnId).trim())      errs.push('Укажите PSN ID');
-    if (!b.nickname || !String(b.nickname).trim()) errs.push('Укажите никнейм');
+    if (!b.psnId    || !String(b.psnId).trim())       errs.push('Укажите PSN ID');
+    if (!b.nickname || !String(b.nickname).trim())     errs.push('Укажите никнейм');
     if (!b.productName || !String(b.productName).trim()) errs.push('Укажите товар');
-    if (!b.amount || isNaN(+b.amount) || +b.amount <= 0) errs.push('Некорректная сумма');
+    if (!b.amount   || isNaN(+b.amount) || +b.amount < 0) errs.push('Некорректная сумма');
     if (errs.length) return bad(res, errs.join('. '));
 
     const id = generateOrderId();
     run(`INSERT INTO orders
-      (id, psn_id, nickname, telegram, product_name, product_id, amount, comment, status, meta)
-      VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      (id, psn_id, nickname, telegram, email, product_name, product_id, amount, comment, status, meta)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
       [
         id,
         String(b.psnId).trim(),
         String(b.nickname).trim(),
-        b.telegram ? String(b.telegram).trim() : '',
+        b.telegram    ? String(b.telegram).trim()    : '',
+        b.email       ? String(b.email).trim()       : '',
         String(b.productName).trim(),
         b.productId ? +b.productId : null,
-        Math.round(+b.amount),
-        b.comment ? String(b.comment).trim() : '',
+        Math.round(+b.amount || 0),
+        b.comment     ? String(b.comment).trim()     : '',
         'pending',
         JSON.stringify(b.meta || {}),
       ]
@@ -438,6 +444,79 @@ async function api(req, res, url) {
     return ok(res, { total, pending, paid, revenue });
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     /api/prices — PriceCalculatorService API
+     ══════════════════════════════════════════════════════════════ */
+
+  /* GET /api/prices/formula — возвращает текущую формулу конвертации */
+  if (seg[1] === 'prices' && seg[2] === 'formula' && method === 'GET') {
+    return ok(res, {
+      tiers: price.TIERS,
+      examples: [
+        { try: 450,  rub: price.convertTRY(450).rub,  multiplier: price.convertTRY(450).multiplier },
+        { try: 750,  rub: price.convertTRY(750).rub,  multiplier: price.convertTRY(750).multiplier },
+        { try: 1200, rub: price.convertTRY(1200).rub, multiplier: price.convertTRY(1200).multiplier },
+        { try: 2000, rub: price.convertTRY(2000).rub, multiplier: price.convertTRY(2000).multiplier },
+        { try: 3000, rub: price.convertTRY(3000).rub, multiplier: price.convertTRY(3000).multiplier },
+      ],
+    });
+  }
+
+  /* POST /api/prices/convert — конвертировать произвольную сумму */
+  if (seg[1] === 'prices' && seg[2] === 'convert' && method === 'POST') {
+    let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+    const priceTRY = +b.priceTRY;
+    if (!priceTRY || priceTRY < 0) return bad(res, 'Укажите priceTRY > 0');
+    return ok(res, price.buildPriceInfo(priceTRY));
+  }
+
+  /* POST /api/prices/update/:id — обновить цену одного товара (admin) */
+  if (seg[1] === 'prices' && seg[2] === 'update' && seg[3] && method === 'POST') {
+    if (!needAdmin()) return;
+    let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+    const productId = +seg[3];
+    const priceTRY  = +b.priceTRY;
+    if (!priceTRY || priceTRY <= 0) return bad(res, 'Укажите priceTRY > 0');
+    const result = price.updateProductPrice(productId, priceTRY, 'manual');
+    if (!result) return bad(res, 'Товар не найден', 404);
+    log.info('Price updated:', productId, priceTRY + ' TRY →', result.priceRUB + ' ₽');
+    return ok(res, result);
+  }
+
+  /* POST /api/prices/bulk — массовое обновление цен (admin) */
+  if (seg[1] === 'prices' && seg[2] === 'bulk' && method === 'POST') {
+    if (!needAdmin()) return;
+    let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+    // b.items = [{ id, priceTRY }, ...]
+    if (!Array.isArray(b.items) || !b.items.length) return bad(res, 'Передайте items: [{id, priceTRY}]');
+    const results = price.bulkSetTRYPrices(b.items, 'manual');
+    log.info('Bulk price update:', results.length, 'товаров');
+    return ok(res, { updated: results.length, items: results });
+  }
+
+  /* POST /api/prices/recalculate — пересчитать все цены (admin) */
+  if (seg[1] === 'prices' && seg[2] === 'recalculate' && method === 'POST') {
+    if (!needAdmin()) return;
+    log.info('Manual recalculation triggered');
+    const result = price.recalculateAll('manual');
+    return ok(res, result);
+  }
+
+  /* GET /api/prices/:id — детали цены одного товара */
+  if (seg[1] === 'prices' && seg[2] && seg[2] !== 'formula' && !seg[3] && method === 'GET') {
+    const detail = price.getProductPriceDetail(+seg[2]);
+    if (!detail) return bad(res, 'Товар не найден', 404);
+    return ok(res, detail);
+  }
+
+  /* GET /api/prices/:id/history — история изменений цены */
+  if (seg[1] === 'prices' && seg[3] === 'history' && method === 'GET') {
+    if (!needAdmin()) return;
+    const limit = Math.min(+(new URL(req.url, 'http://x').searchParams.get('limit')) || 20, 100);
+    const history = price.getPriceHistory(+seg[2], limit);
+    return ok(res, history);
+  }
+
   return bad(res, 'Маршрут не найден', 404);
 }
 
@@ -485,4 +564,12 @@ server.listen(PORT, () => {
   log.info(`Logovo PlayStation запущен`);
   log.info(`Витрина:       http://localhost:${PORT}/`);
   log.info(`Админ-панель:  http://localhost:${PORT}/admin  (токен: ${ADMIN_TOKEN})`);
+
+  // Инициализируем PriceCalculatorService
+  try {
+    price.initPrices();     // мигрирует БД + заполняет price_try для старых записей
+    price.startScheduler(); // запускает фоновое обновление по расписанию
+  } catch (err) {
+    log.err('Price service init error:', err.message);
+  }
 });

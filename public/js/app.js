@@ -28,12 +28,9 @@ function toggleTheme() {
 /* ── Toast ─────────────────────────────────────────────────── */
 let toastTimer;
 function toast(msg, type = 'ok') {
-  const t = el('toast'), ico = el('tIco'), txt = el('tMsg');
+  const t = el('toast'), txt = el('tMsg');
   if (!t) return;
-  const ok  = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>';
-  const err = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
   t.className = 'toast' + (type === 'err' ? ' err' : '');
-  ico.innerHTML = type === 'err' ? err : ok;
   txt.textContent = msg;
   requestAnimationFrame(() => t.classList.add('show'));
   clearTimeout(toastTimer);
@@ -57,12 +54,7 @@ function discPct(price, old) {
 
 /* ── Badges ────────────────────────────────────────────────── */
 function updateBadges() {
-  const wn = wishlist.length, cn = cart.length;
-  ['wishBadge','wishBadge2'].forEach(id => {
-    const b = el(id); if (!b) return;
-    b.textContent = wn;
-    b.style.display = wn ? 'flex' : 'none';
-  });
+  const cn = cart.length;
   ['cartBadge','cartBadge2'].forEach(id => {
     const b = el(id); if (!b) return;
     b.textContent = cn;
@@ -135,47 +127,46 @@ function subCard(s) {
   const tier      = s.meta?.tier      || 'essential';
   const features  = s.meta?.features  || [];
   const hasPeriods = Object.keys(periods).length > 0;
-  const sel   = subPeriodSel[s.id] || 1;
-  const price = hasPeriods ? (periods[sel] ?? s.price) : s.price;
-  const isFeat = s.isFeatured;
+  const sel        = subPeriodSel[s.id] || 1;
+  const price      = hasPeriods ? (periods[sel] ?? s.price) : s.price;
+  const isFeat     = s.isFeatured;
 
-  // Tier-based gradients
-  const bgByTier = {
-    essential: 'linear-gradient(135deg,#1c1c2e 0%,#2a2a44 100%)',
-    extra:     'linear-gradient(135deg,#001a4d 0%,#003380 50%,#0055cc 100%)',
-    deluxe:    'linear-gradient(135deg,#2a1800 0%,#5a3200 50%,#8a5200 100%)',
-  };
-  const bg = bgByTier[tier] || bgByTier.essential;
-
-  // Tier badge labels
-  const tierLabel = { essential:'Essential', extra:'Extra', deluxe:'Deluxe' }[tier] || tier;
-  const tierEmoji = { essential:'🔘', extra:'💠', deluxe:'👑' }[tier] || '💎';
-  const featBadge = { essential:'Базовый', extra:'Популярный ⭐', deluxe:'Максимальный' }[tier] || '';
+  const tierIcons  = { essential: '◎', extra: '◈', deluxe: '◆' };
+  const tierLabel  = { essential: 'Essential', extra: 'Extra', deluxe: 'Deluxe' }[tier] || tier;
+  const coverCls   = `sub-cover sub-cover-${tier}`;
+  const markCls    = `sub-tier-mark tm-${tier}`;
+  const dotCls     = `sub-feat-dot feat-dot-${tier}`;
 
   return `
-    <div class="sub-card${isFeat?' featured':''}" data-tier="${tier}" id="sc-${s.id}">
-      <div class="sub-cover" style="background:${bg}">
-        ${s.image ? `<img src="${esc(s.image)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">` : ''}
-        <div class="sub-cover-grad"></div>
-        <div style="font-size:52px;position:relative;z-index:1;filter:drop-shadow(0 4px 16px rgba(0,0,0,.5))">${tierEmoji}</div>
-        ${isFeat ? `<div class="sub-feat-badge">${featBadge}</div>` : ''}
+    <div class="sub-card${isFeat ? ' featured' : ''}" data-tier="${tier}" id="sc-${s.id}">
+      <div class="${coverCls}">
+        <div class="${markCls}">PS Plus ${tierLabel}</div>
+        ${isFeat ? '<div class="sub-popular-badge">Популярный</div>' : ''}
+        <span class="sub-cover-icon">${tierIcons[tier] || '◎'}</span>
+        <div class="sub-cover-name">PlayStation Plus<br>${tierLabel}</div>
       </div>
       <div class="sub-body">
-        <div class="sub-tier">PS Plus ${tierLabel}</div>
-        <div class="sub-name">${esc(s.name)}</div>
         ${s.description ? `<div class="sub-desc">${esc(s.description)}</div>` : ''}
-        ${features.length ? `<div class="sub-features">${features.map(f=>`<div class="sub-feat">${esc(f)}</div>`).join('')}</div>` : ''}
+        ${features.length ? `
+          <div class="sub-features">
+            ${features.map(f => `
+              <div class="sub-feat">
+                <div class="${dotCls}"></div>
+                ${esc(f)}
+              </div>`).join('')}
+          </div>` : ''}
+        <div class="sub-divider"></div>
         ${hasPeriods ? `
           <div class="sub-periods">
-            ${Object.entries(periods).map(([mo,pr]) => `
-              <div class="period-row${sel==mo?' on':''}" onclick="selectSubPeriod(${s.id},${mo})">
-                <span class="period-label">${PERIOD_LABELS[mo]||mo+' мес.'}</span>
+            ${Object.entries(periods).map(([mo, pr]) => `
+              <div class="period-row${sel == mo ? ' on' : ''}" onclick="selectSubPeriod(${s.id}, ${mo})">
+                <span class="period-label">${PERIOD_LABELS[mo] || mo + ' мес.'}</span>
                 <span class="period-price">${fmt(pr)}</span>
               </div>`).join('')}
           </div>` : ''}
-        <button class="sub-buy-btn${s.inStock?'':' disabled'}" onclick="addSubToCart(${s.id})"
+        <button class="sub-buy${s.inStock ? '' : ' disabled'}" onclick="addSubToCart(${s.id})"
           ${!s.inStock ? 'disabled' : ''}>
-          ${s.inStock ? '🛒 Оформить — ' + fmt(price) : 'Нет в наличии'}
+          ${s.inStock ? `Оформить — ${fmt(price)}` : 'Нет в наличии'}
         </button>
       </div>
     </div>`;
@@ -264,33 +255,39 @@ async function loadGames() {
 
 function gameCard(p) {
   const disc  = discPct(p.price, p.oldPrice);
-  const badge = p.isNew     ? '<div class="gbadge b-new">NEW</div>'
-    : p.isSale || p.oldPrice ? '<div class="gbadge b-sale">SALE</div>'
-    : p.isPreorder           ? '<div class="gbadge b-pre">PRE</div>'
+  const badge = p.isNew && !p.isSale && !p.isPreorder
+    ? '<div class="gcard-badge gb-new">New</div>'
+    : (p.isSale || p.oldPrice) && !p.isPreorder
+    ? '<div class="gcard-badge gb-sale">Sale</div>'
+    : p.isPreorder
+    ? '<div class="gcard-badge gb-pre">Pre</div>'
     : '';
   const cover = p.image
     ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">`
-    : `<div class="gcard-cover-inner">${esc(p.emoji||'🎮')}</div>`;
+    : `<div class="gcard-art-emoji">${esc(p.emoji||'🎮')}</div>`;
+  const tryLine = p.originalPriceTRY > 0
+    ? `<div class="gcard-try">₺ ${p.originalPriceTRY.toLocaleString('ru')}</div>`
+    : '';
 
   return `
     <div class="gcard" onclick="openProduct(${p.id})">
-      <div class="gcard-cover">
+      <div class="gcard-art">
         ${cover}
-        ${badge}
-        ${disc>=5 ? `<div class="gdisc">−${disc}%</div>` : ''}
+        <div class="gcard-badges">${badge}</div>
+        ${disc >= 5 ? `<div class="gcard-disc">−${disc}%</div>` : ''}
       </div>
       <div class="gcard-body">
-        <div class="gcard-plat">${esc(p.platform||'PlayStation')}</div>
+        <div class="gcard-platform">${esc(p.platform || 'PlayStation')}</div>
         <div class="gcard-name">${esc(p.name)}</div>
-        ${p.description ? `<div class="gcard-desc">${esc(p.description)}</div>` : ''}
         <div class="gcard-prices">
           <div class="gcard-price">${p.price === 0 ? 'Бесплатно' : fmt(p.price)}</div>
           ${p.oldPrice ? `<div class="gcard-old">${fmt(p.oldPrice)}</div>` : ''}
         </div>
-        <button class="gcard-add${!p.inStock?' oos':''}"
+        ${tryLine}
+        <button class="gcard-buy${!p.inStock ? ' oos' : ''}"
           onclick="event.stopPropagation();quickAdd(${p.id},this)"
-          ${!p.inStock?'disabled':''}>
-          ${!p.inStock ? 'Нет в наличии' : '🛒 Купить'}
+          ${!p.inStock ? 'disabled' : ''}>
+          ${!p.inStock ? 'Нет в наличии' : 'Купить'}
         </button>
       </div>
     </div>`;
@@ -306,8 +303,8 @@ function renderGamesPager(page, pages) {
     else if (range[range.length-1]!=='…') range.push('…');
   }
   range.forEach(r => {
-    if (r==='…') { html += `<button class="pg-btn" disabled>…</button>`; }
-    else { html += `<button class="pg-btn${r===page?' on':''}" onclick="gamesGoPage(${r})">${r}</button>`; }
+    if (r==='…') { html += `<button class="pg" disabled>…</button>`; }
+    else { html += `<button class="pg${r===page?' on':''}" onclick="gamesGoPage(${r})">${r}</button>`; }
   });
   pager.innerHTML = html;
 }
@@ -321,9 +318,9 @@ function resetGames() {
   gamesState = { q:'', sort:'popular', page:1, cat:'' };
   el('gamesSearch').value = '';
   el('gamesSort').value = 'popular';
-  // reset chips
-  document.querySelectorAll('#gamesChips .chip').forEach(c => c.classList.remove('on'));
-  document.querySelector('#gamesChips .chip')?.classList.add('on');
+  /* reset chips */
+  document.querySelectorAll('#gamesChips .cat-chip').forEach(c => c.classList.remove('on'));
+  document.querySelector('#gamesChips .cat-chip')?.classList.add('on');
   loadGames();
 }
 function onGamesSearch() {
@@ -342,26 +339,19 @@ async function loadGamesChips() {
     const cats = await API.categories();
     const gameCats = (cats||[]).filter(c => !c.hidden && (c.type==='game'||c.slug==='games'));
     const chips = [{ id:'', title:'Все' }, ...gameCats];
-    wrap.innerHTML = chips.map(c=>`
-      <div class="chip${c.id===''?' on':''}" onclick="setGamesCat('${c.id}')" data-cat="${c.id}">
-        ${esc(c.title)}
-      </div>`).join('');
+    wrap.innerHTML = chips.map(c =>
+      `<div class="cat-chip${c.id===''?' on':''}" onclick="setGamesCat('${c.id}')" data-cat="${c.id}">${esc(c.title)}</div>`
+    ).join('');
   } catch {}
 }
 
 function setGamesCat(catId) {
   gamesState.cat = catId;
   gamesState.page = 1;
-  document.querySelectorAll('#gamesChips .chip').forEach(c => c.classList.toggle('on', c.dataset.cat===catId));
+  document.querySelectorAll('#gamesChips .cat-chip').forEach(c =>
+    c.classList.toggle('on', c.dataset.cat === catId));
   loadGames();
 }
-
-/* Pager button CSS (added dynamically to avoid duplication) */
-(function(){
-  const s = document.createElement('style');
-  s.textContent=`.pg-btn{min-width:36px;height:36px;border-radius:9px;background:var(--bg2);border:1.5px solid var(--div2);font-size:13px;font-weight:700;cursor:pointer;transition:all .18s;color:var(--t2)}.pg-btn.on{background:var(--blue3);border-color:var(--blue3);color:#fff}.pg-btn:disabled{opacity:.35;cursor:default}.pg-btn:not(.on):not(:disabled):hover{border-color:var(--blue3);color:var(--blue3)}`;
-  document.head.appendChild(s);
-})();
 
 /* ══════════════════════════════════════════════════════════════
    PRODUCT MODAL
@@ -413,84 +403,91 @@ async function openProduct(id) {
 }
 
 function renderModal(p) {
-  // Hero image
-  let heroHTML = '';
-  if (p.image) heroHTML = `<img src="${esc(p.image)}" alt="${esc(p.name)}">`;
-  else heroHTML = `<div style="font-size:80px;line-height:1;filter:drop-shadow(0 8px 24px rgba(0,0,0,.5))">${esc(p.emoji||'🎮')}</div>`;
-  heroHTML += '<div class="modal-hero-grad"></div>';
-  // Re-add back/wish buttons
-  heroHTML += `<button class="modal-back" onclick="closeModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>`;
+  let heroHTML = p.image
+    ? `<img src="${esc(p.image)}" alt="${esc(p.name)}">`
+    : `<div class="modal-art-emoji">${esc(p.emoji||'🎮')}</div>`;
+  heroHTML += '<div class="modal-art-fade"></div>';
+  heroHTML += `<button class="modal-close" onclick="closeModal()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+  </button>`;
   const inWish = wishlist.includes(p.id);
-  heroHTML += `<button id="pmWishBtn" class="modal-wish${inWish?' active':''}" onclick="toggleWish(${p.id})"><svg width="16" height="16" viewBox="0 0 24 24" fill="${inWish?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>`;
+  heroHTML += `<button id="pmWishBtn" class="modal-wish-btn${inWish?' active':''}" onclick="toggleWish(${p.id})">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="${inWish?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  </button>`;
   el('pmHero').innerHTML = heroHTML;
 
   el('pmPlat').textContent = p.platform || '';
   el('pmTitle').textContent = p.name;
-  el('pmEdition').textContent = p.edition || '';
+  el('pmEdition').textContent = (p.edition && p.edition !== 'Standard') ? p.edition : '';
 
-  // Periods (for subs)
   const periods = p.meta?.periods || {};
   if (p.type === 'sub' && Object.keys(periods).length > 0) {
     const LABELS = { 1:'1 месяц', 3:'3 месяца', 12:'12 месяцев' };
-    el('pmSeg').innerHTML = Object.entries(periods).map(([mo])=>`
-      <button class="seg-btn${+mo===modalPeriod?' on':''}" onclick="setPeriod(${mo})">${LABELS[mo]||mo+' мес.'}</button>
-    `).join('');
-  } else {
-    el('pmSeg').innerHTML = '';
-  }
+    el('pmSeg').innerHTML = Object.entries(periods).map(([mo]) =>
+      `<button class="period-btn${+mo===modalPeriod?' on':''}" onclick="setPeriod(${mo})">${LABELS[mo]||mo+' мес.'}</button>`
+    ).join('');
+  } else { el('pmSeg').innerHTML = ''; }
 
   updateModalPrice(p);
 
-  // Stock
   const stk = el('pmStock');
   if (p.inStock) {
-    stk.className = 'stock-line in-stock';
-    stk.innerHTML = '<span class="dot"></span> В наличии';
+    stk.className = 'modal-stock in-stock';
+    stk.innerHTML = '<div class="stock-dot"></div> В наличии';
   } else {
-    stk.className = 'stock-line no-stock';
-    stk.innerHTML = '<span class="dot"></span> Нет в наличии';
+    stk.className = 'modal-stock out-stock';
+    stk.innerHTML = '<div class="stock-dot" style="background:var(--tx4)"></div> Нет в наличии';
   }
   el('pmBuy').disabled = !p.inStock;
 
-  // Features
-  const feats = p.meta?.features || [];
-  el('pmFeatWrap').innerHTML = feats.length ? `
-    <div class="modal-sec">Что входит</div>
-    ${feats.map(f=>`<div class="feat"><div class="feat-d"></div><span>${esc(f)}</span></div>`).join('')}` : '';
-
-  // Description
-  if (p.description) {
-    el('pmDescSec').style.display = 'block';
-    el('pmDesc').textContent = p.description;
-  } else {
-    el('pmDescSec').style.display = 'none';
-  }
-
-  // Specs
   const meta = p.meta || {};
-  const specKeys = { size:'Размер', players:'Игроки', rating:'Рейтинг' };
-  const specs = Object.entries(specKeys).filter(([k]) => meta[k]);
-  el('pmSpecWrap').innerHTML = specs.length ? `
-    <div class="modal-sec">Характеристики</div>
-    ${specs.map(([k,l])=>`<div class="spec"><span class="spec-l">${l}</span><span class="spec-v">${esc(meta[k])}</span></div>`).join('')}` : '';
+  const feats = meta.features || [];
+  el('pmFeatWrap').innerHTML = feats.length
+    ? `<div class="modal-section">Включено</div><div class="modal-features">${feats.map(f =>
+        `<div class="modal-feat"><div class="mf-dot"></div><div class="mf-text">${esc(f)}</div></div>`).join('')}</div>`
+    : '';
+
+  if (p.description) { el('pmDesc').textContent = p.description; el('pmDesc').style.display='block'; }
+  else { el('pmDesc').style.display='none'; }
+
+  const specMap = [['size','Размер'],['rating','Возраст'],['lang','Язык'],['players','Игроки'],['release','Релиз']];
+  const specRows = specMap.filter(([k]) => meta[k]).map(([k,l]) =>
+    `<div class="spec-row"><span class="spec-key">${l}</span><span class="spec-val">${esc(meta[k])}</span></div>`).join('');
+  el('pmSpecWrap').innerHTML = specRows
+    ? `<div class="modal-section">Характеристики</div><div class="modal-specs">${specRows}</div>` : '';
 }
 
 function updateModalPrice(p) {
   const periods = p.meta?.periods || {};
-  const price = (p.type==='sub' && Object.keys(periods).length > 0)
-    ? (periods[modalPeriod] ?? p.price)
-    : p.price;
+  const price = (p.type === 'sub' && Object.keys(periods).length > 0)
+    ? (periods[modalPeriod] ?? p.price) : p.price;
 
-  el('pmPrice').textContent = fmt(price);
+  el('pmPrice').textContent = price === 0 ? 'Бесплатно' : fmt(price);
   if (p.oldPrice && p.oldPrice > price) {
     el('pmOld').textContent = fmt(p.oldPrice);
     const d = discPct(price, p.oldPrice);
-    el('pmDisc').innerHTML = d ? `<div class="pb-disc">−${d}%</div>` : '';
+    el('pmDisc').innerHTML = d ? `<div class="modal-disc">−${d}%</div>` : '';
   } else {
     el('pmOld').textContent = '';
     el('pmDisc').innerHTML = '';
   }
-  el('pmBuy').textContent = `В корзину — ${fmt(price)}`;
+  el('pmBuy').textContent = price > 0 ? `Оформить — ${fmt(price)}` : 'Оформить';
+
+  // TRY price meta
+  const metaEl = el('pmPriceMeta');
+  if (metaEl) {
+    const parts = [];
+    if (p.originalPriceTRY > 0) {
+      parts.push(`<span class="pm-try">₺ ${p.originalPriceTRY.toLocaleString('ru')} TRY × ${p.exchangeMultiplier}</span>`);
+    }
+    if (p.lastPriceUpdate) {
+      const d = new Date(p.lastPriceUpdate);
+      parts.push(`<span class="pm-updated">Обновлено ${d.toLocaleDateString('ru-RU')}</span>`);
+    }
+    metaEl.innerHTML = parts.join('');
+  }
 }
 
 function setPeriod(mo) {
@@ -544,8 +541,28 @@ function quickAdd(id, btn) {
 /* ══════════════════════════════════════════════════════════════
    WISH + CART SCREENS
    ══════════════════════════════════════════════════════════════ */
-function productInfo(id) {
-  return SEED.products.find(p => p.id === id) || { id, name: 'Товар #'+id, price: 0, emoji:'📦' };
+/* ── Product cache (server-backed, falls back to seed) ──────── */
+const _pCache = {};
+
+async function productInfo(id) {
+  if (_pCache[id]) return _pCache[id];
+  // Try seed first (instant)
+  const fromSeed = (window.SEED?.products || []).find(p => p.id === id);
+  if (fromSeed) { _pCache[id] = fromSeed; return fromSeed; }
+  // Fetch from server
+  try {
+    const p = await API.product(id);
+    if (p) { _pCache[id] = p; return p; }
+  } catch {}
+  return { id, name: 'Товар #' + id, price: 0, emoji: '📦', platform: '', meta: {} };
+}
+
+function productInfoSync(id) {
+  // Synchronous — from cache or seed only
+  if (_pCache[id]) return _pCache[id];
+  const fromSeed = (window.SEED?.products || []).find(p => p.id === id);
+  if (fromSeed) return fromSeed;
+  return { id, name: 'Товар #' + id, price: 0, emoji: '📦', platform: '', meta: {} };
 }
 
 function renderWish() {
@@ -584,47 +601,60 @@ function wishToCart(id) {
   toast('Добавлено в корзину 🛒');
 }
 
-function renderCart() {
+async function renderCart() {
   const host = el('cartContent');
   if (!host) return;
   if (!cart.length) {
-    host.innerHTML = `<div class="empty"><div class="empty-ico">🛒</div><div class="empty-h">Корзина пуста</div><div class="empty-p">Добавьте товары из каталога</div><button class="empty-btn" onclick="go('#/games')">Перейти в каталог</button></div>`;
+    host.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🛒</div>
+      <div class="empty-h">Корзина пуста</div>
+      <div class="empty-p">Добавьте игры или подписки из каталога</div>
+      <button class="empty-btn" onclick="go('#/games')">Перейти в каталог</button>
+    </div>`;
     return;
   }
+  host.innerHTML = `<div style="color:var(--tx4);font-size:12px;padding:12px 0">Загрузка…</div>`;
+
+  const products = await Promise.all(cart.map(ci => productInfo(ci.id)));
+  const PERIOD_L = {1:'1 месяц',3:'3 месяца',12:'12 месяцев'};
 
   let total = 0, saved = 0;
-  const items = cart.map(ci => {
-    const p = productInfo(ci.id);
-    const periods = p.meta?.periods||{};
-    const price = (ci.period && periods[ci.period]) ? periods[ci.period] : p.price;
-    const old = p.oldPrice;
-    if (old && old > price) saved += (old - price);
+  const items = cart.map((ci, i) => {
+    const p = products[i] || { id: ci.id, name: 'Товар #'+ci.id, price: 0, emoji:'📦', platform:'', meta:{} };
+    const periods = p.meta?.periods || {};
+    const price = (ci.period && periods[ci.period]) ? periods[ci.period] : (p.price || 0);
+    if (p.oldPrice && p.oldPrice > price) saved += (p.oldPrice - price);
     total += price;
-    const PERIOD_L = {1:'1 месяц',3:'3 месяца',12:'12 месяцев'};
-    const meta = ci.period ? PERIOD_L[ci.period]||'' : (p.platform||'');
-    return `<div class="litem">
-      <div class="li-cov" onclick="openProduct(${p.id})">${p.image?`<img src="${esc(p.image)}" alt="">`:(p.emoji||'📦')}</div>
-      <div class="li-inf" onclick="openProduct(${p.id})">
-        <div class="li-name">${esc(p.name)}</div>
-        <div class="li-meta">${esc(meta)}</div>
-        <span class="li-price">${fmt(price)}</span>
-        ${old&&old>price?`<span class="li-old">${fmt(old)}</span>`:''}
-      </div>
-      <div class="rb rb-del" onclick="removeCart(${p.id},${ci.period||'undefined'})" title="Удалить">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </div>
-    </div>`;
+    const meta = ci.period ? (PERIOD_L[ci.period] || ci.period + ' мес.') : (p.platform || p.edition || '');
+    return { p, price, meta };
   });
 
   host.innerHTML = `
-    <div>${items.join('')}</div>
-    <div class="summary">
-      <div class="sum-row"><span>Товаров</span><span>${cart.length}</span></div>
-      ${saved>0?`<div class="sum-div"></div><div class="sum-row"><span>Скидка</span><span style="color:var(--green)">−${fmt(saved)}</span></div>`:''}
-      <div class="sum-div"></div>
-      <div class="sum-total"><span>Итого</span><span>${fmt(total)}</span></div>
-      ${saved>0?`<div class="sum-saved">🎉 Вы экономите ${fmt(saved)}</div>`:''}
-      <button class="btn-primary" onclick="checkout()">Оформить заказ →</button>
+    <div class="cart-block">
+      ${items.map(({ p, price, meta }, i) => `
+        <div class="cart-item">
+          <div class="cart-art" onclick="openProduct(${p.id})">
+            ${p.image ? `<img src="${esc(p.image)}" alt="">` : (p.emoji || '📦')}
+          </div>
+          <div class="cart-info" onclick="openProduct(${p.id})">
+            <div class="cart-name">${esc(p.name || 'Товар #' + p.id)}</div>
+            ${meta ? `<div class="cart-meta">${esc(meta)}</div>` : ''}
+            <span class="cart-price">${price > 0 ? fmt(price) : 'Бесплатно'}</span>
+            ${p.oldPrice && p.oldPrice > price ? `<span class="cart-old">${fmt(p.oldPrice)}</span>` : ''}
+          </div>
+          <button class="cart-remove" onclick="removeCart(${p.id},'${cart[i].period||''}')" title="Удалить">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>`).join('')}
+      <div class="cart-summary">
+        <div class="sum-row"><span>Товаров</span><b>${cart.length}</b></div>
+        ${saved > 0 ? `<div class="sum-row"><span>Экономия</span><b style="color:var(--green)">−${fmt(saved)}</b></div>` : ''}
+        <div class="sum-total">
+          <span class="sum-total-label">Итого</span>
+          <span class="sum-total-value">${fmt(total)}</span>
+        </div>
+        <button class="btn-full" onclick="checkout()">Оформить заказ</button>
+      </div>
     </div>`;
 }
 
@@ -673,67 +703,61 @@ function renderCheckoutForm(item) {
   const price = item.price || 0;
   host.innerHTML = `
     <div class="sheet-title">Оформление заказа</div>
-    <div class="sheet-sub">Заполните данные — мы доставим товар и свяжемся с вами.</div>
+    <div class="sheet-sub">Заполните данные для получения товара</div>
 
-    <div class="order-item-preview">
-      <div class="oip-ico">${esc(item.emoji || '🎮')}</div>
+    <div class="order-preview">
+      <div class="order-preview-ico">${esc(item.emoji || '🎮')}</div>
       <div>
-        <div class="oip-name">${esc(item.name)}</div>
-        <div class="oip-price">${fmt(price)}</div>
+        <div class="order-preview-name">${esc(item.name)}</div>
+        <div class="order-preview-price">${price > 0 ? fmt(price) : 'Бесплатно'}</div>
       </div>
     </div>
 
     <div class="form-notice">
-      🔒 Мы никогда не запрашиваем пароли, коды подтверждения или резервные коды аккаунта.
+      <div class="notice-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="notice-text">Мы не запрашиваем пароли, коды 2FA или данные для входа в аккаунт.</div>
     </div>
 
     <form id="orderForm" onsubmit="return false">
-
-      <div class="form-field" id="ff-nickname">
-        <label>Ваш никнейм<span class="req">*</span></label>
-        <input class="form-inp" id="of-nickname" type="text"
-               placeholder="Как к вам обращаться?" autocomplete="nickname">
-        <div class="form-err-msg">Укажите никнейм</div>
+      <div class="form-group" id="ff-nickname">
+        <label class="form-label">Никнейм<span class="req">*</span></label>
+        <input class="form-input" id="of-nickname" type="text" placeholder="Как вас называть?" autocomplete="nickname">
+        <div class="form-err">Укажите никнейм</div>
       </div>
-
-      <div class="form-field" id="ff-telegram">
-        <label>Telegram<span class="req">*</span></label>
-        <input class="form-inp" id="of-telegram" type="text"
-               placeholder="@username" autocomplete="off">
-        <div class="form-hint">Ваш @username в Telegram для связи</div>
-        <div class="form-err-msg">Укажите Telegram username</div>
+      <div class="form-group" id="ff-telegram">
+        <label class="form-label">Telegram<span class="req">*</span></label>
+        <input class="form-input" id="of-telegram" type="text" placeholder="@username" autocomplete="off">
+        <div class="form-hint">Для связи и передачи товара</div>
+        <div class="form-err">Укажите Telegram</div>
       </div>
-
-      <div class="form-field" id="ff-psnId">
-        <label>PSN ID<span class="req">*</span></label>
-        <input class="form-inp" id="of-psnId" type="text"
-               placeholder="Ваш PSN ID (публичное имя аккаунта)" autocomplete="off">
-        <div class="form-hint">Публичное имя вашего PlayStation аккаунта — не пароль</div>
-        <div class="form-err-msg">Укажите PSN ID</div>
+      <div class="form-group" id="ff-email">
+        <label class="form-label">Email<span class="req">*</span></label>
+        <input class="form-input" id="of-email" type="email" placeholder="your@email.com" autocomplete="email">
+        <div class="form-hint">Для подтверждения — без доступа к аккаунту</div>
+        <div class="form-err">Укажите корректный email</div>
       </div>
-
-      <div class="form-field" id="ff-product">
-        <label>Выбранный товар<span class="req">*</span></label>
-        <input class="form-inp" id="of-product" type="text"
-               value="${esc(item.name)}" placeholder="Название товара">
-        <div class="form-hint">Уже заполнено — уточните период если нужно</div>
-        <div class="form-err-msg">Укажите товар</div>
+      <div class="form-group" id="ff-psnId">
+        <label class="form-label">PSN ID<span class="req">*</span></label>
+        <input class="form-input" id="of-psnId" type="text" placeholder="Публичный ник PlayStation" autocomplete="off">
+        <div class="form-hint">Имя аккаунта, не пароль</div>
+        <div class="form-err">Укажите PSN ID</div>
       </div>
-
-      <div class="form-field" id="ff-comment">
-        <label>Комментарий
-          <span style="color:var(--t4);font-size:10px;letter-spacing:0;text-transform:none;font-weight:500">(необязательно)</span>
-        </label>
-        <textarea class="form-inp" id="of-comment" rows="2"
-                  placeholder="Любые пожелания или уточнения…" style="resize:none"></textarea>
+      <div class="form-group" id="ff-product">
+        <label class="form-label">Товар<span class="req">*</span></label>
+        <input class="form-input" id="of-product" type="text" value="${esc(item.name)}" placeholder="Название">
+        <div class="form-err">Укажите товар</div>
       </div>
-
+      <div class="form-group">
+        <label class="form-label">Комментарий</label>
+        <textarea class="form-textarea" id="of-comment" placeholder="Пожелания или уточнения…"></textarea>
+      </div>
       <button class="submit-btn" id="orderSubmitBtn" onclick="submitOrder()">
-        <div class="spin"></div>
-        <span>Оформить заказ — ${fmt(price)}</span>
+        <div class="submit-spin"></div>
+        <span class="submit-text">${price > 0 ? `Оформить — ${fmt(price)}` : 'Оформить'}</span>
       </button>
-    </form>
-  `;
+    </form>`;
 }
 
 async function submitOrder() {
@@ -741,18 +765,20 @@ async function submitOrder() {
 
   // Валидация обязательных полей
   let valid = true;
-  function check(id, fieldId) {
+  function check(id, fieldId, validator) {
     const val = el(id)?.value?.trim();
     const ff  = el(fieldId);
-    if (!val) { ff?.classList.add('has-err'); valid = false; }
+    const ok  = val && (!validator || validator(val));
+    if (!ok) { ff?.classList.add('has-err'); valid = false; }
     else ff?.classList.remove('has-err');
     return val;
   }
 
-  const nickname    = check('of-nickname',  'ff-nickname');
-  const telegram    = check('of-telegram',  'ff-telegram');
-  const psnId       = check('of-psnId',     'ff-psnId');
-  const productName = check('of-product',   'ff-product');
+  const nickname    = check('of-nickname', 'ff-nickname');
+  const telegram    = check('of-telegram', 'ff-telegram');
+  const email       = check('of-email',    'ff-email', v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v));
+  const psnId       = check('of-psnId',    'ff-psnId');
+  const productName = check('of-product',  'ff-product');
   const comment     = el('of-comment')?.value?.trim() || '';
 
   if (!valid) { toast('Заполните обязательные поля', 'err'); return; }
@@ -764,11 +790,13 @@ async function submitOrder() {
     psnId,
     nickname,
     telegram,
+    email,
     productName,
     productId: _checkoutItem.productId || null,
     amount:    Math.round(_checkoutItem.price || 0),
     comment,
     meta: {
+      email,
       period:   _checkoutItem.period   || null,
       platform: _checkoutItem.platform || '',
       type:     _checkoutItem.type     || 'game',
@@ -841,30 +869,32 @@ function renderOrderSuccess(order, item) {
   `;
 }
 
-/* ── Обновим checkout из корзины ──────────────────────────────── */
-function checkout() {
+/* ── Checkout из корзины ─────────────────────────────────────── */
+async function checkout() {
   if (!cart.length) { toast('Корзина пуста', 'err'); return; }
 
-  // Берём первый товар из корзины для оформления
-  // (или создаём сводный заказ)
-  const items = cart.map(ci => {
-    const p = productInfo(ci.id);
+  // Загружаем все товары корзины асинхронно
+  const products = await Promise.all(cart.map(ci => productInfo(ci.id)));
+  const PERIOD_L = {1:'1 мес.',3:'3 мес.',12:'12 мес.'};
+
+  const items = cart.map((ci, i) => {
+    const p = products[i] || { id: ci.id, name: 'Товар #'+ci.id, price: 0, emoji:'🛒', platform:'', meta:{} };
     const periods = p.meta?.periods || {};
-    const price = (ci.period && periods[ci.period]) ? periods[ci.period] : p.price;
+    const price = (ci.period && periods[ci.period]) ? periods[ci.period] : (p.price || 0);
     return { ...p, price, period: ci.period || null };
   });
 
   const total = items.reduce((s, i) => s + i.price, 0);
-  const names = items.map(i => i.name + (i.period ? ` (${i.period} мес.)` : '')).join(', ');
+  const names = items.map(i => i.name + (i.period ? ` (${PERIOD_L[i.period]||i.period+' мес.'})` : '')).join(', ');
 
   openCheckout({
-    name:       names,
-    price:      total,
-    emoji:      items[0]?.emoji || '🛒',
-    platform:   items.map(i => i.platform).filter(Boolean).join(', '),
-    type:       'mixed',
-    _fromCart:  true,
-    productId:  items.length === 1 ? items[0].id : null,
+    name:      names,
+    price:     total,
+    emoji:     items[0]?.emoji || '🛒',
+    platform:  items.map(i => i.platform).filter(Boolean).join(', '),
+    type:      'mixed',
+    _fromCart: true,
+    productId: items.length === 1 ? items[0].id : null,
   });
 }
 
@@ -888,16 +918,11 @@ function setNav(name) {
 }
 
 function showScreen(id, nav) {
-  // Hide all screens
-  document.querySelectorAll('.screen').forEach(s => {
-    s.classList.remove('active');
-  });
-  // Show target screen
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const s = el('screen-' + id);
   if (s) {
     s.classList.add('active');
-    // Reset this screen's own scroll to top instantly
-    s.scrollTop = 0;
+    if (id !== 'home') s.scrollTop = 0;
   }
   setNav(nav || id);
   document.body.classList.toggle('not-home', id !== 'home');
