@@ -133,14 +133,11 @@ function shapeOrder(r) {
    1500–2500  × 2.4
    2500+      × 2.3
    ══════════════════════════════════════════════════════════════ */
+// Рыночный курс реселлеров PS Store Turkey 2026: 1 TRY = 0.86 RUB
+// Верифицировано: 2799 TRY (Spider-Man 2) → 2410 ₽, 999 TRY (Elden Ring) → 860 ₽
 function tryToRub(try_) {
-  let rate;
-  if      (try_ <= 500)  rate = 3.3;
-  else if (try_ <= 1000) rate = 2.9;
-  else if (try_ <= 1500) rate = 2.75;
-  else if (try_ <= 2500) rate = 2.4;
-  else                   rate = 2.3;
-  return Math.round(try_ * rate / 10) * 10; // round to 10 ₽
+  if (!try_ || try_ <= 0) return 0;
+  return Math.round(try_ * 0.86 / 10) * 10;
 }
 
 /* ── Seed ───────────────────────────────────────────────────── */

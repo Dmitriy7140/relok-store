@@ -532,6 +532,7 @@ function serveStatic(req, res, url) {
   let p = decodeURIComponent(url.pathname);
   if (p === '/') p = '/index.html';
   if (p === '/admin') p = '/admin.html';
+  if (p === '/images' || p === '/image-tool') p = '/image-tool.html';
   const file = path.normalize(path.join(PUBLIC_DIR, p));
   if (!file.startsWith(PUBLIC_DIR)) return bad(res, 'Forbidden', 403);
   fs.readFile(file, (err, data) => {

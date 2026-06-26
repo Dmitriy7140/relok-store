@@ -162,13 +162,11 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
 }
 
 .hero-over{
-  position:relative;z-index:4;
+  position:relative;z-index:5;
   text-align:center;
-  /* push from top by topbar height */
-  padding:calc(var(--topbar) + var(--safe-t) + 12px) 20px 0;
+  padding:calc(var(--topbar) + var(--safe-t) + 14px) 20px 0;
   flex-shrink:0;
-  /* max half the block so gamepad stays visible */
-  max-height:50%;
+  overflow:visible;
 }
 .hero-eyebrow{
   display:inline-flex;align-items:center;gap:7px;
@@ -198,8 +196,9 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
   display:inline-flex;align-items:center;gap:8px;
   padding:11px 22px;border-radius:10px;
   font-size:13px;font-weight:600;letter-spacing:-.15px;
-  cursor:pointer;border:none;
+  cursor:pointer;border:none;pointer-events:auto;
   transition:opacity .15s,transform .15s;white-space:nowrap;
+  position:relative;z-index:6;
 }
 .hbtn:active{transform:scale(.96)}
 .hbtn-p{background:#6366f1;color:#fff;box-shadow:0 0 0 1px rgba(99,102,241,.4),0 8px 24px rgba(99,102,241,.35)}
@@ -222,7 +221,8 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
 
 /* GTA badge floating inside hero block (between text and gamepad) */
 .hero-gta-float{
-  position:relative;z-index:4;
+  position:relative;z-index:6;
+  pointer-events:auto;
   display:flex;align-items:center;gap:10px;
   margin:10px auto 0;
   padding:9px 14px;
@@ -677,7 +677,7 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
   background:#050510;
 }
 .gta6-back{
-  position:absolute;top:calc(var(--sp3) + var(--safe-t));left:var(--sp4);z-index:3;
+  position:absolute;top:calc(var(--topbar) + var(--safe-t) + var(--sp2));left:var(--sp4);z-index:3;
   width:34px;height:34px;border-radius:50%;
   background:rgba(0,0,0,.6);backdrop-filter:blur(10px);
   display:flex;align-items:center;justify-content:center;

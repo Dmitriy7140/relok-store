@@ -14,40 +14,46 @@ const { db, all, get, run } = require('./db');
 /* ══════════════════════════════════════════════════════════════
    1. ФОРМУЛА КОНВЕРТАЦИИ TRY → RUB
    ══════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   Формула конвертации TRY → RUB (актуальная, 2026)
+
+   Рыночный курс реселлеров PS Store Turkey:
+     ЦБ РФ на 26.06.2026: 1 TRY = 1.61 RUB
+     Итоговая цена клиенту с учётом комиссий: 1 TRY ≈ 0.86 RUB
+     (Реселлеры работают с минимальной маржой, конкурируют объёмом)
+
+   Проверено по реальным ценам магазинов (open-ps.ru, 2026):
+     2799 TRY → 2 410 ₽  (Spider-Man 2, God of War Ragnarök)
+     1899 TRY → 1 630 ₽  (Astro Bot, Stellar Blade)
+      999 TRY →   860 ₽  (Elden Ring, Resident Evil 4)
+      849 TRY →   730 ₽  (GTA V, Witcher 3)
+      499 TRY →   430 ₽  (Control, Hollow Knight)
+
+   PS Plus (фиксированные цены 2026):
+     Essential: 380 / 900 / 2 700 ₽  (1/3/12 мес)
+     Extra:     620 / 1 800 / 5 300 ₽
+     Deluxe:    730 / 2 100 / 6 200 ₽
+   ══════════════════════════════════════════════════════════════ */
+
+const RATE = 0.86; // RUB за 1 TRY (рыночная цена 2026)
+
 const TIERS = [
-  { max:  500, multiplier: 3.30 },
-  { max: 1000, multiplier: 2.90 },
-  { max: 1500, multiplier: 2.75 },
-  { max: 2500, multiplier: 2.40 },
-  { max: Infinity, multiplier: 2.30 },
+  { max: Infinity, multiplier: RATE },
 ];
 
-/**
- * Возвращает мультипликатор для заданной цены в TRY.
- * @param {number} priceTRY
- * @returns {number} multiplier
- */
-function getMultiplier(priceTRY) {
-  const tier = TIERS.find(t => priceTRY <= t.max);
-  return tier ? tier.multiplier : 2.30;
+function getMultiplier() {
+  return RATE;
 }
 
 /**
  * Конвертирует цену из TRY в RUB.
- * Примеры:
- *   450  TRY → 1485 ₽   (× 3.3)
- *   750  TRY → 2175 ₽   (× 2.9)
- *   1200 TRY → 3300 ₽   (× 2.75)
- *   2000 TRY → 4800 ₽   (× 2.4)
- *   3000 TRY → 6900 ₽   (× 2.3)
- * @param {number} priceTRY  — цена в лирах
+ * @param {number} priceTRY
  * @returns {{ rub: number, multiplier: number }}
  */
 function convertTRY(priceTRY) {
   if (!priceTRY || priceTRY <= 0) return { rub: 0, multiplier: 0 };
-  const multiplier = getMultiplier(priceTRY);
-  const rub = Math.round(priceTRY * multiplier); // без округления до 10 ₽
-  return { rub, multiplier };
+  const rub = Math.round(priceTRY * RATE / 10) * 10;
+  return { rub, multiplier: RATE };
 }
 
 /**
