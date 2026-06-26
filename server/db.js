@@ -793,4 +793,23 @@ function seed() {
 }
 
 seed();
+
+/* ── Дозаполнение обложек ───────────────────────────────────────
+   Проставляет картинки товарам с пустым image по названию.
+   Идемпотентно: уже заданные (в т.ч. через админку) не трогаем. */
+function backfillImages() {
+  let IMAGES;
+  try { IMAGES = require('./game-images'); }
+  catch (e) { console.warn('[IMAGES] карта обложек не найдена:', e.message); return; }
+  const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const rows = all("SELECT id, name FROM products WHERE image IS NULL OR image = ''");
+  let n = 0;
+  for (const r of rows) {
+    const url = IMAGES[norm(r.name)];
+    if (url) { run('UPDATE products SET image = ? WHERE id = ?', [url, r.id]); n++; }
+  }
+  if (n) console.log(`[IMAGES] Проставлено обложек: ${n} из ${rows.length} без картинки`);
+}
+try { backfillImages(); } catch (e) { console.error('[IMAGES] ошибка дозаполнения:', e.message); }
+
 module.exports = { db, all, get, run, generateOrderId, shapeOrder };
