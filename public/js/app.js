@@ -370,7 +370,7 @@ async function openProduct(id) {
   el('pmSeg').innerHTML = ''; el('pmPrice').textContent = '';
   el('pmOld').textContent = ''; el('pmDisc').innerHTML = '';
   el('pmStock').innerHTML = ''; el('pmFeatWrap').innerHTML = '';
-  el('pmDescSec').style.display = 'none'; el('pmDesc').textContent = '';
+  el('pmDesc').textContent = '';
   el('pmSpecWrap').innerHTML = '';
   el('pmBuy').textContent = 'В корзину';
 
@@ -532,9 +532,9 @@ function buyFromModal() {
   openCheckout({ name: nameFull, price, emoji: p.emoji || '🎮', platform: p.platform || '', type: p.type || 'game', productId: p.id, period: p.type === 'sub' ? modalPeriod : null });
 }
 
-function quickAdd(id, btn) {
+async function quickAdd(id, btn) {
   // Находим товар и открываем форму оформления
-  const p = productInfo(id);
+  const p = await productInfo(id);
   openCheckout({ name: p.name, price: p.price, emoji: p.emoji || '🎮', platform: p.platform || '', type: p.type || 'game', productId: id });
 }
 
