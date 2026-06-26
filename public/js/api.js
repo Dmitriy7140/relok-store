@@ -7,7 +7,7 @@ window.API = (function () {
 
   function headers(extra) {
     const h = { 'Content-Type': 'application/json', ...extra };
-    const t = localStorage.getItem('relok_admin_token');
+    const t = localStorage.getItem('logovo_admin_token');
     if (t) h['X-Admin-Token'] = t;
     return h;
   }
@@ -29,10 +29,16 @@ window.API = (function () {
     return s ? '?' + s : '';
   };
 
+  function markOffline() {
+    const pill = document.getElementById('offlinePill');
+    if (pill) pill.style.display = 'block';
+  }
+
   return {
     isOffline: () => offline,
     setOffline: (v) => { offline = v; },
 
+    // ── Products / Categories / Settings ──────────────────────
     async products(params) {
       try { return await req('GET', '/products' + qs(params)); }
       catch (e) { offline = true; markOffline(); return window.queryLocal(params || {}); }
@@ -49,48 +55,40 @@ window.API = (function () {
       try { return await req('GET', '/settings'); }
       catch (e) { offline = true; markOffline(); return SEED.settings; }
     },
-    // admin write operations (требуют сервер)
-    createProduct: (b) => req('POST', '/products', b),
-    updateProduct: (id, b) => req('PUT', '/products/' + id, b),
-    patchProduct: (id, b) => req('PATCH', '/products/' + id, b),
-    deleteProduct: (id) => req('DELETE', '/products/' + id),
-    reorderProducts: (ids) => req('POST', '/products/reorder', { ids }),
-    createCategory: (b) => req('POST', '/categories', b),
-    updateCategory: (id, b) => req('PUT', '/categories/' + id, b),
-    deleteCategory: (id) => req('DELETE', '/categories/' + id),
-    reorderCategories: (ids) => req('POST', '/categories/reorder', { ids }),
-    uploadMedia: (b) => req('POST', '/media', b),
-    deleteMedia: (id) => req('DELETE', '/media/' + id),
-    listMedia: () => req('GET', '/media'),
-    saveSettings: (b) => req('PUT', '/settings', b),
-    auth: (token) => req('POST', '/auth', { token }),
+
+    // ── Admin write (требуют сервер + токен) ──────────────────
+    createProduct:    (b)     => req('POST',   '/products', b),
+    updateProduct:    (id, b) => req('PUT',    '/products/' + id, b),
+    patchProduct:     (id, b) => req('PATCH',  '/products/' + id, b),
+    deleteProduct:    (id)    => req('DELETE', '/products/' + id),
+    reorderProducts:  (ids)   => req('POST',   '/products/reorder', { ids }),
+    createCategory:   (b)     => req('POST',   '/categories', b),
+    updateCategory:   (id, b) => req('PUT',    '/categories/' + id, b),
+    deleteCategory:   (id)    => req('DELETE', '/categories/' + id),
+    reorderCategories:(ids)   => req('POST',   '/categories/reorder', { ids }),
+    uploadMedia:      (b)     => req('POST',   '/media', b),
+    deleteMedia:      (id)    => req('DELETE', '/media/' + id),
+    listMedia:        ()      => req('GET',    '/media'),
+    saveSettings:     (b)     => req('PUT',    '/settings', b),
+    auth:             (token) => req('POST',   '/auth', { token }),
+
+    // ── Orders ── (bug2 fix: перенесено внутрь IIFE, req доступен)
+    createOrder:      (b)     => req('POST',   '/orders', b),
+    getOrder:         (id)    => req('GET',    '/orders/' + id),
+    payOrder:         (id)    => req('PATCH',  '/orders/' + id, { status: 'paid' }),
+    cancelOrder:      (id)    => req('PATCH',  '/orders/' + id, { status: 'cancelled' }),
+    listOrders:       (p)     => req('GET',    '/orders' + qs(p)),
+    deleteOrder:      (id)    => req('DELETE', '/orders/' + id),
+    orderStats:       ()      => req('GET',    '/orders/stats'),
+    patchOrderAdmin:  (id, b) => req('PATCH',  '/orders/' + id, b),
+
+    // ── Prices ── (bug2 fix: перенесено внутрь IIFE, req доступен)
+    priceFormula:     ()           => req('GET',  '/prices/formula'),
+    priceConvert:     (priceTRY)   => req('POST', '/prices/convert', { priceTRY }),
+    priceDetail:      (id)         => req('GET',  `/prices/${id}`),
+    priceHistory:     (id)         => req('GET',  `/prices/${id}/history`),
+    priceUpdate:      (id, priceTRY) => req('POST', `/prices/update/${id}`, { priceTRY }),
+    priceBulk:        (items)      => req('POST', '/prices/bulk', { items }),
+    priceRecalculate: ()           => req('POST', '/prices/recalculate', {}),
   };
-
-  function markOffline() {
-    const pill = document.getElementById('offlinePill');
-    if (pill) pill.style.display = 'block';
-  }
 })();
-
-// ── Orders API ────────────────────────────────────────────────
-Object.assign(window.API, {
-  createOrder:  (b) => req('POST', '/orders', b),
-  getOrder:     (id) => req('GET', '/orders/' + id),
-  payOrder:     (id) => req('PATCH', '/orders/' + id, { status: 'paid' }),
-  cancelOrder:  (id) => req('PATCH', '/orders/' + id, { status: 'cancelled' }),
-  listOrders:   (params) => req('GET', '/orders' + qs(params)),
-  deleteOrder:  (id) => req('DELETE', '/orders/' + id),
-  orderStats:   () => req('GET', '/orders/stats'),
-  patchOrderAdmin: (id, b) => req('PATCH', '/orders/' + id, b),
-});
-
-// ── Prices API ────────────────────────────────────────────────
-Object.assign(window.API, {
-  priceFormula:    ()        => req('GET',  '/prices/formula'),
-  priceConvert:    (priceTRY)=> req('POST', '/prices/convert', { priceTRY }),
-  priceDetail:     (id)      => req('GET',  `/prices/${id}`),
-  priceHistory:    (id)      => req('GET',  `/prices/${id}/history`),
-  priceUpdate:     (id, priceTRY) => req('POST', `/prices/update/${id}`, { priceTRY }),
-  priceBulk:       (items)   => req('POST', '/prices/bulk',       { items }),
-  priceRecalculate:()        => req('POST', '/prices/recalculate', {}),
-});

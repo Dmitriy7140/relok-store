@@ -254,40 +254,40 @@ async function loadGames() {
 }
 
 function gameCard(p) {
-  const disc  = discPct(p.price, p.oldPrice);
-  const badge = p.isNew && !p.isSale && !p.isPreorder
-    ? '<div class="gcard-badge gb-new">New</div>'
-    : (p.isSale || p.oldPrice) && !p.isPreorder
-    ? '<div class="gcard-badge gb-sale">Sale</div>'
-    : p.isPreorder
-    ? '<div class="gcard-badge gb-pre">Pre</div>'
-    : '';
+  const disc = discPct(p.price, p.oldPrice);
+
+  // Один бейдж — приоритет: SALE > PRE > NEW
+  let badge = '';
+  let badgeLabel = '';
+  if ((p.isSale || p.oldPrice) && disc >= 5) { badge = 'gb-sale'; badgeLabel = `−${disc}%`; }
+  else if (p.isPreorder)                     { badge = 'gb-pre';  badgeLabel = 'Предзаказ'; }
+  else if (p.isNew)                          { badge = 'gb-new';  badgeLabel = 'Новинка'; }
+
+  // Обложка или эмодзи-плейсхолдер
   const cover = p.image
     ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">`
-    : `<div class="gcard-art-emoji">${esc(p.emoji||'🎮')}</div>`;
-  const tryLine = p.originalPriceTRY > 0
-    ? `<div class="gcard-try">₺ ${p.originalPriceTRY.toLocaleString('ru')}</div>`
-    : '';
+    : `<div class="gcard-emoji-wrap"><span>${esc(p.emoji || '🎮')}</span></div>`;
 
   return `
     <div class="gcard" onclick="openProduct(${p.id})">
       <div class="gcard-art">
         ${cover}
-        <div class="gcard-badges">${badge}</div>
-        ${disc >= 5 ? `<div class="gcard-disc">−${disc}%</div>` : ''}
+        ${badge ? `<div class="gcard-badge ${badge}">${badgeLabel}</div>` : ''}
       </div>
       <div class="gcard-body">
         <div class="gcard-platform">${esc(p.platform || 'PlayStation')}</div>
         <div class="gcard-name">${esc(p.name)}</div>
         <div class="gcard-prices">
-          <div class="gcard-price">${p.price === 0 ? 'Бесплатно' : fmt(p.price)}</div>
-          ${p.oldPrice ? `<div class="gcard-old">${fmt(p.oldPrice)}</div>` : ''}
+          <span class="gcard-price">${p.price === 0 ? 'Бесплатно' : fmt(p.price)}</span>
+          ${p.oldPrice && disc >= 5 ? `<span class="gcard-old">${fmt(p.oldPrice)}</span>` : ''}
         </div>
-        ${tryLine}
+        ${p.originalPriceTRY > 0 ? `<div class="gcard-try">₺ ${p.originalPriceTRY.toLocaleString('ru')}</div>` : ''}
+      </div>
+      <div class="gcard-footer">
         <button class="gcard-buy${!p.inStock ? ' oos' : ''}"
           onclick="event.stopPropagation();quickAdd(${p.id},this)"
           ${!p.inStock ? 'disabled' : ''}>
-          ${!p.inStock ? 'Нет в наличии' : 'Купить'}
+          ${!p.inStock ? 'Нет в наличии' : '+ В корзину'}
         </button>
       </div>
     </div>`;
