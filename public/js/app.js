@@ -827,14 +827,6 @@ async function submitOrder() {
       };
     }
 
-    // Показываем экран успеха
-    renderOrderSuccess(order, _checkoutItem);
-
-    // Очищаем корзину (если заказ из корзины)
-    if (_checkoutItem._fromCart) {
-      cart = []; saveCart(); updateBadges();
-    }
-
     // Отправляем данные в Telegram WebApp (для уведомления бота)
     try {
       if (window.Telegram?.WebApp?.sendData) {
@@ -848,6 +840,18 @@ async function submitOrder() {
         }));
       }
     } catch {}
+
+    const paidFlow = !API.isOffline() && orderData.amount > 0;
+
+    if (paidFlow) {
+      // Платный заказ — ведём на экран оплаты ЮKassa
+      _forceCloseCheckout();
+      go('#/pay/' + order.id);
+    } else {
+      // Бесплатный товар или офлайн — показываем экран успеха
+      renderOrderSuccess(order, _checkoutItem);
+      if (_checkoutItem._fromCart) { cart = []; saveCart(); updateBadges(); }
+    }
 
   } catch (err) {
     console.error('Order error:', err);
@@ -913,6 +917,131 @@ function clearData() {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   ОПЛАТА (ЮKassa)
+   Экран #/pay/<orderId>
+   ══════════════════════════════════════════════════════════════ */
+let _payOrderId = null;
+let _payPoll = null;
+
+function _stopPayPoll() { if (_payPoll) { clearInterval(_payPoll); _payPoll = null; } }
+
+async function renderPay(orderId) {
+  _stopPayPoll();
+  _payOrderId = orderId;
+  const host = el('payContent');
+  if (!host) return;
+
+  if (!orderId) { _payError('Заказ не указан'); return; }
+
+  if (API.isOffline()) {
+    _payError('Оплата недоступна в офлайн-режиме. Запустите сервер.');
+    return;
+  }
+
+  host.innerHTML = `<div class="pay-state"><div class="pay-spin-lg"></div>
+    <div class="pay-state-sub">Загружаем заказ…</div></div>`;
+
+  let order;
+  try { order = await API.getOrder(orderId); }
+  catch (e) { _payError('Заказ не найден или недоступен'); return; }
+
+  if (order.status === 'paid')      { _paySuccess(order); return; }
+  if (order.status === 'cancelled' || order.status === 'refunded') {
+    _payError('Заказ отменён. Оформите новый.'); return;
+  }
+
+  host.innerHTML = `
+    <div class="pay-back" onclick="go('#/')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      На главную
+    </div>
+    <div class="pay-card">
+      <div class="pay-tag">Оплата заказа</div>
+      <div class="pay-title">${esc(order.productName || 'Заказ')}</div>
+      <div class="pay-row"><span class="pay-row-k">Номер заказа</span><span class="pay-id">${esc(order.id)}</span></div>
+      ${order.email ? `<div class="pay-row"><span class="pay-row-k">Email</span><span class="pay-row-v">${esc(order.email)}</span></div>` : ''}
+      <div class="pay-total">
+        <span class="pay-total-k">К оплате</span>
+        <span class="pay-total-v">${fmt(order.amount)}</span>
+      </div>
+    </div>
+    <button class="pay-btn" id="payBtn" onclick="startPayment()">
+      <div class="spin"></div>
+      <span class="pay-btn-text">Оплатить ${fmt(order.amount)}</span>
+    </button>
+    <div class="pay-secure">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Безопасная оплата через ЮKassa
+    </div>`;
+
+  // Если пользователь вернулся со страницы оплаты — фоном проверяем статус
+  _startPayPoll();
+}
+
+async function startPayment() {
+  if (!_payOrderId) return;
+  const btn = el('payBtn');
+  if (btn) { btn.classList.add('loading'); btn.disabled = true; }
+  try {
+    const { confirmationUrl } = await API.createPayment(_payOrderId);
+    if (!confirmationUrl) throw new Error('Платёжная система не вернула ссылку');
+    _startPayPoll();
+    // Открываем страницу оплаты ЮKassa
+    if (window.Telegram?.WebApp?.openLink) {
+      Telegram.WebApp.openLink(confirmationUrl);
+    } else {
+      window.location.href = confirmationUrl;
+    }
+  } catch (e) {
+    if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+    toast('Ошибка оплаты: ' + e.message, 'err');
+  }
+}
+
+function _startPayPoll() {
+  _stopPayPoll();
+  let tries = 0;
+  _payPoll = setInterval(async () => {
+    tries++;
+    if (tries > 60 || !_payOrderId) { _stopPayPoll(); return; }
+    try {
+      const s = await API.payStatus(_payOrderId);
+      if (s.status === 'paid') {
+        _stopPayPoll();
+        _paySuccess(s);
+        cart = []; saveCart(); updateBadges();
+      }
+    } catch {}
+  }, 3000);
+}
+
+function _paySuccess(order) {
+  _stopPayPoll();
+  const host = el('payContent');
+  if (!host) return;
+  host.innerHTML = `
+    <div class="pay-state">
+      <div class="pay-state-ico">✅</div>
+      <div class="pay-state-ttl">Оплата прошла успешно</div>
+      <div class="pay-state-sub">Заказ <b>${esc(order.id)}</b> оплачен.<br>Мы свяжемся с вами для выдачи товара.</div>
+      <button class="pay-btn" onclick="go('#/')"><span class="pay-btn-text">На главную</span></button>
+    </div>`;
+}
+
+function _payError(msg) {
+  _stopPayPoll();
+  const host = el('payContent');
+  if (!host) return;
+  host.innerHTML = `
+    <div class="pay-state">
+      <div class="pay-state-ico">⚠️</div>
+      <div class="pay-state-ttl">Не удалось открыть оплату</div>
+      <div class="pay-state-sub">${esc(msg)}</div>
+      <button class="pay-btn" onclick="go('#/')"><span class="pay-btn-text">На главную</span></button>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
    ROUTING
    ══════════════════════════════════════════════════════════════ */
 function go(hash) {
@@ -942,8 +1071,13 @@ function route() {
   const parts = h.replace(/^#\//, '').split('/');
   const root = parts[0] || '';
 
+  if (root !== 'pay') _stopPayPoll();
+
   if (root === 'gta6') {
     showScreen('gta6', 'gta6');
+  } else if (root === 'pay') {
+    showScreen('pay', 'cart');
+    renderPay(parts[1]);
   } else if (root === 'subs') {
     showScreen('subs', 'subs');
     loadSubs();
@@ -1004,4 +1138,5 @@ Object.assign(window, {
   renderCart, removeCart, checkout,
   openCheckout, openCheckoutDirect, closeCheckout, _forceCloseCheckout,
   submitOrder, clearData,
+  startPayment,
 });

@@ -82,6 +82,10 @@ window.API = (function () {
     orderStats:       ()      => req('GET',    '/orders/stats'),
     patchOrderAdmin:  (id, b) => req('PATCH',  '/orders/' + id, b),
 
+    // ── Оплата (ЮKassa) ──
+    createPayment:    (orderId) => req('POST', '/pay/create', { orderId }),
+    payStatus:        (orderId) => req('GET',  '/pay/status/' + orderId),
+
     // ── Prices ── (bug2 fix: перенесено внутрь IIFE, req доступен)
     priceFormula:     ()           => req('GET',  '/prices/formula'),
     priceConvert:     (priceTRY)   => req('POST', '/prices/convert', { priceTRY }),

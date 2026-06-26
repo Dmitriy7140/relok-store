@@ -145,69 +145,165 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
 .theme-toggle:hover{background:var(--s3)}
 .theme-toggle:active{transform:scale(.93)}
 
-/* ══ HOME HERO ══ */
+/* ══ HOME HERO — PlayStation 5 «console of the future» ══ */
 #screen-home{overflow-y:hidden}
 
+/* Hero-scoped PlayStation-blue palette (does not leak to the rest of the app) */
 .hero-block{
+  --ps-blue:   #0a84ff;
+  --ps-blue-2: #1e6bff;
+  --ps-deep:   #06122e;
+  --ps-ink:    #03060f;
   position:relative;
-  width:100%;background:#02010a;overflow:visible;
-  /* screen is already position:fixed with bottom:nb — so height:100% fills it */
-  height:100%;
-  min-height:460px;
+  width:100%;height:100%;min-height:520px;
+  overflow:hidden;
+  background:
+    radial-gradient(120% 90% at 50% 62%, #0a1838 0%, #060e22 38%, #03060f 72%, #010309 100%);
   display:flex;flex-direction:column;
-}
-.hero-svg{
-  position:absolute;inset:0;width:100%;height:100%;
-  pointer-events:none; /* SVG must not block nav button taps */
+  isolation:isolate;
 }
 
-.hero-over{
-  position:relative;z-index:5;
-  text-align:center;
-  padding:calc(var(--topbar) + var(--safe-t) + 14px) 20px 0;
-  flex-shrink:0;
-  overflow:visible;
+/* ── Atmospheric background layers ── */
+.hero-bg{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.hero-glow{
+  position:absolute;left:50%;top:54%;width:min(120vw,820px);aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  background:radial-gradient(circle at 50% 50%,
+    rgba(36,120,255,.55) 0%, rgba(20,72,200,.32) 30%,
+    rgba(10,40,130,.14) 52%, transparent 70%);
 }
+.hero-grid{
+  position:absolute;inset:-2px;opacity:.5;
+  background-image:
+    linear-gradient(rgba(120,170,255,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(120,170,255,.05) 1px,transparent 1px);
+  background-size:46px 46px;
+  -webkit-mask-image:radial-gradient(110% 80% at 50% 55%,#000 0%,transparent 75%);
+          mask-image:radial-gradient(110% 80% at 50% 55%,#000 0%,transparent 75%);
+}
+.hero-vignette{
+  position:absolute;inset:0;
+  background:radial-gradient(78% 70% at 50% 52%,transparent 40%,rgba(2,4,12,.55) 78%,#01030a 100%);
+}
+
+/* ── Project wordmark (top) ── */
+.hero-wordmark{
+  position:absolute;left:0;right:0;top:clamp(56px,14vh,130px);z-index:1;
+  text-align:center;pointer-events:none;user-select:none;
+}
+.wm-title{
+  display:block;white-space:nowrap;
+  font-size:clamp(48px,17vw,130px);font-weight:900;letter-spacing:-.05em;line-height:.86;
+  background:linear-gradient(180deg,#ffffff 0%,#bcd4ff 55%,#5a8cff 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.wm-title b{font-weight:900;-webkit-text-fill-color:#0a84ff}
+.wm-sub{
+  display:block;margin-top:10px;
+  font-size:clamp(11px,3vw,20px);font-weight:500;letter-spacing:.32em;text-transform:uppercase;
+  color:rgba(196,216,255,.62);
+}
+
+/* ── Console stage (static, realistic PS5) ── */
+.hero-stage{
+  position:absolute;inset:0;z-index:2;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.hero-console{
+  position:relative;
+  width:clamp(150px,44vw,280px);
+  transform:translateZ(0);
+}
+.hero-console::before{
+  content:'';position:absolute;left:50%;top:48%;
+  width:150%;aspect-ratio:1;transform:translate(-50%,-50%);
+  background:radial-gradient(circle,rgba(40,130,255,.38) 0%,rgba(20,70,200,.14) 42%,transparent 66%);
+  z-index:-1;
+}
+.hero-console svg{display:block;width:100%;height:auto}
+
+/* ── Cartoon ghost flying around the console ── */
+.hero-ghost{
+  position:absolute;left:50%;top:50%;z-index:3;
+  width:clamp(46px,12vw,78px);pointer-events:none;
+  margin:-32px 0 0 -32px;
+  transform-origin:center;
+  will-change:transform;backface-visibility:hidden;
+  animation:ghostFly 14s linear infinite;
+}
+.hero-ghost svg{display:block;width:100%;height:auto}
+@keyframes ghostFly{
+  0%   {transform:translate3d(-126px,-26px,0) scale(.82)}
+  20%  {transform:translate3d(-70px,-114px,0) scale(.74)}
+  40%  {transform:translate3d(70px,-102px,0) scale(.8)}
+  55%  {transform:translate3d(126px,-4px,0) scale(.92)}
+  72%  {transform:translate3d(56px,84px,0) scale(1.04)}
+  88%  {transform:translate3d(-64px,68px,0) scale(.96)}
+  100% {transform:translate3d(-126px,-26px,0) scale(.82)}
+}
+
+/* ── Foreground content (eyebrow top, buttons bottom) ── */
+.hero-content{
+  position:relative;z-index:5;flex:1;
+  display:flex;flex-direction:column;
+  padding:calc(var(--topbar) + var(--safe-t) + 14px) 20px max(18px,var(--safe-b)+8px);
+  text-align:center;
+}
+.hero-top{flex-shrink:0;animation:heroRise .7s cubic-bezier(.16,1,.3,1) both}
+.hero-bottom{margin-top:auto;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:14px}
+
 .hero-eyebrow{
   display:inline-flex;align-items:center;gap:7px;
-  background:rgba(99,102,241,.10);border:1px solid rgba(99,102,241,.22);
+  background:rgba(20,90,220,.14);border:1px solid rgba(90,150,255,.28);
   border-radius:20px;padding:5px 14px 5px 10px;
   font-size:11px;font-weight:600;letter-spacing:.04em;
-  color:rgba(200,198,255,.75);margin-bottom:16px;
+  color:rgba(198,218,255,.82);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
 }
-.hero-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,#818cf8,#c084fc);flex-shrink:0}
-.hero-title{
-  font-size:clamp(26px,6vw,48px);
-  font-weight:800;letter-spacing:-1.2px;line-height:1.06;
-  color:#fff;margin-bottom:12px;
-  text-shadow:0 2px 32px rgba(0,0,0,.9),0 0 60px rgba(99,102,241,.3);
-}
-.hero-title span{
-  background:linear-gradient(135deg,#a5b4fc 0%,#818cf8 45%,#c084fc 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.hero-desc{
-  font-size:clamp(12px,1.8vw,14px);color:rgba(220,218,255,.42);
-  line-height:1.65;margin-bottom:22px;
-  text-shadow:0 1px 12px rgba(0,0,0,.95);
-}
-.hero-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
+.hero-eyebrow-dot{width:6px;height:6px;border-radius:50%;
+  background:linear-gradient(135deg,#5aa0ff,#0a84ff);flex-shrink:0;
+  box-shadow:0 0 8px rgba(10,132,255,.9);animation:pulse 2.6s ease-in-out infinite}
+
+/* ── Glassmorphism action buttons ── */
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;
+  animation:heroRise .8s .12s cubic-bezier(.16,1,.3,1) both}
 .hbtn{
-  display:inline-flex;align-items:center;gap:8px;
-  padding:11px 22px;border-radius:10px;
-  font-size:13px;font-weight:600;letter-spacing:-.15px;
-  cursor:pointer;border:none;pointer-events:auto;
-  transition:opacity .15s,transform .15s;white-space:nowrap;
-  position:relative;z-index:6;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-width:128px;padding:13px 26px;border-radius:14px;
+  font-size:14px;font-weight:600;letter-spacing:-.15px;
+  cursor:pointer;pointer-events:auto;position:relative;z-index:6;white-space:nowrap;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .25s,background .25s,border-color .25s;
+  overflow:hidden;
 }
+.hbtn::after{content:'';position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.28) 50%,transparent 70%);
+  transform:translateX(-130%);transition:transform .6s ease}
+.hbtn:hover::after{transform:translateX(130%)}
 .hbtn:active{transform:scale(.96)}
-.hbtn-p{background:#6366f1;color:#fff;box-shadow:0 0 0 1px rgba(99,102,241,.4),0 8px 24px rgba(99,102,241,.35)}
-.hbtn-p:hover{opacity:.88}
-.hbtn-s{background:rgba(255,255,255,.07);color:rgba(255,255,255,.82);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(8px)}
-.hbtn-s:hover{background:rgba(255,255,255,.12)}
-.hero-tags{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
-.hero-tag{font-size:11px;color:rgba(255,255,255,.22)}
-.hero-tag-sep{width:2px;height:2px;border-radius:50%;background:rgba(255,255,255,.15)}
+.hbtn-primary{
+  color:#06224d;
+  background:linear-gradient(180deg,#ffffff,#dbe9ff);
+  border:1px solid rgba(255,255,255,.6);
+  box-shadow:0 8px 26px rgba(20,90,220,.35),0 0 0 1px rgba(255,255,255,.25) inset;
+}
+.hbtn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(30,110,255,.5)}
+.hbtn-glass{
+  color:#eaf2ff;
+  background:rgba(18,46,98,.42);
+  border:1px solid rgba(120,170,255,.34);
+  box-shadow:0 8px 26px rgba(0,0,0,.35),0 0 0 1px rgba(120,170,255,.08) inset;
+  backdrop-filter:blur(14px) saturate(160%);-webkit-backdrop-filter:blur(14px) saturate(160%);
+}
+.hbtn-glass:hover{transform:translateY(-2px);background:rgba(28,70,150,.55);
+  border-color:rgba(150,190,255,.6);box-shadow:0 14px 34px rgba(10,80,220,.4)}
+
+.hero-tags{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
+  animation:heroRise .8s .2s cubic-bezier(.16,1,.3,1) both}
+.hero-tag{font-size:11px;color:rgba(180,205,255,.4);letter-spacing:.02em}
+.hero-tag-sep{width:2px;height:2px;border-radius:50%;background:rgba(140,175,255,.35)}
+
+@keyframes heroRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 
 /* GTA strip */
 .hero-gta{
@@ -219,22 +315,24 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
 .hero-gta:hover{background:rgba(10,6,22,.96)}
 .hero-gta:active{opacity:.85}
 
-/* GTA badge floating inside hero block (between text and gamepad) */
+/* GTA badge — glass card inside hero bottom zone */
 .hero-gta-float{
-  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
-  z-index:10;pointer-events:auto;
+  position:relative;z-index:6;pointer-events:auto;
   display:flex;align-items:center;gap:10px;
   padding:10px 14px;
-  max-width:300px;width:calc(100% - 32px);
-  background:rgba(6,3,16,.82);
+  max-width:320px;width:100%;
+  background:rgba(10,18,40,.55);
   border:1px solid rgba(244,63,94,.3);
-  border-radius:12px;
+  border-radius:14px;
   cursor:pointer;
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  transition:border-color .2s,background .2s,transform .15s;
+  backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);
+  box-shadow:0 8px 26px rgba(0,0,0,.35);
+  transition:border-color .2s,background .2s,transform .2s,box-shadow .25s;
+  animation:heroRise .8s .28s cubic-bezier(.16,1,.3,1) both;
 }
-.hero-gta-float:hover{border-color:rgba(244,63,94,.6);background:rgba(10,5,22,.9)}
-.hero-gta-float:active{opacity:.85;transition-duration:.08s}
+.hero-gta-float:hover{border-color:rgba(244,63,94,.6);background:rgba(24,12,30,.65);
+  transform:translateY(-2px);box-shadow:0 14px 32px rgba(244,63,94,.22)}
+.hero-gta-float:active{transform:scale(.98);transition-duration:.08s}
 .hgta-img{width:40px;height:40px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#1a0820}
 .hgta-img img{width:100%;height:100%;object-fit:cover;display:block}
 .hgta-info{flex:1;min-width:0}
@@ -943,6 +1041,75 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
   padding:4px 12px;border-radius:var(--r2);margin:var(--sp3) 0 var(--sp5);
 }
 
+/* ══ PAYMENT SCREEN ══ */
+.pay-wrap{
+  max-width:480px;margin:0 auto;
+  padding:calc(var(--topbar) + var(--safe-t) + var(--sp6)) var(--sp4) var(--sp10);
+}
+.pay-back{
+  display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;
+  color:var(--tx3);cursor:pointer;margin-bottom:var(--sp5);transition:color .15s;
+}
+.pay-back:hover{color:var(--tx2)}
+.pay-card{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r4);
+  padding:var(--sp5);margin-bottom:var(--sp4);
+}
+.pay-tag{
+  display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--v2);margin-bottom:var(--sp2);
+}
+.pay-title{font-size:20px;font-weight:800;letter-spacing:-.4px;margin-bottom:var(--sp4)}
+.pay-row{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--sp3);
+  padding:var(--sp3) 0;border-bottom:1px solid var(--b1);
+}
+.pay-row:last-child{border-bottom:none}
+.pay-row-k{font-size:13px;color:var(--tx3)}
+.pay-row-v{font-size:13px;font-weight:600;color:var(--tx1);text-align:right;
+  max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pay-total{
+  display:flex;align-items:baseline;justify-content:space-between;
+  margin-top:var(--sp3);padding-top:var(--sp4);border-top:1px solid var(--b2);
+}
+.pay-total-k{font-size:14px;font-weight:600;color:var(--tx2)}
+.pay-total-v{font-size:26px;font-weight:800;letter-spacing:-.6px;color:var(--tx1)}
+.pay-id{
+  font-family:monospace;font-size:12px;font-weight:700;color:var(--v2);
+  background:var(--vg);border:1px solid var(--vgb);padding:3px 10px;border-radius:var(--r1);
+}
+.pay-btn{
+  width:100%;height:52px;border-radius:var(--r3);
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  font-size:15px;font-weight:700;letter-spacing:-.2px;color:#fff;cursor:pointer;
+  background:linear-gradient(135deg,#6366f1,#4f46e5);
+  box-shadow:0 8px 24px rgba(99,102,241,.35);
+  transition:transform .15s,box-shadow .2s,opacity .2s;
+}
+.pay-btn:hover{box-shadow:0 12px 30px rgba(99,102,241,.5)}
+.pay-btn:active{transform:scale(.98)}
+.pay-btn:disabled{opacity:.6;cursor:default;box-shadow:none}
+.pay-btn .spin{
+  width:18px;height:18px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
+  animation:spin .7s linear infinite;display:none;
+}
+.pay-btn.loading .spin{display:block}
+.pay-btn.loading .pay-btn-text{opacity:.7}
+.pay-secure{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  margin-top:var(--sp4);font-size:11px;color:var(--tx4);
+}
+.pay-secure svg{flex-shrink:0;color:var(--green)}
+.pay-state{text-align:center;padding:var(--sp8) var(--sp4);animation:fadeIn .35s both}
+.pay-state-ico{font-size:52px;margin-bottom:var(--sp4)}
+.pay-state-ttl{font-size:19px;font-weight:800;letter-spacing:-.3px;margin-bottom:var(--sp2)}
+.pay-state-sub{font-size:13px;color:var(--tx3);line-height:1.6;margin-bottom:var(--sp5)}
+.pay-spin-lg{
+  width:40px;height:40px;border-radius:50%;margin:0 auto var(--sp5);
+  border:3px solid var(--b2);border-top-color:var(--v);animation:spin .8s linear infinite;
+}
+
 /* ══ BOTTOM NAV ══ */
 nav.bnav{
   position:fixed;bottom:0;left:0;right:0;z-index:80;
@@ -1040,358 +1207,171 @@ nav.bnav{
 <!-- ═══ HOME ═══ -->
 <div class="screen active" id="screen-home">
 
-  <!-- HERO BLOCK -->
+  <!-- HERO BLOCK — PlayStation 5 -->
   <div class="hero-block">
 
-    <!-- ════ GAMEPAD + LIGHTNING SVG ════ -->
-    <!--
-      Layout logic:
-        viewBox 0 0 480 700  →  top 300px = empty (behind text overlay)
-                                bottom 400px = gamepad + lightning
-        gamepad center: cx=240, cy=500
-        lightning radiates from gamepad center outward and upward
-    -->
-    <svg class="hero-svg" viewBox="0 0 480 700" preserveAspectRatio="xMidYMax meet"
-         xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <defs>
-        <radialGradient id="hBg" cx="50%" cy="72%" r="65%">
-          <stop offset="0%"   stop-color="#160840"/>
-          <stop offset="45%"  stop-color="#08031a"/>
-          <stop offset="100%" stop-color="#02010a"/>
-        </radialGradient>
-        <radialGradient id="hBurst" cx="50%" cy="72%" r="38%">
-          <stop offset="0%"   stop-color="#7c3aed" stop-opacity=".95"/>
-          <stop offset="40%"  stop-color="#4c1d95" stop-opacity=".55"/>
-          <stop offset="100%" stop-color="#2e1065" stop-opacity="0"/>
-        </radialGradient>
-        <radialGradient id="hCorona" cx="50%" cy="72%" r="72%">
-          <stop offset="0%"   stop-color="#6d28d9" stop-opacity=".28"/>
-          <stop offset="65%"  stop-color="#4c1d95" stop-opacity=".10"/>
-          <stop offset="100%" stop-color="#02010a"  stop-opacity="0"/>
-        </radialGradient>
-        <!-- Gamepad gradients -->
-        <linearGradient id="gpBody" x1="20%" y1="0%" x2="80%" y2="100%">
-          <stop offset="0%"   stop-color="#eae6f8"/>
-          <stop offset="45%"  stop-color="#d6d0ee"/>
-          <stop offset="100%" stop-color="#bab2e2"/>
-        </linearGradient>
-        <linearGradient id="gpUnder" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%"   stop-color="#9c93cc"/>
-          <stop offset="100%" stop-color="#7a70a8"/>
-        </linearGradient>
-        <linearGradient id="gpEdge" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%"   stop-color="#f2eeff"/>
-          <stop offset="100%" stop-color="#a89fd8" stop-opacity=".4"/>
-        </linearGradient>
-        <!-- Glow filters -->
-        <filter id="fGlowSm" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="2.5" result="b"/>
-          <feBlend in="SourceGraphic" in2="b" mode="screen"/>
-        </filter>
-        <filter id="fGlowMd" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="6" result="b"/>
-          <feBlend in="SourceGraphic" in2="b" mode="screen"/>
-        </filter>
-        <filter id="fGlowLg" x="-120%" y="-120%" width="340%" height="340%">
-          <feGaussianBlur stdDeviation="12" result="b"/>
-          <feBlend in="SourceGraphic" in2="b" mode="screen"/>
-        </filter>
-        <filter id="fGlowXL" x="-160%" y="-160%" width="420%" height="420%">
-          <feGaussianBlur stdDeviation="22" result="b"/>
-          <feBlend in="SourceGraphic" in2="b" mode="screen"/>
-        </filter>
-        <filter id="fPad" x="-15%" y="-15%" width="130%" height="130%">
-          <feGaussianBlur stdDeviation="4" result="b"/>
-          <feColorMatrix in="b" type="matrix"
-            values="0.3 0 0.9 0 0.05  0 0 0.6 0 0.05  0.8 0 1 0 0.1  0 0 0 0.5 0"/>
-          <feBlend in="SourceGraphic" in2="b" mode="screen"/>
-        </filter>
-        <!-- Vignette -->
-        <radialGradient id="hVig" cx="50%" cy="70%" r="55%">
-          <stop offset="35%"  stop-color="#02010a" stop-opacity="0"/>
-          <stop offset="100%" stop-color="#02010a" stop-opacity=".88"/>
-        </radialGradient>
-        <!-- Top fade (hides the empty area above gamepad) -->
-        <linearGradient id="hTopFade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"  stop-color="#02010a" stop-opacity="1"/>
-          <stop offset="38%" stop-color="#02010a" stop-opacity=".75"/>
-          <stop offset="58%" stop-color="#02010a" stop-opacity="0"/>
-        </linearGradient>
-        <!-- Bottom fade -->
-        <linearGradient id="hBotFade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="78%" stop-color="#02010a" stop-opacity="0"/>
-          <stop offset="100%" stop-color="#02010a" stop-opacity="1"/>
-        </linearGradient>
-      </defs>
+    <!-- Atmospheric background -->
+    <div class="hero-bg" aria-hidden="true">
+      <div class="hero-glow"></div>
+      <div class="hero-grid"></div>
+      <div class="hero-vignette"></div>
+    </div>
 
-      <!-- Background -->
-      <rect width="480" height="700" fill="url(#hBg)"/>
-      <rect width="480" height="700" fill="url(#hCorona)"/>
-      <rect width="480" height="700" fill="url(#hBurst)"/>
+    <!-- Project wordmark -->
+    <div class="hero-wordmark" aria-hidden="true">
+      <span class="wm-title">LOGOVO<b>.</b></span>
+      <span class="wm-sub">PlayStation Store · Türkiye</span>
+    </div>
 
-      <!-- ══════════════════════════════════════════════
-           LIGHTNING — all bolts radiate from pad center
-           Gamepad center: 240, 498
-           ══════════════════════════════════════════════ -->
+    <!-- ════ Realistic PlayStation 5 console (vertical) ════ -->
+    <div class="hero-stage" aria-hidden="true">
+      <div class="hero-console">
+        <svg viewBox="0 0 280 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PlayStation 5">
+          <defs>
+            <linearGradient id="ps5Panel" x1="0" y1="0" x2="1" y2="0.15">
+              <stop offset="0%"   stop-color="#f4f7fc"/>
+              <stop offset="38%"  stop-color="#ffffff"/>
+              <stop offset="62%"  stop-color="#e7ecf4"/>
+              <stop offset="100%" stop-color="#c2cbda"/>
+            </linearGradient>
+            <linearGradient id="ps5PanelR" x1="1" y1="0" x2="0" y2="0.15">
+              <stop offset="0%"   stop-color="#cfd7e4"/>
+              <stop offset="38%"  stop-color="#ffffff"/>
+              <stop offset="62%"  stop-color="#eef2f8"/>
+              <stop offset="100%" stop-color="#d4dbe7"/>
+            </linearGradient>
+            <linearGradient id="ps5Core" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%"   stop-color="#202a3b"/>
+              <stop offset="42%"  stop-color="#0c121b"/>
+              <stop offset="100%" stop-color="#04070d"/>
+            </linearGradient>
+            <linearGradient id="ps5Led" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stop-color="#0a84ff" stop-opacity="0"/>
+              <stop offset="24%"  stop-color="#46b0ff"/>
+              <stop offset="76%"  stop-color="#1463ff"/>
+              <stop offset="100%" stop-color="#0a84ff" stop-opacity="0"/>
+            </linearGradient>
+            <radialGradient id="ps5Base" cx="50%" cy="36%" r="70%">
+              <stop offset="0%"   stop-color="#2c3648"/>
+              <stop offset="100%" stop-color="#060911"/>
+            </radialGradient>
+            <filter id="ps5LedGlow" x="-160%" y="-40%" width="420%" height="180%">
+              <feGaussianBlur stdDeviation="4.5" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
 
-      <!-- UP-LEFT main bolt -->
-      <g filter="url(#fGlowLg)">
-        <polyline points="240,498 215,455 188,410 158,368 186,325 162,278 134,228 102,175 68,118 35,60"
-          fill="none" stroke="#7c3aed" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" opacity=".82"/>
-        <polyline points="240,498 215,455 188,410 158,368 186,325 162,278 134,228 102,175 68,118 35,60"
-          fill="none" stroke="#d8b4fe" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/>
-      </g>
-      <!-- UL branch -->
-      <g filter="url(#fGlowSm)" opacity=".7">
-        <polyline points="188,410 162,395 136,376 108,362"
-          fill="none" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round"/>
-        <polyline points="188,410 162,395 136,376 108,362"
-          fill="none" stroke="#ede9fe" stroke-width=".6" stroke-linecap="round"/>
-      </g>
-      <g filter="url(#fGlowSm)" opacity=".55">
-        <polyline points="158,368 138,352 118,330"
-          fill="none" stroke="#8b5cf6" stroke-width="1.4" stroke-linecap="round"/>
-      </g>
+          <!-- Contact shadow -->
+          <ellipse cx="140" cy="474" rx="86" ry="15" fill="#000" opacity=".45" filter="url(#ps5LedGlow)"/>
 
-      <!-- UP-RIGHT main bolt -->
-      <g filter="url(#fGlowLg)">
-        <polyline points="240,498 265,455 292,410 322,368 294,325 318,278 346,228 378,175 412,118 445,60"
-          fill="none" stroke="#7c3aed" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" opacity=".82"/>
-        <polyline points="240,498 265,455 292,410 322,368 294,325 318,278 346,228 378,175 412,118 445,60"
-          fill="none" stroke="#d8b4fe" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/>
-      </g>
-      <!-- UR branch -->
-      <g filter="url(#fGlowSm)" opacity=".7">
-        <polyline points="292,410 318,395 344,376 372,362"
-          fill="none" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round"/>
-        <polyline points="292,410 318,395 344,376 372,362"
-          fill="none" stroke="#ede9fe" stroke-width=".6" stroke-linecap="round"/>
-      </g>
-      <g filter="url(#fGlowSm)" opacity=".55">
-        <polyline points="322,368 342,352 362,330"
-          fill="none" stroke="#8b5cf6" stroke-width="1.4" stroke-linecap="round"/>
-      </g>
+          <!-- Round vertical stand -->
+          <ellipse cx="140" cy="462" rx="70" ry="16" fill="url(#ps5Base)"/>
+          <ellipse cx="140" cy="458" rx="70" ry="16" fill="#0b1018"/>
+          <ellipse cx="140" cy="456" rx="56" ry="11" fill="#161d2a"/>
+          <rect x="124" y="430" width="32" height="22" fill="#0c121b"/>
 
-      <!-- STRAIGHT UP bolt (center) -->
-      <g filter="url(#fGlowLg)">
-        <polyline points="240,498 228,440 245,378 232,315 248,250 238,185 252,120 240,55"
-          fill="none" stroke="#9333ea" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" opacity=".65"/>
-        <polyline points="240,498 228,440 245,378 232,315 248,250 238,185 252,120 240,55"
-          fill="none" stroke="#e9d5ff" stroke-width=".9" stroke-linecap="round" stroke-linejoin="round" opacity=".75"/>
-      </g>
+          <!-- Dark glossy core column -->
+          <path d="M108 44 H172 a8 8 0 0 1 8 8 V424 a8 8 0 0 1 -8 8 H108 a8 8 0 0 1 -8 -8 V52 a8 8 0 0 1 8 -8 Z" fill="url(#ps5Core)"/>
+          <rect x="116" y="58" width="9" height="356" rx="4" fill="#46597a" opacity=".4"/>
 
-      <!-- LEFT horizontal bolt -->
-      <g filter="url(#fGlowLg)">
-        <polyline points="240,498 198,492 155,480 106,472 62,458 20,440"
-          fill="none" stroke="#6d28d9" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity=".80"/>
-        <polyline points="240,498 198,492 155,480 106,472 62,458 20,440"
-          fill="none" stroke="#c4b5fd" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity=".90"/>
-      </g>
-      <g filter="url(#fGlowSm)" opacity=".65">
-        <polyline points="155,480 144,462 128,448 108,438"
-          fill="none" stroke="#8b5cf6" stroke-width="1.6" stroke-linecap="round"/>
-      </g>
+          <!-- Central blue light bar -->
+          <rect x="138" y="74" width="4" height="332" rx="2" fill="url(#ps5Led)" filter="url(#ps5LedGlow)"/>
 
-      <!-- RIGHT horizontal bolt -->
-      <g filter="url(#fGlowLg)">
-        <polyline points="240,498 282,492 325,480 374,472 418,458 460,440"
-          fill="none" stroke="#6d28d9" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity=".80"/>
-        <polyline points="240,498 282,492 325,480 374,472 418,458 460,440"
-          fill="none" stroke="#c4b5fd" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity=".90"/>
-      </g>
-      <g filter="url(#fGlowSm)" opacity=".65">
-        <polyline points="325,480 336,462 352,448 372,438"
-          fill="none" stroke="#8b5cf6" stroke-width="1.6" stroke-linecap="round"/>
-      </g>
+          <!-- Left white panel (PS5 curved sail) -->
+          <path d="M112 44
+                   C 96 44 84 52 78 70
+                   C 70 96 66 150 66 250
+                   C 66 350 70 404 78 428
+                   C 84 444 96 452 112 452
+                   Z" fill="url(#ps5Panel)"/>
+          <!-- Right white panel -->
+          <path d="M168 44
+                   C 184 44 196 52 202 70
+                   C 210 96 214 150 214 250
+                   C 214 350 210 404 202 428
+                   C 196 444 184 452 168 452
+                   Z" fill="url(#ps5PanelR)"/>
 
-      <!-- DOWN-LEFT bolt -->
-      <g filter="url(#fGlowMd)">
-        <polyline points="240,498 218,528 198,562 175,598 148,635 118,668"
-          fill="none" stroke="#7c3aed" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" opacity=".72"/>
-        <polyline points="240,498 218,528 198,562 175,598 148,635 118,668"
-          fill="none" stroke="#c084fc" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>
-      </g>
+          <!-- Panel inner seams (where white meets black) -->
+          <path d="M112 44 C 96 44 84 52 78 70 C 70 96 66 150 66 250 C 66 350 70 404 78 428 C 84 444 96 452 112 452"
+                fill="none" stroke="#aab4c6" stroke-width="1.2" opacity=".6"/>
+          <path d="M168 44 C 184 44 196 52 202 70 C 210 96 214 150 214 250 C 214 350 210 404 202 428 C 196 444 184 452 168 452"
+                fill="none" stroke="#aab4c6" stroke-width="1.2" opacity=".6"/>
 
-      <!-- DOWN-RIGHT bolt -->
-      <g filter="url(#fGlowMd)">
-        <polyline points="240,498 262,528 282,562 305,598 332,635 362,668"
-          fill="none" stroke="#7c3aed" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" opacity=".72"/>
-        <polyline points="240,498 262,528 282,562 305,598 332,635 362,668"
-          fill="none" stroke="#c084fc" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>
-      </g>
+          <!-- Specular highlights -->
+          <path d="M86 96 C 78 180 78 320 86 404" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" opacity=".6"/>
+          <path d="M196 96 C 204 180 204 320 196 404" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity=".22"/>
+          <ellipse cx="140" cy="52" rx="30" ry="7" fill="#ffffff" opacity=".5"/>
 
-      <!-- Micro bolts close to pad -->
-      <g filter="url(#fGlowSm)" opacity=".55">
-        <polyline points="240,498 222,475 204,452 188,428" fill="none" stroke="#c084fc" stroke-width="1" stroke-linecap="round"/>
-        <polyline points="240,498 258,475 276,452 292,428" fill="none" stroke="#c084fc" stroke-width="1" stroke-linecap="round"/>
-        <polyline points="240,498 225,518 214,542 206,568" fill="none" stroke="#c084fc" stroke-width="1" stroke-linecap="round"/>
-        <polyline points="240,498 255,518 266,542 274,568" fill="none" stroke="#c084fc" stroke-width="1" stroke-linecap="round"/>
-      </g>
-
-      <!-- ══════════════════════════════════════════════
-           GAMEPAD — center 240, 498 (width ~210, height ~148)
-           ══════════════════════════════════════════════ -->
-
-      <!-- Glow halos behind pad -->
-      <ellipse cx="240" cy="498" rx="120" ry="88" fill="#7c3aed" opacity=".40" filter="url(#fGlowXL)"/>
-      <ellipse cx="240" cy="498" rx="90"  ry="66" fill="#a855f7" opacity=".28" filter="url(#fGlowLg)"/>
-      <ellipse cx="240" cy="498" rx="60"  ry="44" fill="#c084fc" opacity=".18" filter="url(#fGlowMd)"/>
-
-      <!-- LEFT GRIP -->
-      <ellipse cx="176" cy="514" rx="52" ry="66" fill="url(#gpBody)" filter="url(#fPad)"/>
-      <!-- RIGHT GRIP -->
-      <ellipse cx="304" cy="514" rx="52" ry="66" fill="url(#gpBody)" filter="url(#fPad)"/>
-      <!-- CENTER BRIDGE -->
-      <rect x="152" y="455" width="176" height="84" rx="24" fill="url(#gpBody)" filter="url(#fPad)"/>
-
-      <!-- Underside (darker lower half) -->
-      <ellipse cx="176" cy="550" rx="50" ry="40" fill="url(#gpUnder)" opacity=".68"/>
-      <ellipse cx="304" cy="550" rx="50" ry="40" fill="url(#gpUnder)" opacity=".68"/>
-      <rect x="152" y="516" width="176" height="26" rx="6" fill="url(#gpUnder)" opacity=".45"/>
-
-      <!-- Top edge highlight -->
-      <path d="M 162,457 Q 240,447 318,457"
-        fill="none" stroke="url(#gpEdge)" stroke-width="2.2" stroke-linecap="round" opacity=".85"/>
-
-      <!-- ── TOUCHPAD (center) ── -->
-      <rect x="206" y="468" width="68" height="42" rx="9"
-        fill="#cec8ea" stroke="#b8b2de" stroke-width="1" opacity=".88"/>
-      <line x1="206" y1="489" x2="274" y2="489"
-        stroke="#a89fd0" stroke-width=".7" opacity=".55"/>
-      <rect x="206" y="468" width="68" height="42" rx="9"
-        fill="none" stroke="#a78bfa" stroke-width=".9" opacity=".5" filter="url(#fGlowSm)"/>
-
-      <!-- ── LEFT STICK ── -->
-      <circle cx="192" cy="498" r="21" fill="#9f98c8" opacity=".92"/>
-      <circle cx="192" cy="498" r="17" fill="#b8b2d8"/>
-      <circle cx="192" cy="498" r="12" fill="#cec8e8"/>
-      <ellipse cx="188" cy="494" rx="5.5" ry="4.5" fill="#f2eeff" opacity=".72"/>
-      <circle cx="192" cy="498" r="21" fill="none" stroke="#a78bfa" stroke-width="1.2"
-        opacity=".65" filter="url(#fGlowSm)"/>
-
-      <!-- ── RIGHT STICK ── -->
-      <circle cx="298" cy="516" r="21" fill="#9f98c8" opacity=".92"/>
-      <circle cx="298" cy="516" r="17" fill="#b8b2d8"/>
-      <circle cx="298" cy="516" r="12" fill="#cec8e8"/>
-      <ellipse cx="294" cy="512" rx="5.5" ry="4.5" fill="#f2eeff" opacity=".72"/>
-      <circle cx="298" cy="516" r="21" fill="none" stroke="#a78bfa" stroke-width="1.2"
-        opacity=".65" filter="url(#fGlowSm)"/>
-
-      <!-- ── D-PAD ── -->
-      <g transform="translate(176,534)">
-        <rect x="-8" y="-24" width="16" height="17" rx="3.5" fill="#b8b2d8"/>
-        <rect x="-8" y="7"   width="16" height="17" rx="3.5" fill="#b8b2d8"/>
-        <rect x="-24" y="-8" width="17" height="16" rx="3.5" fill="#b8b2d8"/>
-        <rect x="7"   y="-8" width="17" height="16" rx="3.5" fill="#b8b2d8"/>
-        <rect x="-8" y="-8" width="16" height="16" rx="2.5" fill="#cec8e8"/>
-        <rect x="-24" y="-24" width="48" height="48" rx="4"
-          fill="none" stroke="#8b5cf6" stroke-width=".7" opacity=".5" filter="url(#fGlowSm)"/>
-      </g>
-
-      <!-- ── FACE BUTTONS △ ○ × □ ── -->
-      <g transform="translate(312,486)">
-        <!-- △ top — lime -->
-        <circle cx="0" cy="-23" r="10" fill="#0f1f10"/>
-        <text x="0" y="-23" text-anchor="middle" dominant-baseline="central"
-          font-size="12" font-family="Arial,sans-serif" fill="#4ade80" font-weight="700">△</text>
-        <circle cx="0" cy="-23" r="10" fill="none" stroke="#4ade80" stroke-width="1.1"
-          opacity=".75" filter="url(#fGlowSm)"/>
-
-        <!-- ○ right — rose -->
-        <circle cx="23" cy="0" r="10" fill="#2a1018"/>
-        <circle cx="23" cy="0" r="6.5" fill="none" stroke="#fb7185" stroke-width="2.4"/>
-        <circle cx="23" cy="0" r="10" fill="none" stroke="#fb7185" stroke-width="1.1"
-          opacity=".75" filter="url(#fGlowSm)"/>
-
-        <!-- × bottom — indigo -->
-        <circle cx="0" cy="23" r="10" fill="#0e0e20"/>
-        <text x="0" y="23" text-anchor="middle" dominant-baseline="central"
-          font-size="13" font-family="Arial,sans-serif" fill="#818cf8" font-weight="700">×</text>
-        <circle cx="0" cy="23" r="10" fill="none" stroke="#818cf8" stroke-width="1.1"
-          opacity=".75" filter="url(#fGlowSm)"/>
-
-        <!-- □ left — pink -->
-        <circle cx="-23" cy="0" r="10" fill="#200c18"/>
-        <rect x="-29" y="-6" width="12" height="12" rx="2" fill="none" stroke="#f472b6" stroke-width="2.4"/>
-        <circle cx="-23" cy="0" r="10" fill="none" stroke="#f472b6" stroke-width="1.1"
-          opacity=".75" filter="url(#fGlowSm)"/>
-      </g>
-
-      <!-- ── L1 / R1 shoulder buttons ── -->
-      <rect x="148" y="450" width="50" height="12" rx="6" fill="#cec8e8" opacity=".88"/>
-      <rect x="148" y="450" width="50" height="12" rx="6"
-        fill="none" stroke="#a78bfa" stroke-width=".7" opacity=".55"/>
-      <rect x="282" y="450" width="50" height="12" rx="6" fill="#cec8e8" opacity=".88"/>
-      <rect x="282" y="450" width="50" height="12" rx="6"
-        fill="none" stroke="#a78bfa" stroke-width=".7" opacity=".55"/>
-
-      <!-- ── Create / Options ── -->
-      <circle cx="220" cy="462" r="5.5" fill="#b8b2d8" opacity=".82"/>
-      <circle cx="220" cy="462" r="5.5" fill="none" stroke="#c084fc" stroke-width=".7" opacity=".55"/>
-      <rect x="255" y="457" width="11" height="11" rx="3" fill="#b8b2d8" opacity=".82"/>
-      <rect x="255" y="457" width="11" height="11" rx="3"
-        fill="none" stroke="#c084fc" stroke-width=".7" opacity=".55"/>
-
-      <!-- Neon edge accent lines on grips -->
-      <path d="M 138,510 Q 128,530 134,552 Q 140,572 153,582"
-        fill="none" stroke="#7c3aed" stroke-width="1.6"
-        opacity=".72" filter="url(#fGlowSm)" stroke-linecap="round"/>
-      <path d="M 342,510 Q 352,530 346,552 Q 340,572 327,582"
-        fill="none" stroke="#7c3aed" stroke-width="1.6"
-        opacity=".72" filter="url(#fGlowSm)" stroke-linecap="round"/>
-
-      <!-- Contact sparks where bolts meet pad -->
-      <g filter="url(#fGlowMd)">
-        <circle cx="176" cy="468" r="3.5" fill="#ede9fe" opacity=".95"/>
-        <circle cx="304" cy="468" r="3.5" fill="#ede9fe" opacity=".95"/>
-        <circle cx="240" cy="457" r="3"   fill="#f5f3ff" opacity=".90"/>
-        <circle cx="156" cy="492" r="2.5" fill="#d8b4fe" opacity=".85"/>
-        <circle cx="324" cy="492" r="2.5" fill="#d8b4fe" opacity=".85"/>
-      </g>
-      <circle cx="176" cy="468" r="10" fill="#9333ea" opacity=".35" filter="url(#fGlowXL)"/>
-      <circle cx="304" cy="468" r="10" fill="#9333ea" opacity=".35" filter="url(#fGlowXL)"/>
-
-      <!-- Vignette -->
-      <rect width="480" height="700" fill="url(#hVig)"/>
-      <!-- Top fade (covers empty area, blends into dark bg behind text) -->
-      <rect width="480" height="700" fill="url(#hTopFade)"/>
-      <!-- Bottom fade -->
-      <rect width="480" height="700" fill="url(#hBotFade)"/>
-    </svg>
-
-    <!-- TEXT OVERLAY -->
-    <div class="hero-over">
-      <div class="hero-eyebrow">
-        <span class="hero-eyebrow-dot"></span>
-        PlayStation Turkey · Цифровой магазин
+          <!-- Bottom port hints -->
+          <circle cx="128" cy="402" r="2.2" fill="#0a84ff" opacity=".85"/>
+          <rect x="138" y="398" width="13" height="6" rx="2" fill="#222c3d"/>
+        </svg>
       </div>
-      <h1 class="hero-title">Игры и подписки<br><span>без границ</span></h1>
-      <p class="hero-desc">Официальный PS Store Турция. Моментальная доставка.</p>
-      <div class="hero-btns">
-        <button class="hbtn hbtn-p" onclick="go('#/subs')">PS Plus</button>
-        <button class="hbtn hbtn-s" onclick="go('#/games')">Каталог игр</button>
-      </div>
-      <div class="hero-tags">
-        <span class="hero-tag">228 игр</span>
-        <div class="hero-tag-sep"></div>
-        <span class="hero-tag">Моментально</span>
-        <div class="hero-tag-sep"></div>
-        <span class="hero-tag">Безопасно</span>
+
+      <!-- Cartoon ghost flying around the console -->
+      <div class="hero-ghost">
+        <svg viewBox="0 0 120 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ghost">
+          <defs>
+            <linearGradient id="ghBody" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="100%" stop-color="#dfe9ff"/>
+            </linearGradient>
+          </defs>
+          <path d="M60 8
+                   C 32 8 18 30 18 58
+                   V104
+                   c0 6 7 9 11 4 l6 -8 c2 -3 6 -3 8 0 l6 8 c2 3 6 3 8 0 l6 -8 c2 -3 6 -3 8 0 l6 8
+                   c4 5 11 2 11 -4 V58
+                   C 102 30 88 8 60 8 Z"
+                fill="url(#ghBody)" stroke="#b9ccf0" stroke-width="1.5"/>
+          <ellipse cx="46" cy="54" rx="7" ry="9" fill="#2b3550"/>
+          <ellipse cx="74" cy="54" rx="7" ry="9" fill="#2b3550"/>
+          <circle cx="44" cy="51" r="2.4" fill="#fff"/>
+          <circle cx="72" cy="51" r="2.4" fill="#fff"/>
+          <ellipse cx="34" cy="68" rx="6" ry="4" fill="#ffb6c8" opacity=".75"/>
+          <ellipse cx="86" cy="68" rx="6" ry="4" fill="#ffb6c8" opacity=".75"/>
+          <path d="M53 70 Q60 76 67 70" fill="none" stroke="#2b3550" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
       </div>
     </div>
 
-    <!-- GTA BADGE — inside hero-block, floating above gamepad -->
-    <div class="hero-gta-float" onclick="go('#/gta6')">
-      <div class="hgta-img">
-        <img src="gta6.jpg" alt="GTA VI" onerror="this.style.display='none'">
+    <!-- Foreground content -->
+    <div class="hero-content">
+      <div class="hero-top">
+        <div class="hero-eyebrow">
+          <span class="hero-eyebrow-dot"></span>
+          PlayStation Turkey · Цифровой магазин
+        </div>
       </div>
-      <div class="hgta-info">
-        <div class="hgta-tag">🔥 Предзаказ открыт</div>
-        <div class="hgta-name">GTA VI — PlayStation 5</div>
-        <div class="hgta-price">от 6 440 ₽</div>
-      </div>
-      <div class="hgta-chev">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+
+      <div class="hero-bottom">
+        <div class="hero-btns">
+          <button class="hbtn hbtn-primary" onclick="go('#/games')">Игры</button>
+          <button class="hbtn hbtn-glass" onclick="go('#/subs')">Подписка</button>
+        </div>
+        <div class="hero-tags">
+          <span class="hero-tag">228 игр</span>
+          <div class="hero-tag-sep"></div>
+          <span class="hero-tag">Моментально</span>
+          <div class="hero-tag-sep"></div>
+          <span class="hero-tag">Безопасно</span>
+        </div>
+
+        <!-- GTA badge -->
+        <div class="hero-gta-float" onclick="go('#/gta6')">
+          <div class="hgta-img">
+            <img src="gta6.jpg" alt="GTA VI" onerror="this.style.display='none'">
+          </div>
+          <div class="hgta-info">
+            <div class="hgta-tag">🔥 Предзаказ открыт</div>
+            <div class="hgta-name">GTA VI — PlayStation 5</div>
+            <div class="hgta-price">от 6 440 ₽</div>
+          </div>
+          <div class="hgta-chev">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
       </div>
     </div>
   </div><!-- /hero-block -->
@@ -1478,6 +1458,11 @@ nav.bnav{
 <!-- ═══ CART ═══ -->
 <div class="screen" id="screen-cart">
   <div class="list-screen"><div class="screen-title">Корзина</div><div id="cartContent"></div></div>
+</div>
+
+<!-- ═══ PAYMENT ═══ -->
+<div class="screen" id="screen-pay">
+  <div class="pay-wrap" id="payContent"></div>
 </div>
 
 <!-- ═══ PROFILE ═══ -->

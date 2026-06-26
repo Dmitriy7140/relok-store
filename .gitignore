@@ -1,3 +1,7 @@
 node_modules/
 server/data/*.sqlite*
 .DS_Store
+
+# Платёжные секреты ЮKassa — не коммитим
+server/payment-config.js
+.env

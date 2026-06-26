@@ -9,6 +9,7 @@ const path = require('node:path');
 const { all, get, run, generateOrderId, shapeOrder } = require('./db');
 const notify = require('./notifications');
 const price  = require('./priceService');
+const pay    = require('./payment');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'logovo-admin';
@@ -89,6 +90,29 @@ function validateProduct(b, partial = false) {
 }
 
 const intBool = v => (v === true || v === 1 || v === '1') ? 1 : 0;
+
+/* Пометить заказ оплаченным (идемпотентно) + уведомления */
+function markOrderPaid(id, paymentId) {
+  const row = get('SELECT * FROM orders WHERE id=?', [id]);
+  if (!row) return null;
+  if (row.status === 'paid') return shapeOrder(row); // уже оплачен — ничего не делаем
+  let meta = {}; try { meta = JSON.parse(row.meta || '{}'); } catch {}
+  if (paymentId) meta.paymentId = paymentId;
+  run(`UPDATE orders SET status='paid', paid_at=datetime('now'), updated_at=datetime('now'), meta=? WHERE id=?`,
+    [JSON.stringify(meta), id]);
+  const updated = shapeOrder(get('SELECT * FROM orders WHERE id=?', [id]));
+  log.info('Order PAID:', id, '—', updated.amount + '₽', paymentId ? `(yk:${paymentId})` : '');
+  notify.notifyOrderPaid(updated).catch(() => {});
+  return updated;
+}
+
+/* Базовый URL приложения (для return_url ЮKassa) */
+function baseUrl(req) {
+  if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL.replace(/\/+$/, '');
+  const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+  const host  = req.headers['x-forwarded-host'] || req.headers.host;
+  return `${proto}://${host}`;
+}
 
 /* ── API ─────────────────────────────────────────────────────── */
 async function api(req, res, url) {
@@ -515,6 +539,64 @@ async function api(req, res, url) {
     const limit = Math.min(+(new URL(req.url, 'http://x').searchParams.get('limit')) || 20, 100);
     const history = price.getPriceHistory(+seg[2], limit);
     return ok(res, history);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     /api/pay — ЮKassa: создание платежа, статус, вебхук
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Создать платёж по существующему заказу (публично — по ID заказа) */
+  if (seg[1] === 'pay' && seg[2] === 'create' && method === 'POST') {
+    let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+    if (!pay.isConfigured()) return bad(res, 'Платёжная система не настроена', 503);
+    const orderId = String(b.orderId || '').trim();
+    if (!orderId) return bad(res, 'Укажите orderId');
+    const order = shapeOrder(get('SELECT * FROM orders WHERE id=?', [orderId]));
+    if (!order) return bad(res, 'Заказ не найден', 404);
+    if (order.status === 'paid') return bad(res, 'Заказ уже оплачен');
+    if (!(order.amount > 0)) return bad(res, 'Сумма заказа должна быть больше 0');
+
+    // Возврат пользователя на экран оплаты заказа
+    const returnUrl = `${baseUrl(req)}/#/pay/${order.id}`;
+    try {
+      const p = await pay.createPayment(order, returnUrl);
+      // Сохраняем paymentId в meta заказа
+      const meta = order.meta || {}; meta.paymentId = p.id;
+      run('UPDATE orders SET meta=?, updated_at=datetime(\'now\') WHERE id=?', [JSON.stringify(meta), order.id]);
+      log.info('Payment created:', p.id, 'для заказа', order.id, order.amount + '₽');
+      return ok(res, { confirmationUrl: p.confirmationUrl, paymentId: p.id, status: p.status });
+    } catch (e) {
+      log.err('ЮKassa create error:', e.message);
+      return bad(res, 'Не удалось создать платёж: ' + e.message, 502);
+    }
+  }
+
+  /* Статус оплаты заказа (публично, для опроса после возврата) */
+  if (seg[1] === 'pay' && seg[2] === 'status' && seg[3] && method === 'GET') {
+    const order = shapeOrder(get('SELECT * FROM orders WHERE id=?', [seg[3]]));
+    if (!order) return bad(res, 'Заказ не найден', 404);
+    return ok(res, { id: order.id, status: order.status, amount: order.amount, paidAt: order.paidAt });
+  }
+
+  /* Вебхук ЮKassa (payment.succeeded / canceled).
+     Тело не доверяем — перепроверяем платёж через API по его id. */
+  if (seg[1] === 'pay' && seg[2] === 'webhook' && method === 'POST') {
+    let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+    const event = b && b.event;
+    const obj   = (b && b.object) || {};
+    const paymentId = obj.id;
+    log.info('YK webhook:', event, paymentId);
+    if (!paymentId) return ok(res, { ok: true }); // отвечаем 200, чтобы ЮKassa не ретраила вечно
+    try {
+      const p = await pay.getPayment(paymentId);
+      const orderId = p.metadata && p.metadata.orderId;
+      if (p.status === 'succeeded' && p.paid && orderId) {
+        markOrderPaid(orderId, paymentId);
+      }
+    } catch (e) {
+      log.err('YK webhook verify error:', e.message);
+    }
+    return ok(res, { ok: true });
   }
 
   return bad(res, 'Маршрут не найден', 404);
