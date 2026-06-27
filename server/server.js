@@ -106,6 +106,49 @@ function markOrderPaid(id, paymentId) {
   return updated;
 }
 
+/* Проверить один заказ в ЮKassa и обновить статус (для поллинга и /status).
+   Возвращает свежий shapeOrder. */
+async function syncOrderPayment(order) {
+  if (!order || order.status !== 'pending' || !pay.isConfigured()) return order;
+  const paymentId = order.meta && order.meta.paymentId;
+  if (!paymentId) return order;
+  try {
+    const p = await pay.getPayment(paymentId);
+    if (p.status === 'succeeded' && p.paid) {
+      return markOrderPaid(order.id, paymentId) || order;
+    }
+    if (p.status === 'canceled') {
+      run("UPDATE orders SET status='cancelled', updated_at=datetime('now') WHERE id=?", [order.id]);
+      const upd = shapeOrder(get('SELECT * FROM orders WHERE id=?', [order.id]));
+      log.info('Order CANCELED (yk):', order.id);
+      notify.notifyOrderCancelled(upd).catch(() => {});
+      return upd;
+    }
+  } catch (e) {
+    log.err('Sync payment error', paymentId, e.message);
+  }
+  return order;
+}
+
+/* Фоновый поллинг: подтверждаем оплату без вебхука.
+   Опрашиваем "висящие" заказы за последние сутки. */
+let _polling = false;
+async function pollPendingPayments() {
+  if (_polling || !pay.isConfigured()) return;
+  _polling = true;
+  try {
+    const rows = all("SELECT * FROM orders WHERE status='pending' AND created_at >= datetime('now','-1 day')");
+    for (const row of rows) {
+      const order = shapeOrder(row);
+      if (order.meta && order.meta.paymentId) await syncOrderPayment(order);
+    }
+  } catch (e) {
+    log.err('pollPendingPayments:', e.message);
+  } finally {
+    _polling = false;
+  }
+}
+
 /* Базовый URL приложения (для return_url ЮKassa) */
 function baseUrl(req) {
   if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL.replace(/\/+$/, '');
@@ -573,8 +616,10 @@ async function api(req, res, url) {
 
   /* Статус оплаты заказа (публично, для опроса после возврата) */
   if (seg[1] === 'pay' && seg[2] === 'status' && seg[3] && method === 'GET') {
-    const order = shapeOrder(get('SELECT * FROM orders WHERE id=?', [seg[3]]));
+    let order = shapeOrder(get('SELECT * FROM orders WHERE id=?', [seg[3]]));
     if (!order) return bad(res, 'Заказ не найден', 404);
+    // Живая проверка в ЮKassa, если заказ ещё не оплачен
+    order = await syncOrderPayment(order);
     return ok(res, { id: order.id, status: order.status, amount: order.amount, paidAt: order.paidAt });
   }
 
@@ -654,5 +699,15 @@ server.listen(PORT, () => {
     price.startScheduler(); // запускает фоновое обновление по расписанию
   } catch (err) {
     log.err('Price service init error:', err.message);
+  }
+
+  // Поллинг оплат ЮKassa (альтернатива вебхуку)
+  if (pay.isConfigured()) {
+    const ms = Math.max(5000, +process.env.PAYMENT_POLL_INTERVAL_MS || 20000);
+    const t = setInterval(() => { pollPendingPayments(); }, ms);
+    t.unref?.();
+    log.info(`Поллинг оплат ЮKassa: каждые ${ms} мс`);
+  } else {
+    log.warn('ЮKassa не настроена — поллинг оплат отключён');
   }
 });
