@@ -24,52 +24,78 @@
      3. Задать BOT_TOKEN и NOTIFY_CHAT_ID в переменных окружения
    ══════════════════════════════════════════════════════════════ */
 
+const https = require('node:https');
+
 const log = {
   info: (...a) => console.log(new Date().toISOString(), '[NOTIFY]', ...a),
   warn: (...a) => console.warn(new Date().toISOString(), '[NOTIFY WARN]', ...a),
   err:  (...a) => console.error(new Date().toISOString(), '[NOTIFY ERR]', ...a),
 };
 
-/* ══ TELEGRAM BOT (stub — раскомментировать после установки) ══ */
-async function sendTelegram(message) {
-  /*
-  // ── Подключение реального бота ────────────────────────────────
-  const TelegramBot = require('node-telegram-bot-api');
-  const bot    = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
+/* ══ TELEGRAM BOT ════════════════════════════════════════════
+   Отправка через Bot API на штатном node:https (без npm).
+   Нужны переменные окружения BOT_TOKEN и NOTIFY_CHAT_ID.
+   Если они не заданы — пишем в консоль (как раньше). */
+function sendTelegram(message) {
+  const token  = process.env.BOT_TOKEN;
   const chatId = process.env.NOTIFY_CHAT_ID;
 
-  if (!process.env.BOT_TOKEN) { log.warn('BOT_TOKEN не задан'); return false; }
-  if (!chatId)                 { log.warn('NOTIFY_CHAT_ID не задан'); return false; }
+  if (!token || !chatId) {
+    if (!token)  log.warn('BOT_TOKEN не задан');
+    if (!chatId) log.warn('NOTIFY_CHAT_ID не задан');
+    log.info('[STUB] Telegram:\n' + message);
+    return Promise.resolve(false);
+  }
 
-  await bot.sendMessage(chatId, message, {
+  const payload = JSON.stringify({
+    chat_id: chatId,
+    text: message,
     parse_mode: 'HTML',
     disable_web_page_preview: true,
   });
-  return true;
-  // ─────────────────────────────────────────────────────────────
-  */
 
-  // STUB — логируем в консоль
-  log.info('[STUB] Telegram:\n' + message);
-  return true;
+  return new Promise((resolve) => {
+    const reqObj = https.request(
+      {
+        hostname: 'api.telegram.org',
+        path: `/bot${token}/sendMessage`,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+      },
+      (res) => {
+        let raw = '';
+        res.on('data', (c) => { raw += c; });
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) { resolve(true); }
+          else { log.err('Telegram sendMessage', res.statusCode, raw.slice(0, 300)); resolve(false); }
+        });
+      }
+    );
+    reqObj.on('error', (e) => { log.err('Telegram error:', e.message); resolve(false); });
+    reqObj.setTimeout(15000, () => reqObj.destroy(new Error('Таймаут запроса к Telegram')));
+    reqObj.write(payload);
+    reqObj.end();
+  });
 }
 
 /* ══ Форматировщики сообщений ════════════════════════════════ */
+// Экранируем данные клиента для parse_mode: HTML (иначе < > & ломают отправку)
+const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
 /** Новый заказ (pending) */
 function formatNewOrder(order) {
   const date = new Date(order.createdAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
   const meta = order.meta || {};
   return [
-    `🛒 <b>Новый заказ</b>  <code>#${order.id}</code>`,
+    `🛒 <b>Новый заказ</b>  <code>#${esc(order.id)}</code>`,
     '',
-    order.email      ? `📧 <b>Email:</b>           ${order.email}`      : '',
-    meta.accLogin    ? `👤 <b>Аккаунт:</b>         ${meta.accLogin}`    : '',
-    meta.accPass     ? `🔐 <b>Пароль акк.:</b>     ${meta.accPass}`     : '',
+    order.email      ? `📧 <b>Email:</b>           ${esc(order.email)}`      : '',
+    meta.accLogin    ? `👤 <b>Аккаунт:</b>         ${esc(meta.accLogin)}`    : '',
+    meta.accPass     ? `🔐 <b>Пароль акк.:</b>     ${esc(meta.accPass)}`     : '',
     '',
-    `📦 <b>Товар:</b>  ${order.productName}`,
+    `📦 <b>Товар:</b>  ${esc(order.productName)}`,
     `💰 <b>Сумма:</b>  ${order.amount} ₽`,
-    order.comment ? `💬 <b>Комментарий:</b>  ${order.comment}` : '',
+    order.comment ? `💬 <b>Комментарий:</b>  ${esc(order.comment)}` : '',
     '',
     `🕐 <b>Создан:</b>  ${date}`,
     `🔄 <b>Статус:</b>  ожидает оплаты`,
@@ -81,13 +107,13 @@ function formatPaidOrder(order) {
   const paidAt = new Date(order.paidAt || Date.now()).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
   const meta = order.meta || {};
   return [
-    `✅ <b>ОПЛАЧЕНО</b>  <code>#${order.id}</code>`,
+    `✅ <b>ОПЛАЧЕНО</b>  <code>#${esc(order.id)}</code>`,
     '',
-    order.email      ? `📧 <b>Email:</b>           ${order.email}`      : '',
-    meta.accLogin    ? `👤 <b>Аккаунт:</b>         ${meta.accLogin}`    : '',
-    meta.accPass     ? `🔐 <b>Пароль акк.:</b>     ${meta.accPass}`     : '',
+    order.email      ? `📧 <b>Email:</b>           ${esc(order.email)}`      : '',
+    meta.accLogin    ? `👤 <b>Аккаунт:</b>         ${esc(meta.accLogin)}`    : '',
+    meta.accPass     ? `🔐 <b>Пароль акк.:</b>     ${esc(meta.accPass)}`     : '',
     '',
-    `📦 <b>Товар:</b>  ${order.productName}`,
+    `📦 <b>Товар:</b>  ${esc(order.productName)}`,
     `💰 <b>Сумма:</b>  ${order.amount} ₽`,
     '',
     `🕐 <b>Оплачен:</b>  ${paidAt}`,
@@ -99,18 +125,18 @@ function formatPaidOrder(order) {
 /** Заказ активирован */
 function formatActivatedOrder(order) {
   return [
-    `🎉 <b>Активировано</b>  <code>#${order.id}</code>`,
-    `📛 ${order.nickname}  |  ✈️ ${order.telegram || '—'}`,
-    `📦 ${order.productName}  —  ${order.amount} ₽`,
+    `🎉 <b>Активировано</b>  <code>#${esc(order.id)}</code>`,
+    `📛 ${esc(order.nickname)}  |  ✈️ ${esc(order.telegram || '—')}`,
+    `📦 ${esc(order.productName)}  —  ${order.amount} ₽`,
   ].join('\n');
 }
 
 /** Заказ отменён */
 function formatCancelledOrder(order) {
   return [
-    `❌ <b>Отменён</b>  <code>#${order.id}</code>`,
-    `📛 ${order.nickname}  |  🎮 ${order.psnId}`,
-    `📦 ${order.productName}  —  ${order.amount} ₽`,
+    `❌ <b>Отменён</b>  <code>#${esc(order.id)}</code>`,
+    `📛 ${esc(order.nickname)}  |  🎮 ${esc(order.psnId)}`,
+    `📦 ${esc(order.productName)}  —  ${order.amount} ₽`,
   ].join('\n');
 }
 
