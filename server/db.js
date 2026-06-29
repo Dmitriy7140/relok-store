@@ -97,6 +97,12 @@ CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at DESC);
 /* ── Миграции ───────────────────────────────────────────────── */
 try { db.exec('ALTER TABLE categories ADD COLUMN description TEXT DEFAULT ""'); } catch {}
 try { db.exec('ALTER TABLE orders ADD COLUMN email TEXT DEFAULT ""'); } catch {}
+// Регионы: каждый регион — отдельный магазин (товары/категории/цены).
+// Существующий каталог = Турция ('tr'); новые регионы (напр. Индия 'in') наполняются через админку.
+try { db.exec("ALTER TABLE products ADD COLUMN region TEXT NOT NULL DEFAULT 'tr'"); } catch {}
+try { db.exec("ALTER TABLE categories ADD COLUMN region TEXT NOT NULL DEFAULT 'tr'"); } catch {}
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_products_region ON products(region)'); } catch {}
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_categories_region ON categories(region)'); } catch {}
 
 /* ── Helpers ────────────────────────────────────────────────── */
 function all(sql, params = []) { return db.prepare(sql).all(...params); }

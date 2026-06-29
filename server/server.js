@@ -42,6 +42,10 @@ function readBody(req) {
   });
 }
 
+/* ── Регионы (каждый — отдельный магазин) ────────────────────── */
+const REGIONS = ['tr', 'in'];
+const normRegion = (r) => REGIONS.includes(r) ? r : 'tr';
+
 /* ── Форматирование данных ───────────────────────────────────── */
 function shapeProduct(r) {
   if (!r) return r;
@@ -61,6 +65,7 @@ function shapeProduct(r) {
     inStock: !!r.in_stock, popularity: r.popularity,
     isNew: !!r.is_new, isSale: !!r.is_sale, isPreorder: !!r.is_preorder,
     isFeatured: !!r.is_featured, position: r.position, hidden: !!r.hidden,
+    region: r.region || 'tr',
     meta, createdAt: r.created_at,
   };
 }
@@ -68,6 +73,7 @@ function shapeCategory(r) {
   return {
     id: r.id, slug: r.slug, title: r.title, icon: r.icon,
     type: r.type, position: r.position, hidden: !!r.hidden,
+    region: r.region || 'tr',
     description: r.description || '',
   };
 }
@@ -172,6 +178,7 @@ async function api(req, res, url) {
     if (method === 'GET') {
       const q = url.searchParams;
       const where = [], params = [];
+      where.push('region = ?'); params.push(normRegion(q.get('region')));
       if (!isAdmin) where.push('hidden = 0');
       if (q.get('type')) { where.push('type = ?'); params.push(q.get('type')); }
       if (q.get('category')) { where.push('category_id = ?'); params.push(+q.get('category')); }
@@ -208,17 +215,18 @@ async function api(req, res, url) {
       let b; try { b = await readBody(req); } catch (err) { return bad(res, err.message); }
       const errs = validateProduct(b);
       if (errs.length) return bad(res, errs.join('. '));
-      const pos = get('SELECT COALESCE(MAX(position),-1)+1 AS p FROM products').p;
+      const region = normRegion(b.region);
+      const pos = get('SELECT COALESCE(MAX(position),-1)+1 AS p FROM products WHERE region=?', [region]).p;
       const info = run(`INSERT INTO products
         (type,category_id,name,description,emoji,image,platform,edition,price,old_price,
-         in_stock,popularity,is_new,is_sale,is_preorder,is_featured,position,meta)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+         in_stock,popularity,is_new,is_sale,is_preorder,is_featured,position,meta,region)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [b.type||'game', b.categoryId||null, String(b.name).trim(), b.description||'',
          b.emoji||'🎮', b.image||'', b.platform||'', b.edition||'',
          Math.round(+b.price||0), b.oldPrice ? Math.round(+b.oldPrice) : null,
          intBool(b.inStock??true), +b.popularity||0,
          intBool(b.isNew), intBool(b.isSale||(b.oldPrice&&+b.oldPrice>+b.price)),
-         intBool(b.isPreorder), intBool(b.isFeatured), pos, JSON.stringify(b.meta||{})]);
+         intBool(b.isPreorder), intBool(b.isFeatured), pos, JSON.stringify(b.meta||{}), region]);
       log.info('Product created:', info.lastInsertRowid);
       return ok(res, shapeProduct(get('SELECT * FROM products WHERE id=?', [info.lastInsertRowid])));
     }
@@ -270,19 +278,24 @@ async function api(req, res, url) {
   /* ── /api/categories ── */
   if (seg[1] === 'categories' && seg.length === 2) {
     if (method === 'GET') {
+      const region = normRegion(url.searchParams.get('region'));
+      const visSql = isAdmin ? 'WHERE c.region=?' : 'WHERE c.region=? AND c.hidden=0';
       const rows = all(`SELECT c.*, (SELECT COUNT(*) FROM products p WHERE p.category_id=c.id AND p.hidden=0) AS count
-                        FROM categories c ${isAdmin ? '' : 'WHERE c.hidden=0'} ORDER BY position,id`);
+                        FROM categories c ${visSql} ORDER BY position,id`, [region]);
       return ok(res, rows.map(r => ({ ...shapeCategory(r), count: r.count })));
     }
     if (method === 'POST') {
       if (!needAdmin()) return;
       let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
       if (!b.title || !String(b.title).trim()) return bad(res, 'Укажите название категории');
-      const slug = (b.slug||b.title).toString().toLowerCase().replace(/[^a-zа-я0-9]+/gi,'-').replace(/^-|-$/g,'')||'cat-'+Date.now();
+      const region = normRegion(b.region);
+      const base = (b.slug||b.title).toString().toLowerCase().replace(/[^a-zа-я0-9]+/gi,'-').replace(/^-|-$/g,'')||'cat-'+Date.now();
+      // slug уникален глобально — добавляем суффикс региона, чтобы регионы не конфликтовали
+      const slug = region === 'tr' ? base : `${base}-${region}`;
       if (get('SELECT id FROM categories WHERE slug=?', [slug])) return bad(res, 'Категория с таким адресом уже существует');
-      const pos = get('SELECT COALESCE(MAX(position),-1)+1 AS p FROM categories').p;
-      const info = run('INSERT INTO categories (slug,title,icon,type,position,description) VALUES (?,?,?,?,?,?)',
-        [slug, String(b.title).trim(), b.icon||'📦', b.type||'game', pos, b.description||'']);
+      const pos = get('SELECT COALESCE(MAX(position),-1)+1 AS p FROM categories WHERE region=?', [region]).p;
+      const info = run('INSERT INTO categories (slug,title,icon,type,position,description,region) VALUES (?,?,?,?,?,?,?)',
+        [slug, String(b.title).trim(), b.icon||'📦', b.type||'game', pos, b.description||'', region]);
       return ok(res, shapeCategory(get('SELECT * FROM categories WHERE id=?', [info.lastInsertRowid])));
     }
   }

@@ -5951,6 +5951,8 @@ window.SEED={
   settings:{store:{name:'Logovo PlayStation',tagline:'PlayStation Turkey',currency:'₽'}},
 };
 window.queryLocal=function(params){
+  // Демо-данные (offline) есть только для Турции; остальные регионы — пустой магазин.
+  if(params.region && params.region!=='tr') return {items:[],total:0,page:1,limit:+params.limit||20,pages:0};
   let items=SEED.products.filter(p=>!p.hidden);
   if(params.type)items=items.filter(p=>p.type===params.type);
   if(params.category)items=items.filter(p=>p.categoryId===+params.category);

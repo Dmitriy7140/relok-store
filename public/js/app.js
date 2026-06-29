@@ -450,6 +450,16 @@ function renderModal(p) {
   if (p.description) { el('pmDesc').textContent = p.description; el('pmDesc').style.display='block'; }
   else { el('pmDesc').style.display='none'; }
 
+  // Способ получения товара — единый блок для всех игр и подписок
+  const delivEl = el('pmDeliv');
+  if (delivEl) {
+    delivEl.innerHTML =
+      '<div class="modal-section">Способ получения товара</div>' +
+      '<div class="modal-about">После успешной оплаты вы выбираете платформу, ' +
+      'после чего автоматически переходите в чат с нашим менеджером. ' +
+      'Менеджер выполнит вход в аккаунт и произведет покупку выбранной игры или подписки.</div>';
+  }
+
   const specMap = [['size','Размер'],['rating','Возраст'],['lang','Язык'],['players','Игроки'],['release','Релиз']];
   const specRows = specMap.filter(([k]) => meta[k]).map(([k,l]) =>
     `<div class="spec-row"><span class="spec-key">${l}</span><span class="spec-val">${esc(meta[k])}</span></div>`).join('');
@@ -1141,9 +1151,66 @@ async function init() {
 
 init();
 
+// Открыть товар «Подписка Deluxe» (кнопка на главной).
+// Ищем подписку с tier='deluxe' и открываем её карточку.
+async function openDeluxe() {
+  try {
+    const data = await API.products({ type: 'sub', limit: 50 });
+    const subs = data.items || [];
+    const deluxe = subs.find(s => (s.meta?.tier === 'deluxe'))
+                || subs.find(s => /deluxe/i.test(s.name || ''));
+    if (deluxe) { openProduct(deluxe.id); return; }
+  } catch (e) { /* offline / ошибка — просто откроем раздел подписок */ }
+  go('#/subs');
+}
+
+/* ── Смена региона (каждый регион — отдельный магазин) ── */
+const REGION_INFO = {
+  tr: { flag: '🇹🇷', name: 'Турция' },
+  in: { flag: '🇮🇳', name: 'Индия'  },
+};
+
+function initRegionUI() {
+  const cur = (window.API && API.getRegion) ? API.getRegion() : 'tr';
+  const info = REGION_INFO[cur] || REGION_INFO.tr;
+  const fl = el('regionFlag'), nm = el('regionName');
+  if (fl) fl.textContent = info.flag;
+  if (nm) nm.textContent = info.name;
+  document.querySelectorAll('.region-opt').forEach(o =>
+    o.classList.toggle('active', o.dataset.region === cur));
+}
+
+function toggleRegionMenu(e) {
+  if (e) e.stopPropagation();
+  const w = el('regionWrap');
+  if (w) w.classList.toggle('open');
+}
+
+function selectRegion(r) {
+  const w = el('regionWrap');
+  if (w) w.classList.remove('open');
+  if (!window.API || !API.setRegion) return;
+  if (API.getRegion() === r) return;
+  API.setRegion(r);
+  // Перезагружаем, чтобы все разделы (игры, подписки, категории) подтянули магазин региона
+  location.reload();
+}
+
+// Закрытие меню региона по клику вне его
+document.addEventListener('click', (e) => {
+  const w = el('regionWrap');
+  if (w && w.classList.contains('open') && !w.contains(e.target)) w.classList.remove('open');
+});
+
+// Инициализация лейбла региона при загрузке
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initRegionUI);
+} else { initRegionUI(); }
+
 // Globals for inline handlers
 Object.assign(window, {
-  go, toggleTheme, ctaRipple,
+  go, toggleTheme, ctaRipple, openDeluxe,
+  toggleRegionMenu, selectRegion, initRegionUI,
   openProduct, closeModal, buyFromModal, quickAdd, toggleWish, setPeriod,
   loadSubs, selectSubPeriod, addSubToCart,
   loadGames, onGamesSearch, gamesGoPage, resetGames, setGamesCat,

@@ -5,6 +5,13 @@ window.API = (function () {
   const BASE = ONLINE ? `${location.origin}/api` : null;
   let offline = !ONLINE;
 
+  // ── Регион (каждый регион — отдельный магазин) ──
+  const REGIONS = ['tr', 'in'];
+  let region = (() => {
+    const r = localStorage.getItem('logovo_region');
+    return REGIONS.includes(r) ? r : 'tr';
+  })();
+
   function headers(extra) {
     const h = { 'Content-Type': 'application/json', ...extra };
     const t = localStorage.getItem('logovo_admin_token');
@@ -38,18 +45,32 @@ window.API = (function () {
     isOffline: () => offline,
     setOffline: (v) => { offline = v; },
 
+    // ── Регион ──
+    getRegion: () => region,
+    regions: () => REGIONS.slice(),
+    setRegion: (r) => {
+      region = REGIONS.includes(r) ? r : 'tr';
+      localStorage.setItem('logovo_region', region);
+      return region;
+    },
+
     // ── Products / Categories / Settings ──────────────────────
     async products(params) {
-      try { return await req('GET', '/products' + qs(params)); }
-      catch (e) { offline = true; markOffline(); return window.queryLocal(params || {}); }
+      const p = { region, ...(params || {}) };
+      try { return await req('GET', '/products' + qs(p)); }
+      catch (e) { offline = true; markOffline(); return window.queryLocal(p); }
     },
     async product(id) {
       try { return await req('GET', '/products/' + id); }
       catch (e) { offline = true; markOffline(); return SEED.products.find(p => p.id === +id); }
     },
     async categories() {
-      try { return await req('GET', '/categories'); }
-      catch (e) { offline = true; markOffline(); return SEED.categories.map(c => ({ ...c, count: SEED.products.filter(p => p.categoryId === c.id).length })); }
+      try { return await req('GET', '/categories' + qs({ region })); }
+      catch (e) {
+        offline = true; markOffline();
+        if (region !== 'tr') return []; // демо-данные есть только для Турции
+        return SEED.categories.map(c => ({ ...c, count: SEED.products.filter(p => p.categoryId === c.id).length }));
+      }
     },
     async settings() {
       try { return await req('GET', '/settings'); }
@@ -57,12 +78,12 @@ window.API = (function () {
     },
 
     // ── Admin write (требуют сервер + токен) ──────────────────
-    createProduct:    (b)     => req('POST',   '/products', b),
+    createProduct:    (b)     => req('POST',   '/products', { region, ...b }),
     updateProduct:    (id, b) => req('PUT',    '/products/' + id, b),
     patchProduct:     (id, b) => req('PATCH',  '/products/' + id, b),
     deleteProduct:    (id)    => req('DELETE', '/products/' + id),
     reorderProducts:  (ids)   => req('POST',   '/products/reorder', { ids }),
-    createCategory:   (b)     => req('POST',   '/categories', b),
+    createCategory:   (b)     => req('POST',   '/categories', { region, ...b }),
     updateCategory:   (id, b) => req('PUT',    '/categories/' + id, b),
     deleteCategory:   (id)    => req('DELETE', '/categories/' + id),
     reorderCategories:(ids)   => req('POST',   '/categories/reorder', { ids }),

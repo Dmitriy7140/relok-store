@@ -327,6 +327,14 @@ select.inp{-webkit-appearance:none;appearance:none;cursor:pointer}
       <div class="lg">▶</div>
       <div>Logovo<small>Панель управления</small></div>
     </div>
+    <div class="side-sec">Регион</div>
+    <div style="padding:4px 14px 10px">
+      <select id="adminRegion" onchange="adminSetRegion(this.value)"
+        style="width:100%;padding:9px 10px;border-radius:8px;background:var(--s2,#1a1d27);color:var(--t1,#fff);border:1px solid var(--b1,#2a2e3a);font-size:14px;cursor:pointer">
+        <option value="tr">🇹🇷 Турция</option>
+        <option value="in">🇮🇳 Индия</option>
+      </select>
+    </div>
     <div class="side-sec">Обзор</div>
     <div class="nav-item" data-tab="dash" onclick="tab('dash')"><span class="ic">📊</span>Дашборд</div>
     <div class="side-sec">Контент</div>
@@ -350,6 +358,11 @@ select.inp{-webkit-appearance:none;appearance:none;cursor:pointer}
       <div class="lg">▶</div>
       <div>Logovo<small>admin</small></div>
     </div>
+    <select id="adminRegionM" onchange="adminSetRegion(this.value)"
+      style="padding:7px 8px;border-radius:8px;background:var(--s2,#1a1d27);color:var(--t1,#fff);border:1px solid var(--b1,#2a2e3a);font-size:13px;cursor:pointer">
+      <option value="tr">🇹🇷 Турция</option>
+      <option value="in">🇮🇳 Индия</option>
+    </select>
     <button class="iconbtn" onclick="toggleTheme()" title="Тема">🌓</button>
     <a class="iconbtn" href="/" target="_blank" title="Витрина">🛍️</a>
     <button class="iconbtn" onclick="logout()" title="Выйти">🚪</button>

@@ -56,6 +56,7 @@ function logout() { localStorage.removeItem('logovo_admin_token'); location.relo
 
 async function loadAll() {
   try {
+    syncRegionSelects();
     const [prods, cats, stg] = await Promise.all([
       API.products({ limit: 500, sort: 'position' }),
       API.categories(),
@@ -66,6 +67,25 @@ async function loadAll() {
     S.settings = stg || {};
     updateCounts();
   } catch (e) { toast('Ошибка загрузки', 'err'); }
+}
+
+/* ── Регион (каждый регион — отдельный магазин) ── */
+function syncRegionSelects() {
+  if (!window.API || !API.getRegion) return;
+  const r = API.getRegion();
+  ['adminRegion', 'adminRegionM'].forEach(id => { const s = el(id); if (s) s.value = r; });
+}
+
+async function adminSetRegion(r) {
+  if (!window.API || !API.setRegion) return;
+  if (API.getRegion() === r) return;
+  API.setRegion(r);
+  syncRegionSelects();
+  const names = { tr: 'Турция', in: 'Индия' };
+  toastLoad('Загрузка магазина: ' + (names[r] || r) + '…');
+  await loadAll();
+  tab(S.tab || 'dash');
+  toast('Регион: ' + (names[r] || r));
 }
 
 function updateCounts() {
