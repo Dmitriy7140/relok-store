@@ -659,8 +659,8 @@ async function renderCart() {
             <span class="cart-price">${price > 0 ? fmt(price) : 'Бесплатно'}</span>
             ${p.oldPrice && p.oldPrice > price ? `<span class="cart-old">${fmt(p.oldPrice)}</span>` : ''}
           </div>
-          <button class="cart-remove" onclick="removeCart(${p.id},'${cart[i].period||''}')" title="Удалить">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          <button class="cart-remove" onclick="event.stopPropagation();removeCart(${i})" title="Удалить">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" pointer-events="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
         </div>`).join('')}
       <div class="cart-summary">
@@ -675,8 +675,10 @@ async function renderCart() {
     </div>`;
 }
 
-function removeCart(id, period) {
-  cart = cart.filter(i => !(i.id===id && (period===undefined||i.period===period)));
+function removeCart(index) {
+  index = +index;
+  if (!Number.isInteger(index) || index < 0 || index >= cart.length) return;
+  cart.splice(index, 1);
   saveCart(); updateBadges(); renderCart();
 }
 
