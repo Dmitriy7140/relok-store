@@ -74,6 +74,7 @@ window.API = (function () {
 
     // ── Orders ── (bug2 fix: перенесено внутрь IIFE, req доступен)
     createOrder:      (b)     => req('POST',   '/orders', b),
+    submitOrderInfo:  (id, b) => req('POST',   '/orders/' + id + '/info', b),
     getOrder:         (id)    => req('GET',    '/orders/' + id),
     payOrder:         (id)    => req('PATCH',  '/orders/' + id, { status: 'paid' }),
     cancelOrder:      (id)    => req('PATCH',  '/orders/' + id, { status: 'cancelled' }),

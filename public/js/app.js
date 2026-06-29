@@ -684,26 +684,58 @@ function removeCart(id, period) {
    CHECKOUT FORM — сбор данных клиента перед оплатой
    ══════════════════════════════════════════════════════════════ */
 
-// Данные текущего заказа, открытого в форме
+// Текущий товар в процессе оформления
 let _checkoutItem = null;
+// Заказ и колбэк завершения для табло сбора данных (после оплаты / для бесплатных)
+let _infoOrder  = null;
+let _infoOnDone = null;
 
 /**
- * Открыть форму оформления для конкретного товара.
- * @param {object} item — { name, price, emoji, platform, type, productId?, period? }
+ * Старт оформления: создаём заказ БЕЗ персональных данных и ведём к оплате.
+ * Данные клиента (Telegram, аккаунт и т.д.) собираются ПОСЛЕ оплаты — см. infoFormHtml.
+ * @param {object} item — { name, price, emoji, platform, type, productId?, period?, _fromCart? }
  */
-function openCheckout(item) {
+async function startOrder(item) {
   _checkoutItem = item;
-  const overlay = el('checkoutOverlay');
-  if (!overlay) return;
-  renderCheckoutForm(item);
-  overlay.classList.add('open');
-  document.body.style.overflow = 'hidden';
+  const amount = Math.round(item.price || 0);
+  const orderData = {
+    productName: item.name || '',
+    productId:   item.productId || null,
+    amount,
+    meta: {
+      period:   item.period   || null,
+      platform: item.platform || '',
+      type:     item.type     || 'game',
+    },
+  };
+
+  let order;
+  try {
+    if (!API.isOffline()) {
+      order = await API.createOrder(orderData);
+    } else {
+      order = { id: 'LOCAL-' + Date.now(), ...orderData, status: 'pending', createdAt: new Date().toISOString() };
+    }
+  } catch (err) {
+    console.error('Order error:', err);
+    toast('Ошибка создания заказа: ' + err.message, 'err');
+    return;
+  }
+
+  if (item._fromCart) { cart = []; saveCart(); updateBadges(); }
+
+  if (!API.isOffline() && amount > 0) {
+    // Платный заказ — на экран оплаты. Табло с данными покажем после успешной оплаты.
+    go('#/pay/' + order.id);
+  } else {
+    // Бесплатно или офлайн — оплаты нет, сразу собираем данные клиента.
+    openInfoSheet(order);
+  }
 }
 
-/** Открыть форму напрямую (без корзины), например для GTA6 */
-function openCheckoutDirect(item) {
-  openCheckout(item);
-}
+// Совместимость со старыми вызовами (корзина / кнопка GTA6 и т.п.)
+function openCheckout(item)       { startOrder(item); }
+function openCheckoutDirect(item) { startOrder(item); }
 
 function closeCheckout(e) {
   if (e && e.target !== el('checkoutOverlay')) return;
@@ -714,171 +746,132 @@ function _forceCloseCheckout() {
   document.body.style.overflow = '';
 }
 
-function renderCheckoutForm(item) {
-  const host = el('checkoutContent');
-  if (!host) return;
-  const price = item.price || 0;
-  host.innerHTML = `
-    <div class="sheet-title">Оформление заказа</div>
-    <div class="sheet-sub">Заполните данные для получения товара</div>
+/* ── Табло сбора данных клиента (после оплаты или для бесплатных заказов) ── */
 
-    <div class="order-preview">
-      <div class="order-preview-ico">${esc(item.emoji || '🎮')}</div>
-      <div>
-        <div class="order-preview-name">${esc(item.name)}</div>
-        <div class="order-preview-price">${price > 0 ? fmt(price) : 'Бесплатно'}</div>
+// Уже ли заполнены данные для выполнения заказа
+function _orderHasInfo(order) {
+  return !!(order && order.telegram && (order.psnId || order.meta?.accLogin));
+}
+
+// HTML табло запроса данных. Telegram-ник подставляется автоматически (Telegram WebApp).
+function infoFormHtml(order) {
+  const tgUser   = window.Telegram?.WebApp?.initDataUnsafe?.user;
+  const tgHandle = tgUser?.username ? '@' + tgUser.username : '';
+  return `
+    <div class="sheet-title">Оплачено ✅ Заполните данные</div>
+    <div class="sheet-sub">Эта информация нужна, чтобы выполнить ваш заказ</div>
+    <div class="order-id-badge" style="margin:10px 0 18px">${esc(order.id)}</div>
+
+    <form id="infoForm" onsubmit="return false">
+
+      <div class="form-group" id="if-telegram">
+        <label class="form-label">Telegram для связи<span class="req">*</span></label>
+        <input class="form-input" id="if-tg" type="text"
+               placeholder="@username" value="${esc(tgHandle)}" autocomplete="off">
+        <div class="form-err">Укажите ваш Telegram для связи</div>
       </div>
-    </div>
 
-    <form id="orderForm" onsubmit="return false">
-
-      <div class="form-group" id="ff-email">
-        <label class="form-label">Email<span class="req">*</span></label>
-        <input class="form-input" id="of-email" type="email"
-               placeholder="your@email.com" autocomplete="email">
-        <div class="form-err">Укажите корректный email</div>
-      </div>
-
-      <div class="form-group" id="ff-accLogin">
-        <label class="form-label">Данные об аккаунте<span class="req">*</span></label>
-        <input class="form-input" id="of-accLogin" type="text"
-               placeholder="Логин или другая информация об аккаунте" autocomplete="username">
+      <div class="form-group" id="if-accLogin">
+        <label class="form-label">Данные об аккаунте PlayStation<span class="req">*</span></label>
+        <input class="form-input" id="if-acc" type="text"
+               placeholder="Логин / почта аккаунта PSN" autocomplete="off">
         <div class="form-err">Укажите данные аккаунта</div>
       </div>
 
-      <div class="form-group" id="ff-accPass">
+      <div class="form-group" id="if-accPass">
         <label class="form-label">Пароль от аккаунта<span class="req">*</span></label>
-        <input class="form-input" id="of-accPass" type="password"
-               placeholder="Пароль от PlayStation аккаунта" autocomplete="current-password">
+        <input class="form-input" id="if-pass" type="password"
+               placeholder="Пароль от PlayStation аккаунта" autocomplete="off">
         <div class="form-err">Укажите пароль от аккаунта</div>
       </div>
 
       <div class="form-group">
+        <label class="form-label">Email <span style="color:var(--t4)">(необязательно)</span></label>
+        <input class="form-input" id="if-email" type="email"
+               placeholder="your@email.com" autocomplete="email">
+      </div>
+
+      <div class="form-group">
         <label class="form-label">Комментарий</label>
-        <textarea class="form-textarea" id="of-comment"
+        <textarea class="form-textarea" id="if-comment"
                   placeholder="Пожелания или уточнения…"></textarea>
       </div>
 
-      <button class="submit-btn" id="orderSubmitBtn" onclick="submitOrder()">
+      <button class="submit-btn" id="infoSubmitBtn" onclick="sendOrderInfo()">
         <div class="submit-spin"></div>
-        <span class="submit-text">${price > 0 ? `Оформить — ${fmt(price)}` : 'Оформить'}</span>
+        <span class="submit-text">Отправить данные</span>
       </button>
     </form>`;
 }
 
-async function submitOrder() {
-  if (!_checkoutItem) return;
+// Открыть табло как нижний лист (для бесплатных/офлайн заказов — без экрана оплаты)
+function openInfoSheet(order) {
+  const overlay = el('checkoutOverlay');
+  const host = el('checkoutContent');
+  if (!overlay || !host) return;
+  _infoOrder  = order;
+  _infoOnDone = (o) => renderInfoSuccess(host, o);
+  host.innerHTML = infoFormHtml(order);
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
 
-  // Валидация обязательных полей
+// Отправка данных клиента на сервер
+async function sendOrderInfo() {
+  const order = _infoOrder;
+  if (!order) return;
+
   let valid = true;
-  function check(id, fieldId, validator) {
-    const val = el(id)?.value?.trim();
-    const ff  = el(fieldId);
-    const ok  = val && (!validator || validator(val));
-    if (!ok) { ff?.classList.add('has-err'); valid = false; }
-    else ff?.classList.remove('has-err');
+  const check = (inputId, ffId, validator) => {
+    const val = el(inputId)?.value?.trim() || '';
+    const okv = val && (!validator || validator(val));
+    el(ffId)?.classList.toggle('has-err', !okv);
+    if (!okv) valid = false;
     return val;
-  }
-
-  const email     = check('of-email',     'ff-email',     v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v));
-  const accLogin  = check('of-accLogin',  'ff-accLogin');
-  const accPass   = check('of-accPass',   'ff-accPass');
-  const comment   = el('of-comment')?.value?.trim() || '';
-
+  };
+  const telegram = check('if-tg',  'if-telegram', v => /^@?[A-Za-z0-9_]{3,}$/.test(v) || /^https?:\/\//i.test(v));
+  const accLogin = check('if-acc', 'if-accLogin');
+  const accPass  = check('if-pass','if-accPass');
+  const email    = el('if-email')?.value?.trim()   || '';
+  const comment  = el('if-comment')?.value?.trim() || '';
   if (!valid) { toast('Заполните обязательные поля', 'err'); return; }
 
-  const btn = el('orderSubmitBtn');
-  btn.classList.add('loading'); btn.disabled = true;
+  const btn = el('infoSubmitBtn');
+  btn?.classList.add('loading'); if (btn) btn.disabled = true;
 
-  // Для совместимости с сервером используем поля psnId/nickname/telegram
-  // accLogin → psnId (данные аккаунта), email → email, nickname из email
-  const orderData = {
-    psnId:       accLogin,
-    nickname:    email.split('@')[0],   // минимальный идентификатор
-    telegram:    '',                     // определяется Telegram автоматически
-    email,
-    productName: _checkoutItem.name || '',
-    productId:   _checkoutItem.productId || null,
-    amount:      Math.round(_checkoutItem.price || 0),
-    comment,
-    meta: {
-      email,
-      accLogin,     // данные аккаунта
-      accPass,      // пароль от аккаунта
-      period:   _checkoutItem.period   || null,
-      platform: _checkoutItem.platform || '',
-      type:     _checkoutItem.type     || 'game',
-    },
-  };
+  const data = { telegram, accLogin, accPass, email, comment, meta: { accLogin, accPass } };
+
+  // Дублируем в Telegram WebApp (если открыто внутри бота)
+  try {
+    if (window.Telegram?.WebApp?.sendData) {
+      Telegram.WebApp.sendData(JSON.stringify({ type: 'order_info', orderId: order.id, telegram, accLogin }));
+    }
+  } catch {}
 
   try {
-    let order;
-
-    if (!API.isOffline()) {
-      // Онлайн — сохраняем в БД
-      order = await API.createOrder(orderData);
-    } else {
-      // Офлайн — генерируем локальный ID
-      order = {
-        id: 'LOCAL-' + Date.now(),
-        ...orderData,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-      };
-    }
-
-    // Отправляем данные в Telegram WebApp (для уведомления бота)
-    try {
-      if (window.Telegram?.WebApp?.sendData) {
-        Telegram.WebApp.sendData(JSON.stringify({
-          type:    'order',
-          orderId: order.id,
-          email,
-          accLogin,
-          product: orderData.productName,
-          amount:  orderData.amount,
-        }));
-      }
-    } catch {}
-
-    const paidFlow = !API.isOffline() && orderData.amount > 0;
-
-    if (paidFlow) {
-      // Платный заказ — ведём на экран оплаты ЮKassa
-      _forceCloseCheckout();
-      go('#/pay/' + order.id);
-    } else {
-      // Бесплатный товар или офлайн — показываем экран успеха
-      renderOrderSuccess(order, _checkoutItem);
-      if (_checkoutItem._fromCart) { cart = []; saveCart(); updateBadges(); }
-    }
-
-  } catch (err) {
-    console.error('Order error:', err);
-    toast('Ошибка создания заказа: ' + err.message, 'err');
-    btn.classList.remove('loading'); btn.disabled = false;
+    let updated = order;
+    if (!API.isOffline()) updated = await API.submitOrderInfo(order.id, data);
+    (_infoOnDone || (() => {}))(updated);
+  } catch (e) {
+    btn?.classList.remove('loading'); if (btn) btn.disabled = false;
+    toast('Не удалось отправить данные: ' + e.message, 'err');
   }
 }
 
-function renderOrderSuccess(order, item) {
-  const host = el('checkoutContent');
+function renderInfoSuccess(host, order) {
   if (!host) return;
   host.innerHTML = `
     <div class="order-success">
-      <div class="order-success-ico">✅</div>
-      <div class="order-success-ttl">Заказ оформлен!</div>
+      <div class="order-success-ico">🎉</div>
+      <div class="order-success-ttl">Данные получены!</div>
       <div class="order-success-sub">
-        Мы получили ваш заказ и свяжемся с вами<br>для завершения оплаты.
+        Заказ принят в работу.<br>Мы свяжемся с вами в Telegram для выдачи товара.
       </div>
       <div class="order-id-badge">${esc(order.id)}</div>
-      <div class="order-success-sub" style="font-size:12px;color:var(--t4);margin-bottom:20px">
-        Сохраните ID заказа для отслеживания
-      </div>
-      <button class="submit-btn" onclick="_forceCloseCheckout();go('#/')">
+      <button class="submit-btn" style="margin-top:20px" onclick="_forceCloseCheckout();go('#/')">
         <span>На главную</span>
       </button>
-    </div>
-  `;
+    </div>`;
 }
 
 /* ── Checkout из корзины ─────────────────────────────────────── */
@@ -1015,15 +1008,33 @@ function _startPayPoll() {
   }, 3000);
 }
 
-function _paySuccess(order) {
+async function _paySuccess(order) {
   _stopPayPoll();
+  cart = []; saveCart(); updateBadges();
+
+  // Подтягиваем полный заказ (с meta), чтобы понять, заполнены ли данные клиента
+  let full = order;
+  try { if (!API.isOffline()) full = await API.getOrder(order.id); } catch {}
+
+  // Данные уже заполнены — показываем финальный экран
+  if (_orderHasInfo(full)) { _payFinalSuccess(full); return; }
+
+  // Иначе — сразу показываем табло сбора данных прямо на экране оплаты
+  const host = el('payContent');
+  if (!host) return;
+  _infoOrder  = full;
+  _infoOnDone = (o) => _payFinalSuccess(o);
+  host.innerHTML = `<div class="pay-info">${infoFormHtml(full)}</div>`;
+}
+
+function _payFinalSuccess(order) {
   const host = el('payContent');
   if (!host) return;
   host.innerHTML = `
     <div class="pay-state">
-      <div class="pay-state-ico">✅</div>
-      <div class="pay-state-ttl">Оплата прошла успешно</div>
-      <div class="pay-state-sub">Заказ <b>${esc(order.id)}</b> оплачен.<br>Мы свяжемся с вами для выдачи товара.</div>
+      <div class="pay-state-ico">🎉</div>
+      <div class="pay-state-ttl">Заказ принят в работу</div>
+      <div class="pay-state-sub">Заказ <b>${esc(order.id)}</b> оплачен, данные получены.<br>Мы свяжемся с вами в Telegram для выдачи товара.</div>
       <button class="pay-btn" onclick="go('#/')"><span class="pay-btn-text">На главную</span></button>
     </div>`;
 }
@@ -1137,6 +1148,6 @@ Object.assign(window, {
   renderWish, removeWish, wishToCart,
   renderCart, removeCart, checkout,
   openCheckout, openCheckoutDirect, closeCheckout, _forceCloseCheckout,
-  submitOrder, clearData,
+  startOrder, sendOrderInfo, clearData,
   startPayment,
 });

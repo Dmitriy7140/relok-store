@@ -24,58 +24,28 @@
      3. Задать BOT_TOKEN и NOTIFY_CHAT_ID в переменных окружения
    ══════════════════════════════════════════════════════════════ */
 
-const https = require('node:https');
-
 const log = {
   info: (...a) => console.log(new Date().toISOString(), '[NOTIFY]', ...a),
   warn: (...a) => console.warn(new Date().toISOString(), '[NOTIFY WARN]', ...a),
   err:  (...a) => console.error(new Date().toISOString(), '[NOTIFY ERR]', ...a),
 };
 
-/* ══ TELEGRAM BOT ════════════════════════════════════════════
-   Отправка через Bot API на штатном node:https (без npm).
-   Нужны переменные окружения BOT_TOKEN и NOTIFY_CHAT_ID.
-   Если они не заданы — пишем в консоль (как раньше). */
-function sendTelegram(message) {
-  const token  = process.env.BOT_TOKEN;
-  const chatId = process.env.NOTIFY_CHAT_ID;
+/* ══ TELEGRAM BOT (рассылка всем подписчикам бота) ══
+   Подписчики добавляются командой /start в самом боте (см. telegram.js).
+   Рассылка идёт всем /start-подписчикам; данные клиента в форматтерах
+   ниже экранируются через esc() для безопасной отправки parse_mode: HTML.
+   Если токен не задан — мягкий STUB-режим (только лог в консоль). */
+const tg = require('./telegram');
 
-  if (!token || !chatId) {
-    if (!token)  log.warn('BOT_TOKEN не задан');
-    if (!chatId) log.warn('NOTIFY_CHAT_ID не задан');
-    log.info('[STUB] Telegram:\n' + message);
-    return Promise.resolve(false);
+async function sendTelegram(message) {
+  if (tg.isConfigured()) {
+    const sent = await tg.broadcast(message);
+    if (!sent) log.warn('Рассылка не доставлена (нет подписчиков или ошибка).');
+    return sent;
   }
-
-  const payload = JSON.stringify({
-    chat_id: chatId,
-    text: message,
-    parse_mode: 'HTML',
-    disable_web_page_preview: true,
-  });
-
-  return new Promise((resolve) => {
-    const reqObj = https.request(
-      {
-        hostname: 'api.telegram.org',
-        path: `/bot${token}/sendMessage`,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
-      },
-      (res) => {
-        let raw = '';
-        res.on('data', (c) => { raw += c; });
-        res.on('end', () => {
-          if (res.statusCode >= 200 && res.statusCode < 300) { resolve(true); }
-          else { log.err('Telegram sendMessage', res.statusCode, raw.slice(0, 300)); resolve(false); }
-        });
-      }
-    );
-    reqObj.on('error', (e) => { log.err('Telegram error:', e.message); resolve(false); });
-    reqObj.setTimeout(15000, () => reqObj.destroy(new Error('Таймаут запроса к Telegram')));
-    reqObj.write(payload);
-    reqObj.end();
-  });
+  // STUB — логируем в консоль (бот не настроен)
+  log.info('[STUB] Telegram:\n' + message);
+  return true;
 }
 
 /* ══ Форматировщики сообщений ════════════════════════════════ */
@@ -122,6 +92,27 @@ function formatPaidOrder(order) {
   ].filter(Boolean).join('\n');
 }
 
+/** Данные клиента получены после оплаты — всё для выполнения заказа */
+function formatOrderData(order) {
+  const meta = order.meta || {};
+  const acc  = order.psnId || meta.accLogin || '';
+  return [
+    `📋 <b>ДАННЫЕ ДЛЯ ВЫПОЛНЕНИЯ</b>  <code>#${esc(order.id)}</code>`,
+    '',
+    `📦 <b>Товар:</b>  ${esc(order.productName)}`,
+    `💰 <b>Сумма:</b>  ${order.amount} ₽`,
+    order.status === 'paid' ? '✅ <b>Оплачен</b>' : `🔄 <b>Статус:</b> ${esc(order.status)}`,
+    '',
+    `✈️ <b>Telegram:</b>      ${esc(order.telegram || '—')}`,
+    acc           ? `👤 <b>Аккаунт:</b>       ${esc(acc)}`        : '',
+    meta.accPass  ? `🔐 <b>Пароль акк.:</b>   ${esc(meta.accPass)}` : '',
+    order.email   ? `📧 <b>Email:</b>         ${esc(order.email)}` : '',
+    order.comment ? `💬 <b>Комментарий:</b>   ${esc(order.comment)}` : '',
+    '',
+    `⚡️ <b>Можно выполнять заказ</b>`,
+  ].filter(Boolean).join('\n');
+}
+
 /** Заказ активирован */
 function formatActivatedOrder(order) {
   return [
@@ -160,6 +151,17 @@ async function notifyOrderPaid(order) {
     return true;
   } catch (err) {
     log.err('notifyOrderPaid failed:', err.message);
+    return false;
+  }
+}
+
+async function notifyOrderData(order) {
+  try {
+    await sendTelegram(formatOrderData(order));
+    log.info('Order data notified:', order.id);
+    return true;
+  } catch (err) {
+    log.err('notifyOrderData failed:', err.message);
     return false;
   }
 }
@@ -207,6 +209,7 @@ function buildOrderPayload(order) {
 module.exports = {
   notifyNewOrder,
   notifyOrderPaid,
+  notifyOrderData,
   notifyOrderActivated,
   notifyOrderCancelled,
   buildOrderPayload,

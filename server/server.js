@@ -391,16 +391,15 @@ async function api(req, res, url) {
      /api/orders — создание, просмотр, смена статуса
      ══════════════════════════════════════════════════════════════ */
 
-  /* Создать заказ (публичный — клиент заполняет форму) */
+  /* Создать заказ (публичный).
+     Персональные данные клиента (Telegram, аккаунт, и т.д.) собираются ПОСЛЕ оплаты
+     через POST /orders/:id/info — поэтому на этом шаге обязательны только товар и сумма. */
   if (seg[1] === 'orders' && seg.length === 2 && method === 'POST') {
     let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
 
-    // Валидация обязательных полей
     const errs = [];
-    if (!b.psnId    || !String(b.psnId).trim())       errs.push('Укажите PSN ID');
-    if (!b.nickname || !String(b.nickname).trim())     errs.push('Укажите никнейм');
     if (!b.productName || !String(b.productName).trim()) errs.push('Укажите товар');
-    if (!b.amount   || isNaN(+b.amount) || +b.amount < 0) errs.push('Некорректная сумма');
+    if (b.amount == null || isNaN(+b.amount) || +b.amount < 0) errs.push('Некорректная сумма');
     if (errs.length) return bad(res, errs.join('. '));
 
     const id = generateOrderId();
@@ -409,8 +408,8 @@ async function api(req, res, url) {
       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
       [
         id,
-        String(b.psnId).trim(),
-        String(b.nickname).trim(),
+        b.psnId       ? String(b.psnId).trim()       : '',
+        b.nickname    ? String(b.nickname).trim()    : '',
         b.telegram    ? String(b.telegram).trim()    : '',
         b.email       ? String(b.email).trim()       : '',
         String(b.productName).trim(),
@@ -423,12 +422,46 @@ async function api(req, res, url) {
     );
 
     const order = shapeOrder(get('SELECT * FROM orders WHERE id=?', [id]));
-    log.info('Order created:', id, '—', order.productName, order.amount + '₽');
-
-    // Уведомить администратора (stub)
-    notify.notifyNewOrder(order).catch(() => {});
-
+    log.info('Order created (pending, данные клиента позже):', id, '—', order.productName, order.amount + '₽');
+    // Уведомление НЕ шлём здесь: персональные данные ещё не собраны (см. /orders/:id/info)
     return ok(res, order);
+  }
+
+  /* Данные клиента для выполнения заказа (публично, по ID заказа — после оплаты) */
+  if (seg[1] === 'orders' && seg.length === 4 && seg[3] === 'info' && method === 'POST') {
+    const id = seg[2];
+    let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+    const row = get('SELECT * FROM orders WHERE id=?', [id]);
+    if (!row) return bad(res, 'Заказ не найден', 404);
+
+    const errs = [];
+    if (!b.telegram || !String(b.telegram).trim()) errs.push('Укажите Telegram для связи');
+    if (!b.accLogin || !String(b.accLogin).trim()) errs.push('Укажите данные аккаунта');
+    if (errs.length) return bad(res, errs.join('. '));
+
+    let meta = {}; try { meta = JSON.parse(row.meta || '{}'); } catch {}
+    if (b.meta && typeof b.meta === 'object') meta = { ...meta, ...b.meta };
+    meta.accLogin = String(b.accLogin).trim();
+    if (b.accPass != null) meta.accPass = String(b.accPass).trim();
+
+    let telegram = String(b.telegram).trim();
+    if (telegram && !telegram.startsWith('@') && !/^https?:/i.test(telegram)) telegram = '@' + telegram;
+    const email    = b.email   != null ? String(b.email).trim()   : (row.email || '');
+    if (email) meta.email = email;
+    const comment  = b.comment != null ? String(b.comment).trim() : (row.comment || '');
+    const psnId    = String(b.accLogin).trim();
+    const nickname = (b.nickname && String(b.nickname).trim())
+      || telegram.replace(/^@/, '')
+      || (email ? email.split('@')[0] : 'client');
+
+    run(`UPDATE orders SET psn_id=?, nickname=?, telegram=?, email=?, comment=?, meta=?, updated_at=datetime('now') WHERE id=?`,
+      [psnId, nickname, telegram, email, comment, JSON.stringify(meta), id]);
+
+    const updated = shapeOrder(get('SELECT * FROM orders WHERE id=?', [id]));
+    log.info('Order info received:', id, '— Telegram:', telegram);
+    // Полное уведомление администратору: оплата + данные для выполнения
+    notify.notifyOrderData(updated).catch(() => {});
+    return ok(res, updated);
   }
 
   /* Список заказов (только админ) */
@@ -693,12 +726,12 @@ server.listen(PORT, () => {
   log.info(`Витрина:       http://localhost:${PORT}/`);
   log.info(`Админ-панель:  http://localhost:${PORT}/admin  (токен: ${ADMIN_TOKEN})`);
 
-  // Инициализируем PriceCalculatorService
+  // Ценовой сервис: только миграция схемы (колонки price_*, таблица price_log).
+  // Авто-отслеживание/пересчёт цен ОТКЛЮЧЕНО — цены задаются вручную и не меняются автоматически.
   try {
-    price.initPrices();     // мигрирует БД + заполняет price_try для старых записей
-    price.startScheduler(); // запускает фоновое обновление по расписанию
+    price.migrate();
   } catch (err) {
-    log.err('Price service init error:', err.message);
+    log.err('Price migrate error:', err.message);
   }
 
   // Поллинг оплат ЮKassa (альтернатива вебхуку)
@@ -709,5 +742,12 @@ server.listen(PORT, () => {
     log.info(`Поллинг оплат ЮKassa: каждые ${ms} мс`);
   } else {
     log.warn('ЮKassa не настроена — поллинг оплат отключён');
+  }
+
+  // Запускаем Telegram-бота уведомлений (рассылка по /start-подписчикам)
+  try {
+    require('./telegram').start();
+  } catch (err) {
+    log.err('Telegram bot init error:', err.message);
   }
 });

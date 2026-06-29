@@ -5,3 +5,6 @@ server/data/*.sqlite*
 # Платёжные секреты ЮKassa — не коммитим
 server/payment-config.js
 .env
+
+# Токен Telegram-бота — не коммитим
+server/tg-config.js
