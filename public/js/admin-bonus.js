@@ -484,7 +484,10 @@ function openPrizeEditor(id) {
         <label>Изображение</label>
         <div class="img-pick">
           <div class="img-prev" id="zImgPrev" onclick="pickPrizeImage()">${p.image ? `<img src="${esc(p.image)}">` : (p.emoji || '🎁')}</div>
-          <div class="img-actions"><button class="btn btn-ghost btn-sm" onclick="pickPrizeImage()">📂 Из медиатеки</button></div>
+          <div class="img-actions">
+            <button class="btn btn-ghost btn-sm" onclick="pickPrizeImage()">📂 Из медиатеки</button>
+            <button class="btn btn-ghost btn-sm" onclick="uploadPrizeImage()">⬆️ Загрузить</button>
+          </div>
         </div>
         <input class="inp" id="zImage" value="${esc(p.image || '')}" placeholder="URL изображения">
       </div>
@@ -519,6 +522,17 @@ function prizeTypeChange(t) {
   el('zValueProduct').style.display = t === 'product' ? '' : 'none';
 }
 function pickPrizeImage() { openMediaPicker(url => { if (el('zImage')) el('zImage').value = url; const pv = el('zImgPrev'); if (pv) pv.innerHTML = `<img src="${url}">`; }); }
+function uploadPrizeImage() {
+  el('fileInput').removeAttribute('multiple');
+  el('fileInput').onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    toastLoad('Загружаем…');
+    try { const url = await compressAndUpload(f); if (el('zImage')) el('zImage').value = url; const pv = el('zImgPrev'); if (pv) pv.innerHTML = `<img src="${url}">`; toast('Загружено'); }
+    catch (err) { toast(err.message, 'err'); }
+    e.target.value = '';
+  };
+  el('fileInput').click();
+}
 
 async function savePrize(id) {
   const name = gval('zName').trim();
@@ -646,7 +660,7 @@ Object.assign(window, {
   renderOrders, reloadOrders, renderOrdersList, openOrder, saveOrderStatus, delOrder, exportOrdersCSV,
   renderBonusAdmin, openBonusEditor, pickBonusImage, uploadBonusImage, saveBonusProduct, delBonusProduct,
   openKeys, addKeysToStock, delKey,
-  renderCaseAdmin, saveCase, openPrizeEditor, prizeTypeChange, pickPrizeImage, savePrize, togglePrize, delPrize,
+  renderCaseAdmin, saveCase, openPrizeEditor, prizeTypeChange, pickPrizeImage, uploadPrizeImage, savePrize, togglePrize, delPrize,
   renderVideosAdmin, uploadVideo, renameVideo, toggleVideo, delVideo,
   O, BP, CASE, VID,
 });

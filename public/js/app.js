@@ -271,7 +271,6 @@ function gameCard(p) {
       <div class="gcard-art">
         ${cover}
         ${badge ? `<div class="gcard-badge ${badge}">${badgeLabel}</div>` : ''}
-        ${p.price > 0 ? `<div class="gcard-bonus">+30% бонусов</div>` : ''}
       </div>
       <div class="gcard-body">
         <div class="gcard-platform">${esc(p.platform || 'PlayStation')}</div>
