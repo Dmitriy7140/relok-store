@@ -190,5 +190,6 @@ function stop() { _polling = false; }
 module.exports = {
   start, stop, broadcast, sendMessage,
   isConfigured: () => CONFIGURED,
+  getToken: () => BOT_TOKEN,
   listSubscribers,
 };

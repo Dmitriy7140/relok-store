@@ -12,10 +12,22 @@ window.API = (function () {
     return REGIONS.includes(r) ? r : 'tr';
   })();
 
+  // ── Telegram WebApp initData (для серверной валидации личности) ──
+  function tgInitData() {
+    try {
+      const d = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
+      if (d && typeof d === 'string') return d;
+    } catch {}
+    // Фолбэк для отладки вне Telegram: можно положить в localStorage вручную
+    return localStorage.getItem('logovo_tg_initdata') || '';
+  }
+
   function headers(extra) {
     const h = { 'Content-Type': 'application/json', ...extra };
     const t = localStorage.getItem('logovo_admin_token');
     if (t) h['X-Admin-Token'] = t;
+    const tg = tgInitData();
+    if (tg) h['X-Telegram-Init-Data'] = tg;
     return h;
   }
 
@@ -116,5 +128,36 @@ window.API = (function () {
     priceUpdate:      (id, priceTRY) => req('POST', `/prices/update/${id}`, { priceTRY }),
     priceBulk:        (items)      => req('POST', '/prices/bulk', { items }),
     priceRecalculate: ()           => req('POST', '/prices/recalculate', {}),
+
+    // ── Бонусная система (пользователь) ──
+    me:               ()           => req('GET',  '/me'),
+    bonusCase:        ()           => req('GET',  '/bonus/case'),
+    openCase:         ()           => req('POST', '/bonus/case/open', {}),
+    bonusProducts:    ()           => req('GET',  '/bonus/products'),
+    buyBonusProduct:  (id)         => req('POST', '/bonus/products/' + id + '/buy', {}),
+    bonusTx:          (p)          => req('GET',  '/bonus/tx' + qs(p)),
+    bonusOrders:      ()           => req('GET',  '/bonus/orders'),
+    videos:           ()           => req('GET',  '/videos'),
+
+    // ── Бонусная система (админ) ──
+    adminBonusProducts:   ()       => req('GET',    '/admin/bonus-products'),
+    createBonusProduct:   (b)      => req('POST',   '/admin/bonus-products', b),
+    updateBonusProduct:   (id, b)  => req('PUT',    '/admin/bonus-products/' + id, b),
+    patchBonusProduct:    (id, b)  => req('PATCH',  '/admin/bonus-products/' + id, b),
+    deleteBonusProduct:   (id)     => req('DELETE', '/admin/bonus-products/' + id),
+    listKeys:             (id)     => req('GET',    '/admin/bonus-products/' + id + '/keys'),
+    addKeys:              (id, keys)=> req('POST',  '/admin/bonus-products/' + id + '/keys', { keys }),
+    deleteKey:            (id)     => req('DELETE', '/admin/keys/' + id),
+    adminCase:            ()       => req('GET',    '/admin/case'),
+    updateCase:           (b)      => req('PUT',    '/admin/case', b),
+    createPrize:          (b)      => req('POST',   '/admin/case/prizes', b),
+    updatePrize:          (id, b)  => req('PUT',    '/admin/case/prizes/' + id, b),
+    patchPrize:           (id, b)  => req('PATCH',  '/admin/case/prizes/' + id, b),
+    deletePrize:          (id)     => req('DELETE', '/admin/case/prizes/' + id),
+    adminVideos:          ()       => req('GET',    '/admin/videos'),
+    createVideo:          (b)      => req('POST',   '/admin/videos', b),
+    reorderVideos:        (ids)    => req('POST',   '/admin/videos/reorder', { ids }),
+    patchVideo:           (id, b)  => req('PATCH',  '/admin/videos/' + id, b),
+    deleteVideo:          (id)     => req('DELETE', '/admin/videos/' + id),
   };
 })();

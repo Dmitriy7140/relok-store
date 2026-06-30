@@ -271,6 +271,7 @@ function gameCard(p) {
       <div class="gcard-art">
         ${cover}
         ${badge ? `<div class="gcard-badge ${badge}">${badgeLabel}</div>` : ''}
+        ${p.price > 0 ? `<div class="gcard-bonus">+30% бонусов</div>` : ''}
       </div>
       <div class="gcard-body">
         <div class="gcard-platform">${esc(p.platform || 'PlayStation')}</div>
@@ -449,6 +450,17 @@ function renderModal(p) {
 
   if (p.description) { el('pmDesc').textContent = p.description; el('pmDesc').style.display='block'; }
   else { el('pmDesc').style.display='none'; }
+
+  // Бонусный инфо-блок (только для платных товаров)
+  const bonusEl = el('pmBonusInfo');
+  if (bonusEl) {
+    bonusEl.innerHTML = (p.price > 0)
+      ? '<div class="bonus-note"><div class="bonus-note-ico">🎁</div>' +
+        '<div class="bonus-note-txt">За покупку данного товара вы получите ' +
+        '<b>30% от стоимости</b> в виде бонусов. Их можно потратить в разделе ' +
+        '«Бонусы» на открытие кейса или приобретение бонусных товаров.</div></div>'
+      : '';
+  }
 
   // Способ получения товара — единый блок для всех игр и подписок
   const delivEl = el('pmDeliv');
@@ -1114,11 +1126,114 @@ function route() {
   } else if (root === 'cart') {
     showScreen('cart', 'cart');
     renderCart();
+  } else if (root === 'bonus') {
+    showScreen('bonus', 'bonus');
+    renderBonus();
   } else if (root === 'profile') {
     showScreen('profile', 'profile');
+    renderProfileOrders();
+  } else if (root === 'guarantees') {
+    showScreen('guarantees', null);
+    renderGuarantees();
   } else {
     showScreen('home', 'home');
   }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PROFILE — история покупок
+   ══════════════════════════════════════════════════════════════ */
+const ORD_STATUS_LABEL = { new:'Новый', pending:'Ожидает оплаты', paid:'Оплачен', processing:'В обработке', done:'Выполнен', delivered:'Выдан', cancelled:'Отменён', refunded:'Возврат' };
+const ORD_STATUS_CLASS = { paid:'paid', done:'paid', delivered:'paid', pending:'pending', new:'pending', processing:'pending', cancelled:'cancelled', refunded:'cancelled' };
+const PAY_LABEL = { card:'Карта', sbp:'СБП', crypto:'Криптовалюта', balance:'Бонусы', cash:'Наличные', '':'—' };
+
+function ordDateTime(iso) {
+  if (!iso) return { d:'—', t:'' };
+  const dt = new Date(iso.replace(' ', 'T') + (iso.includes('Z') ? '' : 'Z'));
+  if (isNaN(dt)) return { d: iso, t:'' };
+  return {
+    d: dt.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric' }),
+    t: dt.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' }),
+  };
+}
+
+async function renderProfileOrders() {
+  const box = el('profOrders');
+  if (!box) return;
+  let orders = [];
+  try { orders = await API.bonusOrders(); } catch { orders = []; }
+  if (!Array.isArray(orders) || !orders.length) {
+    box.innerHTML = '<div class="empty-state" style="padding:24px 0"><div class="empty-icon">🧾</div><div class="empty-h">Пока нет покупок</div><div class="empty-p">Здесь появится история ваших заказов.</div></div>';
+    return;
+  }
+  box.innerHTML = orders.map(o => {
+    const { d, t } = ordDateTime(o.createdAt);
+    const sc = ORD_STATUS_CLASS[o.status] || 'neutral';
+    const sl = ORD_STATUS_LABEL[o.status] || o.status || '—';
+    const pay = PAY_LABEL[o.payMethod] != null ? PAY_LABEL[o.payMethod] : (o.payMethod || '—');
+    const bonus = o.bonusEarned > 0 ? `<span class="ord-bonus">+${fmtBonus(o.bonusEarned)} бонусов</span>` : '';
+    const repeat = o.productId ? `<button class="ord-repeat" onclick="repeatOrder('${esc(String(o.productId))}', this)">Повторить заказ</button>` : '';
+    return `<div class="ord-card">
+      <div class="ord-top">
+        <div>
+          <div class="ord-name">${esc(o.productName || 'Заказ')}</div>
+          <div class="ord-meta">${d} · ${t} · №${esc(String(o.id))}</div>
+        </div>
+        <div class="ord-amt">${fmtBonus(o.amount)} ₽</div>
+      </div>
+      <div class="ord-row2">
+        <span class="ord-badge ${sc}">${esc(sl)}</span>
+        <span class="ord-pay">${esc(pay)}</span>
+        ${bonus}
+        ${repeat}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function repeatOrder(productId, btn) {
+  const id = isNaN(+productId) ? productId : +productId;
+  if (cart.some(i => i.id === id)) { go('#/cart'); return; }
+  cart.push({ id });
+  saveCart(); updateBadges();
+  toast('Добавлено в корзину');
+  if (btn) {
+    const orig = btn.textContent;
+    btn.textContent = '✓ В корзине';
+    setTimeout(() => { btn.textContent = orig; }, 1600);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ГАРАНТИИ — видеоотзывы
+   ══════════════════════════════════════════════════════════════ */
+async function renderGuarantees() {
+  const sec = el('grtVidsSec'); const box = el('grtVids');
+  if (!box) return;
+  let vids = [];
+  try { vids = await API.videos(); } catch { vids = []; }
+  vids = (vids || []).filter(v => v.url);
+  if (!vids.length) { if (sec) sec.style.display = 'none'; return; }
+  if (sec) sec.style.display = '';
+  box.innerHTML = vids.map(v => `
+    <div class="grt-vid">
+      <video src="${esc(v.url)}" preload="metadata" playsinline webkit-playsinline ${v.title ? `aria-label="${esc(v.title)}"` : ''}></video>
+      <div class="grt-play" onclick="playGrtVideo(this)">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </div>
+    </div>`).join('');
+}
+
+function playGrtVideo(overlay) {
+  const vid = overlay.previousElementSibling;
+  if (!vid) return;
+  // pause any other playing videos
+  document.querySelectorAll('#grtVids video').forEach(v => { if (v !== vid) { v.pause(); } });
+  vid.setAttribute('controls', '');
+  overlay.style.display = 'none';
+  vid.play().catch(() => {});
+  vid.onpause = () => { if (vid.currentTime === 0 || vid.ended) overlay.style.display = 'flex'; };
+  vid.onended = () => { overlay.style.display = 'flex'; vid.currentTime = 0; };
 }
 
 window.addEventListener('hashchange', route);
@@ -1207,8 +1322,220 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initRegionUI);
 } else { initRegionUI(); }
 
+/* ══════════════════════════════════════════════════════════════
+   БОНУСНАЯ СИСТЕМА (страница «Бонусы»)
+   ══════════════════════════════════════════════════════════════ */
+const fmtBonus = (n) => Number(n || 0).toLocaleString('ru-RU');
+let _bonusState = { balance: 0, case: null, products: [], spinning: false };
+
+async function renderBonus() {
+  const wrap = el('bonusContent');
+  if (!wrap) return;
+  wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">🎁</div><div class="empty-h">Загрузка…</div></div>`;
+
+  let me = { balance: 0 }, cs = null, prizes = [], prods = [];
+  try {
+    const [meR, caseR, prodR] = await Promise.allSettled([
+      API.me(), API.bonusCase(), API.bonusProducts(),
+    ]);
+    if (meR.status === 'fulfilled')   me = meR.value || me;
+    if (caseR.status === 'fulfilled') {
+      const cv = caseR.value || {};
+      cs = cv.case || null;
+      prizes = cv.prizes || [];
+    }
+    if (prodR.status === 'fulfilled') prods = (prodR.value && prodR.value.items) || prodR.value || [];
+  } catch (e) {
+    wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">🎁</div>
+      <div class="empty-h">Бонусы недоступны</div>
+      <div class="empty-p">Откройте магазин через Telegram, чтобы пользоваться бонусами.</div></div>`;
+    return;
+  }
+
+  _bonusState.balance = me.balance || 0;
+  _bonusState.case = cs ? { ...cs, prizes } : null;
+  _bonusState.products = prods;
+
+  const caseCost = cs ? cs.cost : 3000;
+  const canOpen = cs && cs.enabled && _bonusState.balance >= caseCost;
+
+  const caseArt = cs && cs.image
+    ? `<img src="${esc(cs.image)}" alt="${esc(cs.name||'Кейс')}">`
+    : `<div class="case-art-emoji">🎁</div>`;
+
+  const shopCards = prods.length ? prods.map(bonusCardHTML).join('')
+    : `<div style="grid-column:1/-1;text-align:center;color:var(--tx4);font-size:13px;padding:24px">Бонусных товаров пока нет.</div>`;
+
+  wrap.innerHTML = `
+    <div class="bonus-balance">
+      <div class="bonus-balance-lbl">Ваш баланс</div>
+      <div class="bonus-balance-val" id="bonusBalanceVal">${fmtBonus(_bonusState.balance)}<span>бонусов</span></div>
+      <div class="bonus-balance-hint">Бонусы начисляются 30% от суммы каждой покупки</div>
+    </div>
+
+    ${cs ? `
+    <div class="bonus-sec-title">Бонусный кейс (рулетка)</div>
+    <div class="case-card">
+      <div class="case-art">${caseArt}</div>
+      <div class="case-body">
+        <div class="case-name">${esc(cs.name || 'Бонусный кейс')}</div>
+        <div class="case-desc">Испытай удачу! Внутри — бонусы и ценные товары. Стоимость открытия: <b>${fmtBonus(caseCost)}</b> бонусов.</div>
+        <div class="roulette" id="rouletteBox" style="display:none">
+          <div class="roulette-pointer"></div>
+          <div class="roulette-track" id="rouletteTrack"></div>
+        </div>
+        <button class="case-open-btn" id="caseOpenBtn" onclick="openCaseRoulette()" ${canOpen ? '' : 'disabled'}>
+          ${cs.enabled ? (canOpen ? `Открыть за ${fmtBonus(caseCost)} бонусов` : 'Недостаточно бонусов') : 'Кейс временно недоступен'}
+        </button>
+      </div>
+    </div>` : ''}
+
+    <div class="bonus-sec-title">Бонусные товары</div>
+    <div class="bonus-grid">${shopCards}</div>
+  `;
+}
+
+function bonusCardHTML(p) {
+  const art = p.image ? `<img src="${esc(p.image)}" alt="${esc(p.name)}">`
+                      : `<div class="bcard-art-emoji">${esc(p.emoji || '🎁')}</div>`;
+  const affordable = _bonusState.balance >= p.cost;
+  const out = (!p.autoDeliver && p.quantity <= 0);
+  return `
+    <div class="bcard">
+      <div class="bcard-art">${art}<div class="bcard-cost">${fmtBonus(p.cost)} Б</div></div>
+      <div class="bcard-body">
+        ${p.category ? `<div class="bcard-cat">${esc(p.category)}</div>` : ''}
+        <div class="bcard-name">${esc(p.name)}</div>
+      </div>
+      <button class="bcard-buy" onclick="buyBonusItem(${p.id},this)" ${(!affordable||out)?'disabled':''}>
+        ${out ? 'Нет в наличии' : (affordable ? 'Купить' : 'Не хватает')}
+      </button>
+    </div>`;
+}
+
+async function openCaseRoulette() {
+  if (_bonusState.spinning) return;
+  const cs = _bonusState.case;
+  if (!cs) return;
+  const btn = el('caseOpenBtn');
+  const box = el('rouletteBox');
+  const track = el('rouletteTrack');
+  if (!box || !track) return;
+
+  _bonusState.spinning = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'Открываем…'; }
+
+  let result;
+  try { result = await API.openCase(); }
+  catch (e) {
+    _bonusState.spinning = false;
+    if (btn) { btn.disabled = false; }
+    toast(e.message || 'Не удалось открыть кейс');
+    renderBonus();
+    return;
+  }
+
+  // Призы для ленты (для визуала). Используем призы кейса если есть, иначе сам результат.
+  const pool = (cs.prizes && cs.prizes.length ? cs.prizes : [result.prize]).filter(Boolean);
+  const cell = (pz) => `<div class="roulette-cell">
+      ${pz.image ? `<img src="${esc(pz.image)}">` : `<div class="rc-emoji">${esc(pz.emoji||'🎁')}</div>`}
+      <div class="rc-name">${esc(pz.name||'')}</div></div>`;
+
+  // Строим длинную ленту из случайных призов, в позиции-победителе ставим выпавший приз
+  const CELL_W = 118; // 110 + 4+4 margin
+  const total = 48;
+  const winIndex = 42;
+  let cells = [];
+  for (let i = 0; i < total; i++) {
+    if (i === winIndex) cells.push(result.prize);
+    else cells.push(pool[Math.floor(Math.random() * pool.length)] || result.prize);
+  }
+  track.innerHTML = cells.map(cell).join('');
+  box.style.display = 'block';
+  track.style.transition = 'none';
+  track.style.transform = 'translateX(0)';
+
+  // центрируем выпавшую ячейку под указателем
+  const boxW = box.clientWidth;
+  const target = winIndex * CELL_W - (boxW / 2) + (110 / 2) + 4;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      track.style.transition = 'transform 4.2s cubic-bezier(.12,.62,.15,1)';
+      track.style.transform = `translateX(-${target}px)`;
+    });
+  });
+
+  setTimeout(() => {
+    _bonusState.spinning = false;
+    _bonusState.balance = result.balance;
+    const bv = el('bonusBalanceVal');
+    if (bv) bv.innerHTML = `${fmtBonus(result.balance)}<span>бонусов</span>`;
+
+    const pz = result.prize;
+    if (result.key) {
+      showKeyModal(result.key, pz.name, '🎉 Поздравляем!');
+    } else if (pz.type === 'bonus') {
+      toast(`🎉 Выигрыш: +${fmtBonus(pz.value)} бонусов!`);
+    } else if (pz.type === 'nothing') {
+      toast('В этот раз не повезло. Попробуйте ещё!');
+    } else {
+      toast(`🎉 Приз: ${pz.name}`);
+    }
+    // обновим страницу через секунду, чтобы показать новый баланс/наличие
+    setTimeout(renderBonus, 1400);
+  }, 4500);
+}
+
+async function buyBonusItem(id, btnEl) {
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = '…'; }
+  try {
+    const r = await API.buyBonusProduct(id);
+    _bonusState.balance = r.balance;
+    const bv = el('bonusBalanceVal');
+    if (bv) bv.innerHTML = `${fmtBonus(r.balance)}<span>бонусов</span>`;
+    if (r.key) showKeyModal(r.key, r.product && r.product.name, '✅ Покупка совершена');
+    else toast('✅ Покупка совершена! Менеджер свяжется с вами для выдачи.');
+    renderBonus();
+  } catch (e) {
+    toast(e.message || 'Не удалось купить');
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Купить'; }
+  }
+}
+
+/* ── Модалка выдачи ключа ── */
+function showKeyModal(key, title, heading) {
+  const back = el('keyModalBack');
+  if (!back) return;
+  if (heading) el('keyModalTitle').textContent = heading;
+  el('keyModalValue').textContent = key;
+  el('keyModalSub').textContent = title
+    ? `${title} — ваш ключ ниже. Сохраните его, он также доступен в истории покупок.`
+    : 'Сохраните ключ — он также доступен в истории покупок.';
+  const cb = el('keyCopyBtn'); if (cb) cb.textContent = 'Скопировать';
+  back.classList.add('show');
+}
+function closeKeyModal() { const b = el('keyModalBack'); if (b) b.classList.remove('show'); }
+function copyKeyValue(btn) {
+  const v = el('keyModalValue').textContent || '';
+  const done = () => { if (btn) { btn.textContent = 'Скопировано ✓'; setTimeout(() => btn.textContent = 'Скопировать', 1800); } };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(v).then(done).catch(() => { fallbackCopy(v); done(); });
+  } else { fallbackCopy(v); done(); }
+}
+function fallbackCopy(text) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+  } catch {}
+}
+
 // Globals for inline handlers
 Object.assign(window, {
+  renderBonus, openCaseRoulette, buyBonusItem,
+  showKeyModal, closeKeyModal, copyKeyValue,
   go, toggleTheme, ctaRipple, openDeluxe,
   toggleRegionMenu, selectRegion, initRegionUI,
   openProduct, closeModal, buyFromModal, quickAdd, toggleWish, setPeriod,
@@ -1219,4 +1546,5 @@ Object.assign(window, {
   openCheckout, openCheckoutDirect, closeCheckout, _forceCloseCheckout,
   startOrder, sendOrderInfo, clearData,
   startPayment,
+  renderProfileOrders, repeatOrder, renderGuarantees, playGrtVideo,
 });

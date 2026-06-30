@@ -104,10 +104,146 @@ try { db.exec("ALTER TABLE categories ADD COLUMN region TEXT NOT NULL DEFAULT 't
 try { db.exec('CREATE INDEX IF NOT EXISTS idx_products_region ON products(region)'); } catch {}
 try { db.exec('CREATE INDEX IF NOT EXISTS idx_categories_region ON categories(region)'); } catch {}
 
+/* Бонусная система: привязка заказа к пользователю Telegram + бонусные поля */
+try { db.exec("ALTER TABLE orders ADD COLUMN user_id TEXT DEFAULT ''"); } catch {}
+try { db.exec('ALTER TABLE orders ADD COLUMN bonus_earned INTEGER DEFAULT 0'); } catch {}
+try { db.exec('ALTER TABLE orders ADD COLUMN bonus_spent INTEGER DEFAULT 0'); } catch {}
+try { db.exec("ALTER TABLE orders ADD COLUMN pay_method TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE orders ADD COLUMN status_history TEXT DEFAULT '[]'"); } catch {}
+
+/* ── Схема бонусной системы ─────────────────────────────────── */
+db.exec(`
+-- Пользователи Telegram (баланс бонусов)
+CREATE TABLE IF NOT EXISTS users (
+  id          TEXT PRIMARY KEY,            -- telegram user id
+  username    TEXT DEFAULT '',
+  first_name  TEXT DEFAULT '',
+  last_name   TEXT DEFAULT '',
+  photo_url   TEXT DEFAULT '',
+  balance     INTEGER NOT NULL DEFAULT 0,  -- текущий баланс бонусов
+  created_at  TEXT DEFAULT (datetime('now')),
+  updated_at  TEXT DEFAULT (datetime('now'))
+);
+
+-- Леджер бонусов (начисления/списания). amount>0 — начислено, amount<0 — списано
+CREATE TABLE IF NOT EXISTS bonus_tx (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    TEXT NOT NULL,
+  amount     INTEGER NOT NULL,
+  type       TEXT NOT NULL,               -- earn | spend_case | spend_shop | prize | admin
+  ref        TEXT DEFAULT '',             -- id заказа / открытия кейса / покупки
+  note       TEXT DEFAULT '',
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Бонусные товары (покупаются за бонусы)
+CREATE TABLE IF NOT EXISTS bonus_products (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  name         TEXT NOT NULL,
+  description  TEXT DEFAULT '',
+  emoji        TEXT DEFAULT '🎁',
+  image        TEXT DEFAULT '',
+  category     TEXT DEFAULT '',
+  cost         INTEGER NOT NULL DEFAULT 0, -- стоимость в бонусах
+  quantity     INTEGER NOT NULL DEFAULT 0, -- остаток (для ручной выдачи); авто — берётся из ключей
+  auto_deliver INTEGER NOT NULL DEFAULT 0, -- 1 = выдаётся ключом из key_stock
+  hidden       INTEGER NOT NULL DEFAULT 0,
+  position     INTEGER NOT NULL DEFAULT 0,
+  created_at   TEXT DEFAULT (datetime('now'))
+);
+
+-- Запасы ключей для авто-выдачи
+CREATE TABLE IF NOT EXISTS key_stock (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  product_id INTEGER NOT NULL REFERENCES bonus_products(id) ON DELETE CASCADE,
+  key_value  TEXT NOT NULL,
+  used       INTEGER NOT NULL DEFAULT 0,
+  used_by    TEXT DEFAULT '',
+  used_at    TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Лог выдачи ключей
+CREATE TABLE IF NOT EXISTS key_delivery (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    TEXT NOT NULL,
+  product_id INTEGER NOT NULL,
+  key_id     INTEGER NOT NULL,
+  key_value  TEXT NOT NULL,
+  cost       INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Кейсы (рулетка)
+CREATE TABLE IF NOT EXISTS cases (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  name       TEXT NOT NULL DEFAULT 'Бонусный кейс',
+  cost       INTEGER NOT NULL DEFAULT 3000,
+  enabled    INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Призы кейса
+CREATE TABLE IF NOT EXISTS case_prizes (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_id    INTEGER NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  name       TEXT NOT NULL,
+  emoji      TEXT DEFAULT '🎁',
+  image      TEXT DEFAULT '',
+  type       TEXT NOT NULL DEFAULT 'bonus', -- bonus | product | nothing
+  value      INTEGER NOT NULL DEFAULT 0,    -- bonus: сумма; product: id бонусного товара
+  weight     INTEGER NOT NULL DEFAULT 1,    -- вес вероятности
+  enabled    INTEGER NOT NULL DEFAULT 1,
+  position   INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- История открытий кейса
+CREATE TABLE IF NOT EXISTS case_openings (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    TEXT NOT NULL,
+  case_id    INTEGER NOT NULL,
+  prize_id   INTEGER,
+  prize_name TEXT DEFAULT '',
+  cost       INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Видеоотзывы (страница «Гарантии»)
+CREATE TABLE IF NOT EXISTS video_reviews (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  title      TEXT DEFAULT '',
+  media_id   INTEGER,                       -- ссылка на media (если загружено)
+  url        TEXT DEFAULT '',               -- либо внешний URL
+  position   INTEGER NOT NULL DEFAULT 0,
+  hidden     INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_bonus_tx_user   ON bonus_tx(user_id, id DESC);
+CREATE INDEX IF NOT EXISTS idx_key_stock_prod  ON key_stock(product_id, used);
+CREATE INDEX IF NOT EXISTS idx_case_prizes_case ON case_prizes(case_id);
+CREATE INDEX IF NOT EXISTS idx_orders_user      ON orders(user_id);
+`);
+
+/* Гарантируем наличие одного кейса по умолчанию */
+try {
+  const c = db.prepare('SELECT COUNT(*) AS c FROM cases').get().c;
+  if (!c) db.prepare("INSERT INTO cases (name,cost,enabled) VALUES ('Бонусный кейс',3000,1)").run();
+} catch {}
+
 /* ── Helpers ────────────────────────────────────────────────── */
 function all(sql, params = []) { return db.prepare(sql).all(...params); }
 function get(sql, params = []) { return db.prepare(sql).get(...params); }
 function run(sql, params = []) { return db.prepare(sql).run(...params); }
+
+/* Транзакция: выполняет fn() внутри BEGIN/COMMIT, откатывает при ошибке.
+   Используется для атомарных операций с бонусами и выдачей ключей. */
+function tx(fn) {
+  db.exec('BEGIN');
+  try { const r = fn(); db.exec('COMMIT'); return r; }
+  catch (e) { try { db.exec('ROLLBACK'); } catch {} throw e; }
+}
 
 /* ── Order helpers ──────────────────────────────────────────── */
 function generateOrderId() {
@@ -127,6 +263,11 @@ function shapeOrder(r) {
     productId: r.product_id || null, amount: r.amount,
     comment: r.comment || '', status: r.status,
     notified: !!r.notified, meta,
+    userId: r.user_id || '',
+    bonusEarned: r.bonus_earned || 0,
+    bonusSpent: r.bonus_spent || 0,
+    payMethod: r.pay_method || '',
+    statusHistory: (() => { try { return JSON.parse(r.status_history || '[]'); } catch { return []; } })(),
     paidAt: r.paid_at || null, createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
@@ -818,4 +959,4 @@ function backfillImages() {
 }
 try { backfillImages(); } catch (e) { console.error('[IMAGES] ошибка дозаполнения:', e.message); }
 
-module.exports = { db, all, get, run, generateOrderId, shapeOrder };
+module.exports = { db, all, get, run, tx, generateOrderId, shapeOrder };

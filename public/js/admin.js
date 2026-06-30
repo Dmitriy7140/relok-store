@@ -103,6 +103,7 @@ function tab(name) {
     dash: renderDash, products: () => renderProducts('game'),
     subs: () => renderProducts('sub'), codes: () => renderProducts('code'),
     categories: renderCategories, media: renderMedia, settings: renderSettings,
+    orders: renderOrders, bonus: renderBonusAdmin, case: renderCaseAdmin, videos: renderVideosAdmin,
   };
   (r[name] || renderDash)();
   window.scrollTo(0,0);

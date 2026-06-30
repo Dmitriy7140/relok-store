@@ -6,10 +6,12 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
-const { all, get, run, generateOrderId, shapeOrder } = require('./db');
+const { all, get, run, tx, generateOrderId, shapeOrder } = require('./db');
 const notify = require('./notifications');
 const price  = require('./priceService');
 const pay    = require('./payment');
+const tgauth = require('./tgauth');
+const bonus  = require('./bonus');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'logovo-admin';
@@ -45,6 +47,18 @@ function readBody(req) {
 /* ── Регионы (каждый — отдельный магазин) ────────────────────── */
 const REGIONS = ['tr', 'in'];
 const normRegion = (r) => REGIONS.includes(r) ? r : 'tr';
+
+/* ── Текущий пользователь Telegram (по подписанному initData) ──
+   Клиент передаёт заголовок X-Telegram-Init-Data. Подпись проверяется
+   токеном бота. Возвращает { id, username, ... } или null. */
+function currentUser(req) {
+  const initData = req.headers['x-telegram-init-data'];
+  if (!initData) return null;
+  const u = tgauth.verifyInitData(initData);
+  if (!u) return null;
+  try { bonus.upsertUser(u); } catch {}
+  return u;
+}
 
 /* ── Форматирование данных ───────────────────────────────────── */
 function shapeProduct(r) {
@@ -104,12 +118,17 @@ function markOrderPaid(id, paymentId) {
   if (row.status === 'paid') return shapeOrder(row); // уже оплачен — ничего не делаем
   let meta = {}; try { meta = JSON.parse(row.meta || '{}'); } catch {}
   if (paymentId) meta.paymentId = paymentId;
-  run(`UPDATE orders SET status='paid', paid_at=datetime('now'), updated_at=datetime('now'), meta=? WHERE id=?`,
-    [JSON.stringify(meta), id]);
+  let history = []; try { history = JSON.parse(row.status_history || '[]'); } catch {}
+  history.push({ status: 'paid', at: new Date().toISOString() });
+  const payMethod = row.pay_method || (paymentId ? 'yookassa' : '');
+  run(`UPDATE orders SET status='paid', paid_at=datetime('now'), updated_at=datetime('now'), meta=?, pay_method=?, status_history=? WHERE id=?`,
+    [JSON.stringify(meta), payMethod, JSON.stringify(history), id]);
   const updated = shapeOrder(get('SELECT * FROM orders WHERE id=?', [id]));
+  // Начисление бонусов (30%), идемпотентно и атомарно
+  try { bonus.accrueForOrder(updated); } catch (e) { log.err('accrue failed', e.message); }
   log.info('Order PAID:', id, '—', updated.amount + '₽', paymentId ? `(yk:${paymentId})` : '');
-  notify.notifyOrderPaid(updated).catch(() => {});
-  return updated;
+  notify.notifyOrderPaid(shapeOrder(get('SELECT * FROM orders WHERE id=?', [id]))).catch(() => {});
+  return shapeOrder(get('SELECT * FROM orders WHERE id=?', [id]));
 }
 
 /* Проверить один заказ в ЮKassa и обновить статус (для поллинга и /status).
@@ -363,6 +382,238 @@ async function api(req, res, url) {
     }
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     БОНУСНАЯ СИСТЕМА — пользовательские эндпоинты
+     ══════════════════════════════════════════════════════════════ */
+  const shapeBonusProduct = (r) => ({
+    id: r.id, name: r.name, description: r.description, emoji: r.emoji, image: r.image,
+    category: r.category, cost: r.cost, quantity: r.quantity,
+    autoDeliver: !!r.auto_deliver, hidden: !!r.hidden, position: r.position,
+    available: r.auto_deliver ? bonus.availableKeys(r.id) : r.quantity,
+  });
+  const shapePrize = (r) => ({
+    id: r.id, caseId: r.case_id, name: r.name, emoji: r.emoji, image: r.image,
+    type: r.type, value: r.value, weight: r.weight, enabled: !!r.enabled, position: r.position,
+  });
+  const shapeVideo = (r) => ({
+    id: r.id, title: r.title, position: r.position, hidden: !!r.hidden,
+    url: r.media_id ? `/api/media/${r.media_id}` : (r.url || ''),
+  });
+
+  // GET /api/me — профиль + баланс текущего пользователя
+  if (seg[1] === 'me' && seg.length === 2 && method === 'GET') {
+    const u = currentUser(req);
+    if (!u) return ok(res, { authed: false, balance: 0, user: null });
+    const row = bonus.getUser(u.id);
+    return ok(res, { authed: true, balance: row ? row.balance : 0,
+      user: { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, photoUrl: u.photoUrl } });
+  }
+
+  // /api/bonus/*
+  if (seg[1] === 'bonus') {
+    // GET /api/bonus/case — активный кейс + включённые призы (для витрины)
+    if (seg[2] === 'case' && seg.length === 3 && method === 'GET') {
+      const cs = bonus.getActiveCase();
+      if (!cs) return ok(res, { case: null, prizes: [] });
+      const prizes = bonus.listPrizes(cs.id, true).map(shapePrize);
+      return ok(res, { case: { id: cs.id, name: cs.name, cost: cs.cost, enabled: !!cs.enabled }, prizes });
+    }
+    // POST /api/bonus/case/open
+    if (seg[2] === 'case' && seg[3] === 'open' && method === 'POST') {
+      const u = currentUser(req);
+      if (!u) return bad(res, 'Откройте приложение через Telegram', 401);
+      try { return ok(res, bonus.openCase(u.id, null)); }
+      catch (e) { return bad(res, e.message); }
+    }
+    // GET /api/bonus/products
+    if (seg[2] === 'products' && seg.length === 3 && method === 'GET') {
+      const rows = all('SELECT * FROM bonus_products WHERE hidden=0 ORDER BY position,id');
+      return ok(res, rows.map(shapeBonusProduct));
+    }
+    // POST /api/bonus/products/:id/buy
+    if (seg[2] === 'products' && seg[4] === 'buy' && method === 'POST') {
+      const u = currentUser(req);
+      if (!u) return bad(res, 'Откройте приложение через Telegram', 401);
+      try { return ok(res, bonus.buyBonusProduct(u.id, +seg[3])); }
+      catch (e) { return bad(res, e.message); }
+    }
+    // GET /api/bonus/tx — история бонусных операций
+    if (seg[2] === 'tx' && method === 'GET') {
+      const u = currentUser(req);
+      if (!u) return ok(res, []);
+      return ok(res, bonus.listTx(u.id, 100));
+    }
+    // GET /api/bonus/orders — история заказов пользователя (для профиля)
+    if (seg[2] === 'orders' && method === 'GET') {
+      const u = currentUser(req);
+      if (!u) return ok(res, []);
+      const rows = all('SELECT * FROM orders WHERE user_id=? ORDER BY created_at DESC LIMIT 100', [u.id]);
+      return ok(res, rows.map(shapeOrder));
+    }
+  }
+
+  // GET /api/videos — публичный список видеоотзывов
+  if (seg[1] === 'videos' && seg.length === 2 && method === 'GET') {
+    const rows = all('SELECT * FROM video_reviews WHERE hidden=0 ORDER BY position,id');
+    return ok(res, rows.map(shapeVideo));
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     БОНУСНАЯ СИСТЕМА — админ
+     ══════════════════════════════════════════════════════════════ */
+  if (seg[1] === 'admin') {
+    // ── Бонусные товары ──
+    if (seg[2] === 'bonus-products' && seg.length === 3) {
+      if (method === 'GET') {
+        if (!needAdmin()) return;
+        return ok(res, all('SELECT * FROM bonus_products ORDER BY position,id').map(shapeBonusProduct));
+      }
+      if (method === 'POST') {
+        if (!needAdmin()) return;
+        let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+        if (!b.name || !String(b.name).trim()) return bad(res, 'Укажите название');
+        const pos = get('SELECT COALESCE(MAX(position),-1)+1 AS p FROM bonus_products').p;
+        const info = run(`INSERT INTO bonus_products (name,description,emoji,image,category,cost,quantity,auto_deliver,hidden,position)
+          VALUES (?,?,?,?,?,?,?,?,?,?)`,
+          [String(b.name).trim(), b.description||'', b.emoji||'🎁', b.image||'', b.category||'',
+           Math.max(0,+b.cost||0), Math.max(0,+b.quantity||0), intBool(b.autoDeliver), intBool(b.hidden), pos]);
+        return ok(res, shapeBonusProduct(get('SELECT * FROM bonus_products WHERE id=?', [info.lastInsertRowid])));
+      }
+    }
+    if (seg[2] === 'bonus-products' && seg.length === 4) {
+      if (!needAdmin()) return;
+      const id = +seg[3];
+      const row = get('SELECT * FROM bonus_products WHERE id=?', [id]);
+      if (!row) return bad(res, 'Товар не найден', 404);
+      if (method === 'PUT' || method === 'PATCH') {
+        let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+        const sets = [], params = [];
+        for (const [k, col] of Object.entries({ name:'name', description:'description', emoji:'emoji', image:'image', category:'category' }))
+          if (b[k] !== undefined) { sets.push(`${col}=?`); params.push(b[k]); }
+        for (const [k, col] of Object.entries({ cost:'cost', quantity:'quantity', position:'position' }))
+          if (b[k] !== undefined) { sets.push(`${col}=?`); params.push(Math.max(0,+b[k]||0)); }
+        for (const [k, col] of Object.entries({ autoDeliver:'auto_deliver', hidden:'hidden' }))
+          if (b[k] !== undefined) { sets.push(`${col}=?`); params.push(intBool(b[k])); }
+        if (!sets.length) return bad(res, 'Нет данных');
+        params.push(id);
+        run(`UPDATE bonus_products SET ${sets.join(',')} WHERE id=?`, params);
+        return ok(res, shapeBonusProduct(get('SELECT * FROM bonus_products WHERE id=?', [id])));
+      }
+      if (method === 'DELETE') { run('DELETE FROM bonus_products WHERE id=?', [id]); return ok(res, { ok: true }); }
+    }
+    // ── Ключи (запасы) ──
+    if (seg[2] === 'bonus-products' && seg[4] === 'keys') {
+      if (!needAdmin()) return;
+      const pid = +seg[3];
+      if (method === 'GET') {
+        const keys = all('SELECT id,key_value,used,used_by,used_at,created_at FROM key_stock WHERE product_id=? ORDER BY used,id', [pid]);
+        return ok(res, { total: keys.length, available: bonus.availableKeys(pid), keys });
+      }
+      if (method === 'POST') {
+        let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+        const added = bonus.addKeys(pid, b.keys);
+        return ok(res, { added, available: bonus.availableKeys(pid) });
+      }
+    }
+    if (seg[2] === 'keys' && seg.length === 4 && method === 'DELETE') {
+      if (!needAdmin()) return;
+      run('DELETE FROM key_stock WHERE id=? AND used=0', [+seg[3]]);
+      return ok(res, { ok: true });
+    }
+    // ── Кейс ──
+    if (seg[2] === 'case' && seg.length === 3) {
+      if (!needAdmin()) return;
+      const cs = bonus.getActiveCase();
+      if (method === 'GET') {
+        return ok(res, { case: cs ? { id: cs.id, name: cs.name, cost: cs.cost, enabled: !!cs.enabled } : null,
+          prizes: cs ? bonus.listPrizes(cs.id, false).map(shapePrize) : [] });
+      }
+      if (method === 'PUT') {
+        let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+        const sets = [], params = [];
+        if (b.name !== undefined) { sets.push('name=?'); params.push(String(b.name)); }
+        if (b.cost !== undefined) { sets.push('cost=?'); params.push(Math.max(0,+b.cost||0)); }
+        if (b.enabled !== undefined) { sets.push('enabled=?'); params.push(intBool(b.enabled)); }
+        if (sets.length) { params.push(cs.id); run(`UPDATE cases SET ${sets.join(',')} WHERE id=?`, params); }
+        const f = bonus.getActiveCase();
+        return ok(res, { case: { id: f.id, name: f.name, cost: f.cost, enabled: !!f.enabled } });
+      }
+    }
+    // ── Призы кейса ──
+    if (seg[2] === 'case' && seg[3] === 'prizes' && seg.length === 4 && method === 'POST') {
+      if (!needAdmin()) return;
+      let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+      const cs = bonus.getActiveCase();
+      if (!cs) return bad(res, 'Кейс не найден', 404);
+      if (!b.name || !String(b.name).trim()) return bad(res, 'Укажите название приза');
+      const pos = get('SELECT COALESCE(MAX(position),-1)+1 AS p FROM case_prizes WHERE case_id=?', [cs.id]).p;
+      const info = run(`INSERT INTO case_prizes (case_id,name,emoji,image,type,value,weight,enabled,position)
+        VALUES (?,?,?,?,?,?,?,?,?)`,
+        [cs.id, String(b.name).trim(), b.emoji||'🎁', b.image||'', b.type||'bonus',
+         Math.max(0,+b.value||0), Math.max(0,+b.weight||1), intBool(b.enabled ?? true), pos]);
+      return ok(res, shapePrize(get('SELECT * FROM case_prizes WHERE id=?', [info.lastInsertRowid])));
+    }
+    if (seg[2] === 'case' && seg[3] === 'prizes' && seg.length === 5) {
+      if (!needAdmin()) return;
+      const id = +seg[4];
+      const row = get('SELECT * FROM case_prizes WHERE id=?', [id]);
+      if (!row) return bad(res, 'Приз не найден', 404);
+      if (method === 'PUT' || method === 'PATCH') {
+        let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+        const sets = [], params = [];
+        for (const [k, col] of Object.entries({ name:'name', emoji:'emoji', image:'image', type:'type' }))
+          if (b[k] !== undefined) { sets.push(`${col}=?`); params.push(b[k]); }
+        for (const [k, col] of Object.entries({ value:'value', weight:'weight', position:'position' }))
+          if (b[k] !== undefined) { sets.push(`${col}=?`); params.push(Math.max(0,+b[k]||0)); }
+        if (b.enabled !== undefined) { sets.push('enabled=?'); params.push(intBool(b.enabled)); }
+        if (!sets.length) return bad(res, 'Нет данных');
+        params.push(id);
+        run(`UPDATE case_prizes SET ${sets.join(',')} WHERE id=?`, params);
+        return ok(res, shapePrize(get('SELECT * FROM case_prizes WHERE id=?', [id])));
+      }
+      if (method === 'DELETE') { run('DELETE FROM case_prizes WHERE id=?', [id]); return ok(res, { ok: true }); }
+    }
+    // ── Видеоотзывы ──
+    if (seg[2] === 'videos' && seg.length === 3) {
+      if (!needAdmin()) return;
+      if (method === 'GET') return ok(res, all('SELECT * FROM video_reviews ORDER BY position,id').map(shapeVideo));
+      if (method === 'POST') {
+        let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+        let mediaId = b.mediaId ? +b.mediaId : null;
+        // Допускается загрузка видео data:base64 — кладём в media
+        if (!mediaId && b.data && b.mime) {
+          if (!/^video\//.test(b.mime)) return bad(res, 'Допускаются только видео');
+          const data = String(b.data).split(',').pop();
+          if (data.length > 20e6) return bad(res, 'Видео слишком большое (макс ~15 МБ)');
+          const mi = run('INSERT INTO media (filename,mime,data) VALUES (?,?,?)', [b.filename||'video', b.mime, data]);
+          mediaId = mi.lastInsertRowid;
+        }
+        if (!mediaId && !b.url) return bad(res, 'Передайте видео или URL');
+        const pos = get('SELECT COALESCE(MAX(position),-1)+1 AS p FROM video_reviews').p;
+        const info = run('INSERT INTO video_reviews (title,media_id,url,position) VALUES (?,?,?,?)',
+          [b.title||'', mediaId, b.url||'', pos]);
+        return ok(res, shapeVideo(get('SELECT * FROM video_reviews WHERE id=?', [info.lastInsertRowid])));
+      }
+    }
+    if (seg[2] === 'videos' && seg[3] === 'reorder' && method === 'POST') {
+      if (!needAdmin()) return;
+      let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+      (b.ids||[]).forEach((id, i) => run('UPDATE video_reviews SET position=? WHERE id=?', [i, +id]));
+      return ok(res, { ok: true });
+    }
+    if (seg[2] === 'videos' && seg.length === 4) {
+      if (!needAdmin()) return;
+      const id = +seg[3];
+      if (method === 'PATCH') {
+        let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+        if (b.hidden !== undefined) run('UPDATE video_reviews SET hidden=? WHERE id=?', [intBool(b.hidden), id]);
+        if (b.title !== undefined)  run('UPDATE video_reviews SET title=? WHERE id=?', [String(b.title), id]);
+        return ok(res, shapeVideo(get('SELECT * FROM video_reviews WHERE id=?', [id])));
+      }
+      if (method === 'DELETE') { run('DELETE FROM video_reviews WHERE id=?', [id]); return ok(res, { ok: true }); }
+    }
+  }
+
   /* ── /api/settings ── */
   if (seg[1] === 'settings') {
     if (method === 'GET') {
@@ -416,9 +667,10 @@ async function api(req, res, url) {
     if (errs.length) return bad(res, errs.join('. '));
 
     const id = generateOrderId();
+    const u = currentUser(req);
     run(`INSERT INTO orders
-      (id, psn_id, nickname, telegram, email, product_name, product_id, amount, comment, status, meta)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      (id, psn_id, nickname, telegram, email, product_name, product_id, amount, comment, status, meta, user_id, status_history)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         id,
         b.psnId       ? String(b.psnId).trim()       : '',
@@ -431,6 +683,8 @@ async function api(req, res, url) {
         b.comment     ? String(b.comment).trim()     : '',
         'pending',
         JSON.stringify(b.meta || {}),
+        u ? u.id : '',
+        JSON.stringify([{ status: 'pending', at: new Date().toISOString() }]),
       ]
     );
 
@@ -525,7 +779,20 @@ async function api(req, res, url) {
         sets.push('paid_at=datetime(\'now\')');
       }
 
+      // История смены статусов (#12)
+      let hist = [];
+      try { hist = JSON.parse(row.status_history || '[]'); } catch {}
+      if (!Array.isArray(hist)) hist = [];
+      hist.push({ status: b.status, at: new Date().toISOString(), by: isAdmin ? 'admin' : 'system' });
+      sets.push('status_history=?');
+      params.push(JSON.stringify(hist));
+
       run(`UPDATE orders SET ${sets.join(',')} WHERE id=?`, [...params, id]);
+
+      // Начисление бонусов при оплате (идемпотентно)
+      if (b.status === 'paid') {
+        try { bonus.accrueForOrder(shapeOrder(get('SELECT * FROM orders WHERE id=?', [id]))); } catch {}
+      }
 
       const updated = shapeOrder(get('SELECT * FROM orders WHERE id=?', [id]));
       log.info('Order status:', id, '→', b.status);
