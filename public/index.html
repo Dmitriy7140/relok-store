@@ -706,16 +706,16 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
 .sub-card:active{transform:scale(.99);transition-duration:.08s}
 
 /* Tier accents via data-tier */
-.sub-card[data-tier="essential"]{border-color:rgba(148,163,184,.15)}
-.sub-card[data-tier="extra"]    {border-color:rgba(99,102,241,.2)}
-.sub-card[data-tier="deluxe"]   {border-color:rgba(234,179,8,.2)}
+.sub-card[data-tier="essential"]{border-color:rgba(148,163,184,.18)}
+.sub-card[data-tier="extra"]    {border-color:rgba(245,181,10,.28)}
+.sub-card[data-tier="deluxe"]   {border-color:rgba(255,209,26,.22)}
 .sub-card[data-tier="extra"].featured{
-  border-color:rgba(99,102,241,.35);
-  box-shadow:0 0 0 1px rgba(99,102,241,.12);
+  border-color:rgba(245,181,10,.45);
+  box-shadow:0 0 0 1px rgba(245,181,10,.15);
 }
 .sub-card[data-tier="deluxe"].featured{
-  border-color:rgba(234,179,8,.3);
-  box-shadow:0 0 0 1px rgba(234,179,8,.08);
+  border-color:rgba(255,209,26,.4);
+  box-shadow:0 0 0 1px rgba(255,209,26,.12);
 }
 
 .sub-cover{
@@ -723,9 +723,21 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
   display:flex;flex-direction:column;justify-content:flex-end;
   min-height:140px;
 }
-.sub-cover-essential{background:linear-gradient(135deg,#1a1a2a 0%,#1e1e30 100%)}
-.sub-cover-extra    {background:linear-gradient(135deg,#0f0f25 0%,#141432 100%)}
-.sub-cover-deluxe   {background:linear-gradient(135deg,#1a1400 0%,#221c00 100%)}
+/* ── PS Plus official palette: Essential=white · Extra=gold · Deluxe(Premium)=black ── */
+.sub-cover-essential{
+  background:linear-gradient(160deg,#ffffff 0%,#eef1f6 100%);
+  box-shadow:0 1px 0 rgba(0,0,0,.06) inset;
+}
+.sub-cover-extra{
+  background:linear-gradient(160deg,#ffd11a 0%,#f5b50a 60%,#e6a700 100%);
+}
+.sub-cover-deluxe{
+  background:linear-gradient(160deg,#26262e 0%,#1a1a20 100%);
+}
+/* Cover text colours per tier (readable in both light & dark themes) */
+.sub-cover-essential .sub-cover-name,.sub-cover-essential .sub-cover-icon{color:#15171c}
+.sub-cover-extra .sub-cover-name,.sub-cover-extra .sub-cover-icon{color:#1c1500}
+.sub-cover-deluxe .sub-cover-name,.sub-cover-deluxe .sub-cover-icon{color:#ffffff}
 
 /* Tier mark */
 .sub-tier-mark{
@@ -733,9 +745,9 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
   font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
   padding:3px 9px;border-radius:4px;
 }
-.tm-essential{background:rgba(148,163,184,.1);color:rgba(148,163,184,.7);border:1px solid rgba(148,163,184,.15)}
-.tm-extra     {background:rgba(99,102,241,.1); color:var(--v2);             border:1px solid rgba(99,102,241,.2)}
-.tm-deluxe    {background:rgba(234,179,8,.08); color:#fbbf24;               border:1px solid rgba(234,179,8,.15)}
+.tm-essential{background:rgba(21,23,28,.06); color:#4a5160;             border:1px solid rgba(21,23,28,.12)}
+.tm-extra     {background:rgba(28,21,0,.14);  color:#5c4500;             border:1px solid rgba(28,21,0,.22)}
+.tm-deluxe    {background:rgba(255,209,26,.14);color:#ffd11a;            border:1px solid rgba(255,209,26,.3)}
 .sub-popular-badge{
   position:absolute;top:var(--sp4);right:var(--sp4);
   font-size:10px;font-weight:600;color:#fff;
@@ -755,9 +767,9 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
 .sub-feat-dot{
   width:4px;height:4px;border-radius:50%;flex-shrink:0;
 }
-.feat-dot-essential{background:rgba(148,163,184,.5)}
-.feat-dot-extra     {background:var(--v2)}
-.feat-dot-deluxe    {background:#fbbf24}
+.feat-dot-essential{background:rgba(148,163,184,.6)}
+.feat-dot-extra     {background:#e0a700}
+.feat-dot-deluxe    {background:#ffd11a}
 
 .sub-divider{height:1px;background:var(--b1)}
 
@@ -779,9 +791,14 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
   background:var(--s3);color:var(--tx1);border:1px solid var(--b2);
   cursor:pointer;transition:all .15s;letter-spacing:-.1px;
 }
-.sub-card[data-tier="extra"] .sub-buy{background:var(--v);color:#fff;border-color:transparent}
-.sub-card[data-tier="deluxe"] .sub-buy{background:rgba(234,179,8,.15);color:#fbbf24;border-color:rgba(234,179,8,.25)}
-.sub-buy:hover{opacity:.85}
+.sub-card[data-tier="extra"] .sub-buy{
+  background:linear-gradient(180deg,#ffd11a,#e6a700);color:#1c1500;border-color:transparent;font-weight:700;
+}
+.sub-card[data-tier="deluxe"] .sub-buy{
+  background:linear-gradient(180deg,#ffd96b,#f5b50a);color:#1c1500;border-color:transparent;font-weight:700;
+  box-shadow:0 6px 18px rgba(245,181,10,.35);
+}
+.sub-buy:hover{opacity:.9;transform:translateY(-1px)}
 .sub-buy:active{transform:scale(.97);transition-duration:.08s}
 .sub-buy:disabled{opacity:.35;pointer-events:none}
 
