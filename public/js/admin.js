@@ -859,6 +859,7 @@ function renderSettings() {
       </div>
       <button class="btn btn-blue btn-sm" style="margin-top:6px" onclick="saveSettings()">Сохранить</button>
     </div>
+    ${renderMessengersCard()}
     <div class="settings-card">
       <h3>🔑 Безопасность</h3>
       <p style="font-size:13px;color:var(--t3);margin-bottom:14px">Токен задаётся переменной окружения <code>ADMIN_TOKEN</code> при запуске сервера.<br>Текущий токен сохранён в браузере.</p>
@@ -880,6 +881,41 @@ async function saveSettings() {
     await API.saveSettings({ store });
     S.settings.store = store;
     toast('Настройки сохранены');
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+/* ── Мессенджеры (prefill ссылок для готового сообщения клиента) ── */
+function renderMessengersCard() {
+  const m = S.settings?.messengers || {};
+  return `
+    <div class="settings-card">
+      <h3>💬 Мессенджеры</h3>
+      <p style="font-size:13px;color:var(--t3);margin-bottom:14px">
+        Ссылки для кнопок на странице оформления заказа. После заполнения формы клиенту
+        открывается мессенджер с уже готовым сообщением. Текст подставляется автоматически —
+        просто укажите ссылку на чат (параметр <code>?text=</code> добавляется сам).
+      </p>
+      <div class="field"><label>Telegram — ссылка на чат (публичный @username)</label>
+        <input class="inp" id="sMsgrTg" value="${esc(m.tg||'')}" placeholder="https://t.me/username"></div>
+      <div class="field"><label>MAX — ссылка на чат</label>
+        <input class="inp" id="sMsgrMax" value="${esc(m.max||'')}" placeholder="https://max.ru/u/XXXXXXXX"></div>
+      <div class="field"><label>WhatsApp — ссылка на чат</label>
+        <input class="inp" id="sMsgrWa" value="${esc(m.wa||'')}" placeholder="https://wa.me/79990000000"></div>
+      <button class="btn btn-blue btn-sm" style="margin-top:6px" onclick="saveMessengers()">Сохранить мессенджеры</button>
+    </div>`;
+}
+
+async function saveMessengers() {
+  const messengers = {
+    tg:  gval('sMsgrTg').trim(),
+    max: gval('sMsgrMax').trim(),
+    wa:  gval('sMsgrWa').trim(),
+  };
+  toastLoad('Сохраняем…');
+  try {
+    await API.saveSettings({ messengers });
+    S.settings.messengers = messengers;
+    toast('Мессенджеры сохранены');
   } catch (e) { toast(e.message, 'err'); }
 }
 
@@ -907,5 +943,5 @@ Object.assign(window, {
   doLogin, logout, tab, openEditor, closeDrawer, saveProduct, addPeriod, removePeriod,
   addFeature, previewImg, clearImage, pickImage, uploadImageFile,
   toggleHidden, delProduct, openCatEditor, saveCat, toggleCatHidden, delCat,
-  renderMedia, triggerUpload, delMedia, saveSettings, toggleTheme,
+  renderMedia, triggerUpload, delMedia, saveSettings, saveMessengers, toggleTheme,
 });

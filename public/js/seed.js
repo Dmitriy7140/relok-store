@@ -5948,7 +5948,7 @@ window.SEED={
     }
   }
 ],
-  settings:{store:{name:'Logovo PlayStation',tagline:'PlayStation Turkey',currency:'₽'}},
+  settings:{store:{name:'Logovo PlayStation',tagline:'PlayStation Turkey',currency:'₽'},messengers:{tg:'',max:'',wa:''}},
 };
 window.queryLocal=function(params){
   // Демо-данные (offline) есть только для Турции; остальные регионы — пустой магазин.

@@ -883,19 +883,129 @@ async function sendOrderInfo() {
 }
 
 function renderInfoSuccess(host, order) {
+  renderMessengerHandoff(host, order, 'sheet');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ПЕРЕДАЧА ДАННЫХ МЕНЕДЖЕРУ ЧЕРЕЗ МЕССЕНДЖЕР (prefill готового текста)
+   Текст формируется автоматически из полей заказа и подставляется
+   в чат мессенджера. Ссылки берутся из настроек админ-панели.
+   ══════════════════════════════════════════════════════════════ */
+let _appSettings = null;        // кэш публичных настроек
+let _msgrUrls = {};             // готовые ссылки с подставленным текстом
+let _lastOrderMessage = '';     // последний сформированный текст (для копирования)
+
+async function loadAppSettings(force) {
+  if (_appSettings && !force) return _appSettings;
+  try { _appSettings = await API.settings(); }
+  catch { _appSettings = (window.SEED && window.SEED.settings) || {}; }
+  return _appSettings || {};
+}
+
+// Собираем готовое сообщение из всех данных заказа.
+function buildOrderMessage(o) {
+  const m = o.meta || {};
+  const lines = [
+    'Здравствуйте!',
+    '',
+    'Я оформил заказ.',
+    '',
+    'Номер заказа: #' + o.id,
+    'Товар: ' + (o.productName || '—'),
+  ];
+  if (o.amount) lines.push('Сумма: ' + fmt(o.amount));
+  lines.push('', 'Данные для выполнения:');
+  if (o.telegram) lines.push('Telegram: ' + o.telegram);
+  const login = m.accLogin || o.psnId;
+  if (login) lines.push('Логин / аккаунт: ' + login);
+  if (m.accPass) lines.push('Пароль: ' + m.accPass);
+  if (o.email || m.email) lines.push('Email: ' + (o.email || m.email));
+  if (m.platform) lines.push('Платформа: ' + m.platform);
+  if (o.comment) lines.push('', 'Комментарий: ' + o.comment);
+  lines.push('', 'Спасибо!');
+  return lines.join('\n');
+}
+
+// Подставляем закодированный текст в ссылку чата (поддержка t.me / wa.me / max и ?text=).
+function msgrWithText(url, text) {
+  if (!url) return '';
+  const enc = encodeURIComponent(text);
+  if (/[?&]text=$/.test(url)) return url + enc;   // ...?text=  → дописываем текст
+  if (/[?&]text=/.test(url))  return url;          // текст уже задан вручную
+  return url + (url.includes('?') ? '&' : '?') + 'text=' + enc;
+}
+
+const _MSGR_DEFS = [
+  ['tg', 'Telegram', 'msgr-tg',
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.27 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>'],
+  ['max', 'MAX', 'msgr-max', ''],
+  ['wa', 'WhatsApp', 'msgr-wa',
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.73 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01zm-2.49 8.98c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.16.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.99-1.22-.74-.65-1.23-1.46-1.38-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.42h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07s.89 2.4 1.02 2.57c.12.17 1.76 2.7 4.27 3.78.6.26 1.06.41 1.42.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.1-.23-.16-.48-.29z"/></svg>'],
+];
+
+// Рендер финального экрана с кнопками мессенджеров (ctx: 'sheet' | 'pay').
+async function renderMessengerHandoff(host, order, ctx) {
   if (!host) return;
+  const text = buildOrderMessage(order);
+  _lastOrderMessage = text;
+
+  const cfg = (await loadAppSettings()).messengers || {};
+  _msgrUrls = {
+    tg:  msgrWithText(cfg.tg,  text),
+    max: msgrWithText(cfg.max, text),
+    wa:  msgrWithText(cfg.wa,  text),
+  };
+
+  const btns = _MSGR_DEFS
+    .filter(d => _msgrUrls[d[0]])
+    .map(([k, label, cls, svg]) =>
+      `<button class="msgr-btn ${cls}" onclick="openMessenger('${k}')">${svg}<span>${esc(label)}</span></button>`)
+    .join('');
+
+  const homeAction = ctx === 'sheet' ? "_forceCloseCheckout();go('#/')" : "go('#/')";
+
   host.innerHTML = `
-    <div class="order-success">
-      <div class="order-success-ico">🎉</div>
-      <div class="order-success-ttl">Данные получены!</div>
+    <div class="order-success msgr-handoff">
+      <div class="order-success-ico">✅</div>
+      <div class="order-success-ttl">Заказ оформлен</div>
       <div class="order-success-sub">
-        Заказ принят в работу.<br>Мы свяжемся с вами в Telegram для выдачи товара.
+        Заказ <b>#${esc(order.id)}</b> принят в работу.<br>
+        Отправьте данные менеджеру — сообщение уже готово.
       </div>
-      <div class="order-id-badge">${esc(order.id)}</div>
-      <button class="submit-btn" style="margin-top:20px" onclick="_forceCloseCheckout();go('#/')">
-        <span>На главную</span>
-      </button>
+      ${btns
+        ? `<div class="msgr-hint">Выберите мессенджер. Если текст не появится в чате — нажмите «Скопировать сообщение».</div>
+           <div class="msgr-btns">${btns}</div>`
+        : `<div class="msgr-hint">Скопируйте сообщение и отправьте его менеджеру удобным способом.</div>`}
+      <button class="msgr-copy" onclick="copyOrderMessage(this)">Скопировать сообщение</button>
+      <button class="submit-btn msgr-home" style="margin-top:14px" onclick="${homeAction}"><span>На главную</span></button>
     </div>`;
+}
+
+function openMessenger(key) {
+  const url = _msgrUrls[key];
+  if (!url) return;
+  // Подстраховка: всегда кладём текст в буфер (на случай, если prefill не сработает).
+  try { _copyMsgrText(_lastOrderMessage); } catch {}
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (key === 'tg' && tg && tg.openTelegramLink) tg.openTelegramLink(url);
+  else if (tg && tg.openLink) tg.openLink(url);
+  else window.open(url, '_blank', 'noopener');
+  if (key === 'max') toast('Текст скопирован — вставьте в чат МАХ');
+}
+
+function copyOrderMessage(btn) {
+  _copyMsgrText(_lastOrderMessage);
+  if (btn) {
+    const t = btn.textContent;
+    btn.textContent = 'Скопировано ✓';
+    setTimeout(() => { btn.textContent = t; }, 1800);
+  }
+}
+
+function _copyMsgrText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+  } else { fallbackCopy(text); }
 }
 
 /* ── Checkout из корзины ─────────────────────────────────────── */
@@ -1054,13 +1164,7 @@ async function _paySuccess(order) {
 function _payFinalSuccess(order) {
   const host = el('payContent');
   if (!host) return;
-  host.innerHTML = `
-    <div class="pay-state">
-      <div class="pay-state-ico">🎉</div>
-      <div class="pay-state-ttl">Заказ принят в работу</div>
-      <div class="pay-state-sub">Заказ <b>${esc(order.id)}</b> оплачен, данные получены.<br>Мы свяжемся с вами в Telegram для выдачи товара.</div>
-      <button class="pay-btn" onclick="go('#/')"><span class="pay-btn-text">На главную</span></button>
-    </div>`;
+  renderMessengerHandoff(host, order, 'pay');
 }
 
 function _payError(msg) {
@@ -1547,4 +1651,5 @@ Object.assign(window, {
   startOrder, sendOrderInfo, clearData,
   startPayment,
   renderProfileOrders, repeatOrder, renderGuarantees, playGrtVideo,
+  openMessenger, copyOrderMessage,
 });
