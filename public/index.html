@@ -116,12 +116,25 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
 }
 .brand{display:flex;align-items:center;gap:var(--sp2);cursor:pointer;user-select:none;flex-shrink:0}
 .brand-logo{
-  width:28px;height:28px;border-radius:var(--r2);
-  background:var(--v);
+  position:relative;
+  width:30px;height:30px;border-radius:9px;
+  background:linear-gradient(150deg,#6d8bff 0%,#5b6bff 45%,#7c4dff 100%);
   display:flex;align-items:center;justify-content:center;
-  font-size:13px;font-weight:700;color:#fff;letter-spacing:-.3px;
-  box-shadow:0 0 0 1px rgba(99,102,241,.3);
+  font-size:14px;font-weight:800;color:#fff;letter-spacing:-.3px;
+  box-shadow:
+    0 4px 14px rgba(91,107,255,.45),
+    0 0 0 1px rgba(150,170,255,.4) inset,
+    0 1px 0 rgba(255,255,255,.35) inset;
+  overflow:hidden;transition:transform .25s cubic-bezier(.16,1,.3,1),box-shadow .25s;
 }
+.brand-logo::after{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(120deg,transparent 35%,rgba(255,255,255,.45) 50%,transparent 65%);
+  transform:translateX(-130%);
+}
+.brand:hover .brand-logo{transform:translateY(-1px) scale(1.04);
+  box-shadow:0 6px 20px rgba(91,107,255,.6),0 0 0 1px rgba(150,170,255,.5) inset,0 1px 0 rgba(255,255,255,.35) inset}
+.brand:hover .brand-logo::after{transform:translateX(130%);transition:transform .6s ease}
 .brand-name{font-size:15px;font-weight:700;letter-spacing:-.4px;color:var(--tx1)}
 .brand-name span{color:var(--tx3);font-weight:500}
 .topbar-gap{flex:1}
@@ -208,7 +221,40 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
   background:radial-gradient(circle at 50% 50%,
     rgba(36,120,255,.55) 0%, rgba(20,72,200,.32) 30%,
     rgba(10,40,130,.14) 52%, transparent 70%);
+  animation:heroGlowPulse 7s ease-in-out infinite;
 }
+@keyframes heroGlowPulse{
+  0%,100%{opacity:.85;transform:translate(-50%,-50%) scale(1)}
+  50%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}
+}
+/* Slow-drifting colour orbs add depth & motion */
+.hero-bg::before,.hero-bg::after{
+  content:'';position:absolute;border-radius:50%;filter:blur(46px);
+  mix-blend-mode:screen;will-change:transform;
+}
+.hero-bg::before{
+  width:300px;height:300px;left:-60px;top:18%;
+  background:radial-gradient(circle,rgba(10,132,255,.5),transparent 70%);
+  animation:heroOrbA 13s ease-in-out infinite;
+}
+.hero-bg::after{
+  width:260px;height:260px;right:-50px;bottom:14%;
+  background:radial-gradient(circle,rgba(124,77,255,.42),transparent 70%);
+  animation:heroOrbB 16s ease-in-out infinite;
+}
+@keyframes heroOrbA{0%,100%{transform:translate(0,0)}50%{transform:translate(40px,30px)}}
+@keyframes heroOrbB{0%,100%{transform:translate(0,0)}50%{transform:translate(-36px,-26px)}}
+/* Conic sweep behind console for premium light play */
+.hero-sweep{
+  position:absolute;left:50%;top:52%;width:min(130vw,760px);aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  background:conic-gradient(from 0deg,transparent 0deg,rgba(90,160,255,.16) 60deg,
+    transparent 130deg,transparent 230deg,rgba(124,77,255,.14) 300deg,transparent 360deg);
+  -webkit-mask-image:radial-gradient(circle,#000 30%,transparent 68%);
+          mask-image:radial-gradient(circle,#000 30%,transparent 68%);
+  animation:heroSweep 24s linear infinite;
+}
+@keyframes heroSweep{to{transform:translate(-50%,-50%) rotate(360deg)}}
 .hero-grid{
   position:absolute;inset:-2px;opacity:.5;
   background-image:
@@ -251,7 +297,9 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
   width:clamp(172px,48vw,300px);
   transform:translateZ(0);
   filter:drop-shadow(0 30px 60px rgba(0,0,0,.55));
+  animation:heroFloat 6s ease-in-out infinite;
 }
+@keyframes heroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
 .hero-console::before{
   content:'';position:absolute;left:50%;top:46%;
   width:155%;aspect-ratio:1;transform:translate(-50%,-50%);
@@ -290,9 +338,10 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
   font-size:14px;font-weight:600;letter-spacing:-.15px;
   cursor:pointer;pointer-events:auto;position:relative;z-index:6;white-space:nowrap;
   -webkit-tap-highlight-color:transparent;
-  transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .25s,background .25s,border-color .25s;
-  overflow:hidden;
+  transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s ease,background .3s ease,border-color .3s ease;
+  overflow:hidden;backdrop-filter:saturate(140%);-webkit-backdrop-filter:saturate(140%);
 }
+.hbtn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(140,185,255,.55),0 8px 26px rgba(20,90,220,.35)}
 .hbtn::after{content:'';position:absolute;inset:0;border-radius:inherit;
   background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.28) 50%,transparent 70%);
   transform:translateX(-130%);transition:transform .6s ease}
@@ -328,6 +377,18 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
 .hero-tag-sep{width:2px;height:2px;border-radius:50%;background:rgba(140,175,255,.35)}
 
 @keyframes heroRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+/* Staggered entrance for foreground content */
+.hero-eyebrow,.hero-btns,.hero-gta-float,.hero-tags{
+  animation:heroRise .7s cubic-bezier(.16,1,.3,1) both;
+}
+.hero-eyebrow{animation-delay:.05s}
+.hero-btns{animation-delay:.16s}
+.hero-gta-float{animation-delay:.27s}
+.hero-tags{animation-delay:.38s}
+@media (prefers-reduced-motion:reduce){
+  .hero-glow,.hero-bg::before,.hero-bg::after,.hero-sweep,.hero-console,
+  .hero-eyebrow,.hero-btns,.hero-gta-float,.hero-tags{animation:none}
+}
 
 /* GTA strip */
 .hero-gta{
@@ -1412,6 +1473,7 @@ nav.bnav{
 
     <!-- Atmospheric background -->
     <div class="hero-bg" aria-hidden="true">
+      <div class="hero-sweep"></div>
       <div class="hero-glow"></div>
       <div class="hero-grid"></div>
       <div class="hero-vignette"></div>
