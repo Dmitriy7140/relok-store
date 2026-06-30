@@ -71,7 +71,7 @@ async function createPayment(order, returnUrl) {
     capture: true,
     confirmation: { type: 'redirect', return_url: returnUrl },
     description: `Заказ ${order.id} · ${String(order.productName || '').slice(0, 100)}`,
-    metadata: { orderId: order.id },
+    metadata: { orderId: order.id, source: 'ps_store' },
   };
 
   const data = await request('POST', '/payments', payload, crypto.randomUUID());
