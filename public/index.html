@@ -248,35 +248,17 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
 }
 .hero-console{
   position:relative;
-  width:clamp(150px,44vw,280px);
+  width:clamp(172px,48vw,300px);
   transform:translateZ(0);
+  filter:drop-shadow(0 30px 60px rgba(0,0,0,.55));
 }
 .hero-console::before{
-  content:'';position:absolute;left:50%;top:48%;
-  width:150%;aspect-ratio:1;transform:translate(-50%,-50%);
-  background:radial-gradient(circle,rgba(40,130,255,.38) 0%,rgba(20,70,200,.14) 42%,transparent 66%);
+  content:'';position:absolute;left:50%;top:46%;
+  width:155%;aspect-ratio:1;transform:translate(-50%,-50%);
+  background:radial-gradient(circle,rgba(40,130,255,.34) 0%,rgba(20,70,200,.12) 44%,transparent 67%);
   z-index:-1;
 }
 .hero-console svg{display:block;width:100%;height:auto}
-
-/* ── Cartoon ghost flying around the console ── */
-.hero-ghost{
-  position:absolute;left:50%;top:50%;z-index:3;
-  width:clamp(46px,12vw,78px);pointer-events:none;
-  margin:-32px 0 0 -32px;
-  transform-origin:center;
-  will-change:transform;backface-visibility:hidden;
-}
-.hero-ghost svg{display:block;width:100%;height:auto}
-@keyframes ghostFly{
-  0%   {transform:translate3d(-126px,-26px,0) scale(.82)}
-  20%  {transform:translate3d(-70px,-114px,0) scale(.74)}
-  40%  {transform:translate3d(70px,-102px,0) scale(.8)}
-  55%  {transform:translate3d(126px,-4px,0) scale(.92)}
-  72%  {transform:translate3d(56px,84px,0) scale(1.04)}
-  88%  {transform:translate3d(-64px,68px,0) scale(.96)}
-  100% {transform:translate3d(-126px,-26px,0) scale(.82)}
-}
 
 /* ── Foreground content (eyebrow top, buttons bottom) ── */
 .hero-content{
@@ -1420,112 +1402,142 @@ nav.bnav{
     <!-- ════ Realistic PlayStation 5 console (vertical) ════ -->
     <div class="hero-stage" aria-hidden="true">
       <div class="hero-console">
-        <svg viewBox="0 0 280 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PlayStation 5">
+        <svg viewBox="0 0 280 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PlayStation 5">
           <defs>
-            <linearGradient id="ps5Panel" x1="0" y1="0" x2="1" y2="0.15">
-              <stop offset="0%"   stop-color="#f4f7fc"/>
-              <stop offset="38%"  stop-color="#ffffff"/>
-              <stop offset="62%"  stop-color="#e7ecf4"/>
-              <stop offset="100%" stop-color="#c2cbda"/>
+            <!-- White outer panel: matte plastic with soft top-down sheen -->
+            <linearGradient id="ps5PanelL" x1="0.05" y1="0" x2="0.95" y2="0.08">
+              <stop offset="0%"   stop-color="#9aa6b8"/>
+              <stop offset="10%"  stop-color="#dfe6f0"/>
+              <stop offset="34%"  stop-color="#ffffff"/>
+              <stop offset="60%"  stop-color="#eef2f8"/>
+              <stop offset="82%"  stop-color="#cfd7e3"/>
+              <stop offset="100%" stop-color="#aab4c4"/>
             </linearGradient>
-            <linearGradient id="ps5PanelR" x1="1" y1="0" x2="0" y2="0.15">
-              <stop offset="0%"   stop-color="#cfd7e4"/>
-              <stop offset="38%"  stop-color="#ffffff"/>
-              <stop offset="62%"  stop-color="#eef2f8"/>
-              <stop offset="100%" stop-color="#d4dbe7"/>
+            <linearGradient id="ps5PanelR" x1="0.95" y1="0" x2="0.05" y2="0.08">
+              <stop offset="0%"   stop-color="#8c97a8"/>
+              <stop offset="10%"  stop-color="#d2dae6"/>
+              <stop offset="34%"  stop-color="#fbfdff"/>
+              <stop offset="60%"  stop-color="#e6ebf3"/>
+              <stop offset="82%"  stop-color="#c2cad8"/>
+              <stop offset="100%" stop-color="#9ba6b6"/>
             </linearGradient>
-            <linearGradient id="ps5Core" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%"   stop-color="#202a3b"/>
-              <stop offset="42%"  stop-color="#0c121b"/>
-              <stop offset="100%" stop-color="#04070d"/>
+            <!-- Vertical fade so panels feel lit from above -->
+            <linearGradient id="ps5PanelV" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stop-color="#ffffff" stop-opacity=".55"/>
+              <stop offset="18%"  stop-color="#ffffff" stop-opacity="0"/>
+              <stop offset="84%"  stop-color="#000000" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#0a1020" stop-opacity=".34"/>
+            </linearGradient>
+            <!-- Glossy black core -->
+            <linearGradient id="ps5Core" x1="0" y1="0" x2="1" y2="0.04">
+              <stop offset="0%"   stop-color="#000305"/>
+              <stop offset="30%"  stop-color="#11161f"/>
+              <stop offset="50%"  stop-color="#1c2532"/>
+              <stop offset="70%"  stop-color="#0c1019"/>
+              <stop offset="100%" stop-color="#020406"/>
+            </linearGradient>
+            <linearGradient id="ps5CoreSheen" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stop-color="#5d7196" stop-opacity=".0"/>
+              <stop offset="8%"   stop-color="#6f87b0" stop-opacity=".55"/>
+              <stop offset="22%"  stop-color="#3a4865" stop-opacity=".12"/>
+              <stop offset="100%" stop-color="#3a4865" stop-opacity="0"/>
             </linearGradient>
             <linearGradient id="ps5Led" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%"   stop-color="#0a84ff" stop-opacity="0"/>
-              <stop offset="24%"  stop-color="#46b0ff"/>
-              <stop offset="76%"  stop-color="#1463ff"/>
+              <stop offset="20%"  stop-color="#67c0ff"/>
+              <stop offset="50%"  stop-color="#2b8bff"/>
+              <stop offset="80%"  stop-color="#1463ff"/>
               <stop offset="100%" stop-color="#0a84ff" stop-opacity="0"/>
             </linearGradient>
-            <radialGradient id="ps5Base" cx="50%" cy="36%" r="70%">
-              <stop offset="0%"   stop-color="#2c3648"/>
-              <stop offset="100%" stop-color="#060911"/>
+            <radialGradient id="ps5Base" cx="50%" cy="32%" r="72%">
+              <stop offset="0%"   stop-color="#39455a"/>
+              <stop offset="55%"  stop-color="#10151f"/>
+              <stop offset="100%" stop-color="#04070c"/>
             </radialGradient>
-            <filter id="ps5LedGlow" x="-160%" y="-40%" width="420%" height="180%">
-              <feGaussianBlur stdDeviation="4.5" result="b"/>
+            <radialGradient id="ps5FloorGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%"   stop-color="#1f4fa8" stop-opacity=".45"/>
+              <stop offset="100%" stop-color="#1f4fa8" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="ps5LedGlow" x="-200%" y="-30%" width="500%" height="160%">
+              <feGaussianBlur stdDeviation="5" result="b"/>
               <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="ps5Soft" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="7"/>
             </filter>
           </defs>
 
-          <!-- Contact shadow -->
-          <ellipse cx="140" cy="474" rx="86" ry="15" fill="#000" opacity=".45" filter="url(#ps5LedGlow)"/>
+          <!-- Floor glow + soft contact shadow -->
+          <ellipse cx="140" cy="486" rx="118" ry="30" fill="url(#ps5FloorGlow)"/>
+          <ellipse cx="140" cy="490" rx="92" ry="17" fill="#000" opacity=".55" filter="url(#ps5Soft)"/>
 
           <!-- Round vertical stand -->
-          <ellipse cx="140" cy="462" rx="70" ry="16" fill="url(#ps5Base)"/>
-          <ellipse cx="140" cy="458" rx="70" ry="16" fill="#0b1018"/>
-          <ellipse cx="140" cy="456" rx="56" ry="11" fill="#161d2a"/>
-          <rect x="124" y="430" width="32" height="22" fill="#0c121b"/>
+          <ellipse cx="140" cy="476" rx="74" ry="17" fill="#02040a"/>
+          <ellipse cx="140" cy="472" rx="74" ry="17" fill="url(#ps5Base)"/>
+          <ellipse cx="140" cy="469" rx="58" ry="12" fill="#0a0f18"/>
+          <ellipse cx="140" cy="468" rx="58" ry="12" fill="none" stroke="#46566f" stroke-width="1" opacity=".5"/>
+          <path d="M118 440 h44 l-5 24 a4 4 0 0 1 -4 3 h-26 a4 4 0 0 1 -4 -3 Z" fill="#070b12"/>
 
-          <!-- Dark glossy core column -->
-          <path d="M108 44 H172 a8 8 0 0 1 8 8 V424 a8 8 0 0 1 -8 8 H108 a8 8 0 0 1 -8 -8 V52 a8 8 0 0 1 8 -8 Z" fill="url(#ps5Core)"/>
-          <rect x="116" y="58" width="9" height="356" rx="4" fill="#46597a" opacity=".4"/>
+          <!-- ===== Console body ===== -->
+          <!-- Glossy black core column -->
+          <path d="M104 40 H176 a10 10 0 0 1 10 10 V430 a10 10 0 0 1 -10 10 H104 a10 10 0 0 1 -10 -10 V50 a10 10 0 0 1 10 -10 Z" fill="url(#ps5Core)"/>
+          <!-- Core vertical reflection -->
+          <path d="M104 40 H176 a10 10 0 0 1 10 10 V430 a10 10 0 0 1 -10 10 H104 a10 10 0 0 1 -10 -10 V50 a10 10 0 0 1 10 -10 Z" fill="url(#ps5CoreSheen)"/>
+          <rect x="112" y="56" width="7" height="368" rx="3.5" fill="#5e74a0" opacity=".35"/>
+          <rect x="161" y="56" width="3" height="368" rx="1.5" fill="#000" opacity=".5"/>
 
-          <!-- Central blue light bar -->
-          <rect x="138" y="74" width="4" height="332" rx="2" fill="url(#ps5Led)" filter="url(#ps5LedGlow)"/>
+          <!-- Central blue light bar with glow -->
+          <rect x="138" y="70" width="3.4" height="344" rx="1.7" fill="url(#ps5Led)" filter="url(#ps5LedGlow)"/>
 
-          <!-- Left white panel (PS5 curved sail) -->
-          <path d="M112 44
-                   C 96 44 84 52 78 70
-                   C 70 96 66 150 66 250
-                   C 66 350 70 404 78 428
-                   C 84 444 96 452 112 452
-                   Z" fill="url(#ps5Panel)"/>
+          <!-- Left white panel (PS5 sail, split top/bottom) -->
+          <path d="M110 40
+                   C 92 40 80 49 73 70
+                   C 66 92 62 150 62 252
+                   C 62 354 66 410 73 430
+                   C 80 451 92 460 110 460
+                   Z" fill="url(#ps5PanelL)"/>
+          <path d="M110 40
+                   C 92 40 80 49 73 70
+                   C 66 92 62 150 62 252
+                   C 62 354 66 410 73 430
+                   C 80 451 92 460 110 460
+                   Z" fill="url(#ps5PanelV)"/>
           <!-- Right white panel -->
-          <path d="M168 44
-                   C 184 44 196 52 202 70
-                   C 210 96 214 150 214 250
-                   C 214 350 210 404 202 428
-                   C 196 444 184 452 168 452
+          <path d="M170 40
+                   C 188 40 200 49 207 70
+                   C 214 92 218 150 218 252
+                   C 218 354 214 410 207 430
+                   C 200 451 188 460 170 460
                    Z" fill="url(#ps5PanelR)"/>
+          <path d="M170 40
+                   C 188 40 200 49 207 70
+                   C 214 92 218 150 218 252
+                   C 218 354 214 410 207 430
+                   C 200 451 188 460 170 460
+                   Z" fill="url(#ps5PanelV)"/>
 
-          <!-- Panel inner seams (where white meets black) -->
-          <path d="M112 44 C 96 44 84 52 78 70 C 70 96 66 150 66 250 C 66 350 70 404 78 428 C 84 444 96 452 112 452"
-                fill="none" stroke="#aab4c6" stroke-width="1.2" opacity=".6"/>
-          <path d="M168 44 C 184 44 196 52 202 70 C 210 96 214 150 214 250 C 214 350 210 404 202 428 C 196 444 184 452 168 452"
-                fill="none" stroke="#aab4c6" stroke-width="1.2" opacity=".6"/>
+          <!-- Panel split seam (PS5 Slim two-piece plate) -->
+          <path d="M62 250 H110" fill="none" stroke="#9aa6ba" stroke-width="1" opacity=".5"/>
+          <path d="M170 250 H218" fill="none" stroke="#8995ab" stroke-width="1" opacity=".5"/>
 
-          <!-- Specular highlights -->
-          <path d="M86 96 C 78 180 78 320 86 404" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" opacity=".6"/>
-          <path d="M196 96 C 204 180 204 320 196 404" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity=".22"/>
-          <ellipse cx="140" cy="52" rx="30" ry="7" fill="#ffffff" opacity=".5"/>
+          <!-- Inner seam shadow where white meets black core -->
+          <path d="M110 40 C 92 40 80 49 73 70 C 66 92 62 150 62 252 C 62 354 66 410 73 430 C 80 451 92 460 110 460"
+                fill="none" stroke="#0b1018" stroke-width="2.4" opacity=".35"/>
+          <path d="M170 40 C 188 40 200 49 207 70 C 214 92 218 150 218 252 C 218 354 214 410 207 430 C 200 451 188 460 170 460"
+                fill="none" stroke="#0b1018" stroke-width="2.4" opacity=".35"/>
+          <line x1="106" y1="44" x2="106" y2="456" stroke="#0a0e16" stroke-width="2" opacity=".5"/>
+          <line x1="174" y1="44" x2="174" y2="456" stroke="#0a0e16" stroke-width="2" opacity=".5"/>
 
-          <!-- Bottom port hints -->
-          <circle cx="128" cy="402" r="2.2" fill="#0a84ff" opacity=".85"/>
-          <rect x="138" y="398" width="13" height="6" rx="2" fill="#222c3d"/>
-        </svg>
-      </div>
+          <!-- Rim specular highlights on the curved edges -->
+          <path d="M80 92 C 72 180 72 326 80 408" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity=".75"/>
+          <path d="M200 92 C 208 180 208 326 200 408" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity=".3"/>
+          <ellipse cx="140" cy="47" rx="40" ry="6" fill="#ffffff" opacity=".35"/>
+          <!-- Soft inner glossy reflection on left plate -->
+          <path d="M92 80 C 86 170 86 330 92 420" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" opacity=".18"/>
 
-      <!-- Cartoon ghost flying around the console -->
-      <div class="hero-ghost">
-        <svg viewBox="0 0 120 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ghost">
-          <defs>
-            <linearGradient id="ghBody" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#ffffff"/>
-              <stop offset="100%" stop-color="#dfe9ff"/>
-            </linearGradient>
-          </defs>
-          <path d="M60 8
-                   C 32 8 18 30 18 58
-                   V104
-                   c0 6 7 9 11 4 l6 -8 c2 -3 6 -3 8 0 l6 8 c2 3 6 3 8 0 l6 -8 c2 -3 6 -3 8 0 l6 8
-                   c4 5 11 2 11 -4 V58
-                   C 102 30 88 8 60 8 Z"
-                fill="url(#ghBody)" stroke="#b9ccf0" stroke-width="1.5"/>
-          <ellipse cx="46" cy="54" rx="7" ry="9" fill="#2b3550"/>
-          <ellipse cx="74" cy="54" rx="7" ry="9" fill="#2b3550"/>
-          <circle cx="44" cy="51" r="2.4" fill="#fff"/>
-          <circle cx="72" cy="51" r="2.4" fill="#fff"/>
-          <ellipse cx="34" cy="68" rx="6" ry="4" fill="#ffb6c8" opacity=".75"/>
-          <ellipse cx="86" cy="68" rx="6" ry="4" fill="#ffb6c8" opacity=".75"/>
-          <path d="M53 70 Q60 76 67 70" fill="none" stroke="#2b3550" stroke-width="2.4" stroke-linecap="round"/>
+          <!-- Bottom power/port hints -->
+          <circle cx="128" cy="408" r="2" fill="#0a84ff" opacity=".9"/>
+          <rect x="136" y="404" width="12" height="5" rx="2" fill="#1b2230"/>
         </svg>
       </div>
     </div>
