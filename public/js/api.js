@@ -117,7 +117,7 @@ window.API = (function () {
     patchOrderAdmin:  (id, b) => req('PATCH',  '/orders/' + id, b),
 
     // ── Оплата (ЮKassa) ──
-    createPayment:    (orderId) => req('POST', '/pay/create', { orderId }),
+    createPayment:    (orderId, receiptEmail) => req('POST', '/pay/create', { orderId, receiptEmail }),
     payStatus:        (orderId) => req('GET',  '/pay/status/' + orderId),
 
     // ── Prices ── (bug2 fix: перенесено внутрь IIFE, req доступен)

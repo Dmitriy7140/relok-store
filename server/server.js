@@ -915,7 +915,7 @@ async function api(req, res, url) {
     // Возврат пользователя на экран оплаты заказа
     const returnUrl = `${baseUrl(req)}/#/pay/${order.id}`;
     try {
-      const p = await pay.createPayment(order, returnUrl);
+      const p = await pay.createPayment(order, returnUrl, b.receiptEmail);
       // Сохраняем paymentId в meta заказа
       const meta = order.meta || {}; meta.paymentId = p.id;
       run('UPDATE orders SET meta=?, updated_at=datetime(\'now\') WHERE id=?', [JSON.stringify(meta), order.id]);

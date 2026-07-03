@@ -62,13 +62,17 @@ function request(method, path, body, idempotenceKey) {
    order     — заказ из БД (shapeOrder)
    returnUrl — куда вернуть пользователя после оплаты
    Возвращает { id, status, confirmationUrl, raw } */
-async function createPayment(order, returnUrl) {
+async function createPayment(order, returnUrl, receiptEmail) {
   if (!CONFIGURED) throw new Error('ЮKassa не настроена (нет SHOP_ID / SECRET_KEY)');
   const value = (Math.round(Number(order.amount) || 0)).toFixed(2); // "1234.00"
 
-  // Фискальный чек (54-ФЗ). Email — из заказа (поле Email клиента).
-  const email = String(order.email || '').trim();
-  if (!email) throw new Error('Не указан email клиента для чека');
+  // Фискальный чек (54-ФЗ). Email для чека: введённый клиентом на шаге оплаты →
+  // email заказа → почта магазина по умолчанию (если клиент пропустил ввод).
+  const FALLBACK_EMAIL = process.env.RECEIPT_FALLBACK_EMAIL || 'support2pay@gmail.com';
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const email = [receiptEmail, order.email]
+    .map((e) => String(e || '').trim())
+    .find((e) => emailRe.test(e)) || FALLBACK_EMAIL;
   const receipt = {
     customer: { email },
     items: [{

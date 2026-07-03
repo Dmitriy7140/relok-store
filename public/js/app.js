@@ -1104,12 +1104,78 @@ async function renderPay(orderId) {
   _startPayPoll();
 }
 
-async function startPayment() {
+const _EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Клик «Оплатить» — сначала спрашиваем email для чека (модалка поверх всего)
+function startPayment() {
+  if (!_payOrderId) return;
+  openPayEmailModal();
+}
+
+function openPayEmailModal() {
+  if (el('payEmailModal')) return;
+  if (!el('payEmailStyles')) {
+    const st = document.createElement('style');
+    st.id = 'payEmailStyles';
+    st.textContent = `
+      .pem-overlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(4,2,12,.72);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+      .pem-card{width:100%;max-width:360px;background:var(--s2,#17141f);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:22px 20px;box-shadow:0 24px 60px rgba(0,0,0,.55);animation:pemIn .18s ease}
+      @keyframes pemIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+      .pem-ttl{font-size:17px;font-weight:700;color:#fff;margin-bottom:6px}
+      .pem-sub{font-size:13px;color:rgba(255,255,255,.5);line-height:1.5;margin-bottom:16px}
+      .pem-input{width:100%;height:46px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#fff;font-size:15px;outline:none;box-sizing:border-box}
+      .pem-input:focus{border-color:#6366f1}
+      .pem-input.err{border-color:#ff453a}
+      .pem-err{display:none;color:#ff453a;font-size:12px;margin-top:7px}
+      .pem-btn{width:100%;height:48px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin-top:12px}
+      .pem-btn.primary{background:#6366f1;color:#fff}
+      .pem-btn.primary:active{opacity:.9}
+      .pem-btn.ghost{background:transparent;color:rgba(255,255,255,.55)}`;
+    document.head.appendChild(st);
+  }
+  const wrap = document.createElement('div');
+  wrap.id = 'payEmailModal';
+  wrap.className = 'pem-overlay';
+  // фон не кликабельный (нет обработчика закрытия по клику вне карточки)
+  wrap.innerHTML = `
+    <div class="pem-card" role="dialog" aria-modal="true">
+      <div class="pem-ttl">Email для чека</div>
+      <div class="pem-sub">Пришлём кассовый чек на этот адрес. Можно пропустить — тогда чек уйдёт на нашу почту.</div>
+      <input id="payEmailInput" class="pem-input" type="email" inputmode="email" placeholder="email@domain.com" autocomplete="email">
+      <div class="pem-err" id="payEmailErr">Введите корректный email (email@domain.com)</div>
+      <button class="pem-btn primary" onclick="confirmPayEmail()">Оплатить</button>
+      <button class="pem-btn ghost" onclick="skipPayEmail()">Без чека на почту</button>
+    </div>`;
+  document.body.appendChild(wrap);
+  const inp = el('payEmailInput');
+  setTimeout(() => inp?.focus(), 50);
+  inp?.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmPayEmail(); });
+}
+
+function _closePayEmailModal() { el('payEmailModal')?.remove(); }
+
+function confirmPayEmail() {
+  const val = (el('payEmailInput')?.value || '').trim();
+  if (!_EMAIL_RE.test(val)) {
+    const err = el('payEmailErr'); if (err) err.style.display = 'block';
+    el('payEmailInput')?.classList.add('err');
+    return;
+  }
+  _closePayEmailModal();
+  _doPayment(val);
+}
+
+function skipPayEmail() {
+  _closePayEmailModal();
+  _doPayment('');   // без email → чек уйдёт на почту магазина
+}
+
+async function _doPayment(receiptEmail) {
   if (!_payOrderId) return;
   const btn = el('payBtn');
   if (btn) { btn.classList.add('loading'); btn.disabled = true; }
   try {
-    const { confirmationUrl } = await API.createPayment(_payOrderId);
+    const { confirmationUrl } = await API.createPayment(_payOrderId, receiptEmail);
     if (!confirmationUrl) throw new Error('Платёжная система не вернула ссылку');
     _startPayPoll();
     // Открываем страницу оплаты ЮKassa
@@ -1648,7 +1714,7 @@ Object.assign(window, {
   renderCart, removeCart, checkout,
   openCheckout, openCheckoutDirect, closeCheckout, _forceCloseCheckout,
   startOrder, sendOrderInfo, clearData,
-  startPayment,
+  startPayment, confirmPayEmail, skipPayEmail,
   renderProfileOrders, repeatOrder, renderGuarantees, playGrtVideo,
   openMessenger, copyOrderMessage,
 });
