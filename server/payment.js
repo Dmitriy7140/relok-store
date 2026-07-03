@@ -66,11 +66,27 @@ async function createPayment(order, returnUrl) {
   if (!CONFIGURED) throw new Error('ЮKassa не настроена (нет SHOP_ID / SECRET_KEY)');
   const value = (Math.round(Number(order.amount) || 0)).toFixed(2); // "1234.00"
 
+  // Фискальный чек (54-ФЗ). Email — из заказа (поле Email клиента).
+  const email = String(order.email || '').trim();
+  if (!email) throw new Error('Не указан email клиента для чека');
+  const receipt = {
+    customer: { email },
+    items: [{
+      description: String(order.productName || 'Цифровой информационный материал').slice(0, 128),
+      quantity: '1.00',
+      amount: { value, currency: 'RUB' },
+      vat_code: 1,               // 1 = без НДС
+      payment_subject: 'service',
+      payment_mode: 'full_prepayment',
+    }],
+  };
+
   const payload = {
     amount: { value, currency: 'RUB' },
     capture: true,
     confirmation: { type: 'redirect', return_url: returnUrl },
     description: `Заказ ${order.id} · ${String(order.productName || '').slice(0, 100)}`,
+    receipt,
     metadata: { orderId: order.id, source: 'ps_store' },
   };
 
