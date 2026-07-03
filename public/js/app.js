@@ -1140,7 +1140,7 @@ function openPayEmailModal() {
   wrap.innerHTML = `
     <div class="pem-card" role="dialog" aria-modal="true">
       <div class="pem-ttl">Email для чека</div>
-      <div class="pem-sub">Пришлём кассовый чек на этот адрес. Можно пропустить — тогда чек уйдёт на нашу почту.</div>
+      <div class="pem-sub">Введите email для чека, можно пропустить.</div>
       <input id="payEmailInput" class="pem-input" type="email" inputmode="email" placeholder="email@domain.com" autocomplete="email">
       <div class="pem-err" id="payEmailErr">Введите корректный email (email@domain.com)</div>
       <button class="pem-btn primary" onclick="confirmPayEmail()">Оплатить</button>
