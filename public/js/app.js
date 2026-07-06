@@ -352,6 +352,65 @@ function setGamesCat(catId) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   CODES SCREEN — коды пополнения / промокоды магазина
+   ══════════════════════════════════════════════════════════════ */
+async function loadCodes() {
+  const host = el('codesContent');
+  const cntEl = el('codesCnt');
+  if (!host) return;
+
+  // Skeleton
+  host.innerHTML = `<div class="games-grid">${Array(4).fill(`
+    <div class="sk-gcard">
+      <div class="sk-cover sk" style="height:110px"></div>
+      <div class="sk-body"><div class="sk" style="height:10px;width:50%;border-radius:4px"></div>
+      <div class="sk" style="height:14px;border-radius:5px"></div>
+      <div class="sk" style="height:32px;border-radius:8px;margin-top:6px"></div></div>
+    </div>`).join('')}</div>`;
+
+  try {
+    const [prodData, cats] = await Promise.all([
+      API.products({ type: 'code', sort: 'popular', limit: 200 }),
+      API.categories().catch(() => []),
+    ]);
+    const items = prodData.items || [];
+    if (cntEl) cntEl.textContent = `${items.length.toLocaleString('ru-RU')} ${plural(items.length,'код','кода','кодов')}`;
+
+    if (!items.length) {
+      host.innerHTML = `<div class="empty"><div class="empty-ico">💳</div><div class="empty-h">Пока нет кодов</div>
+        <div class="empty-p">Коды пополнения появятся здесь</div></div>`;
+      return;
+    }
+
+    // Группируем по категориям, если они заданы (сохраняем структуру магазина)
+    const catTitle = {};
+    (cats || []).forEach(c => { catTitle[c.id] = c.title; });
+    const groups = new Map();
+    items.forEach(p => {
+      const key = p.categoryId != null && catTitle[p.categoryId] ? p.categoryId : '__other';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(p);
+    });
+
+    // Один общий заголовок не нужен, если категория единственная
+    const multi = groups.size > 1;
+    let html = '';
+    for (const [key, list] of groups) {
+      if (multi) {
+        const title = key === '__other' ? 'Прочее' : catTitle[key];
+        html += `<div class="catalog-meta" style="margin-top:var(--sp3)"><span class="catalog-count">${esc(title)}</span></div>`;
+      }
+      html += `<div class="games-grid">${list.map(gameCard).join('')}</div>`;
+    }
+    host.innerHTML = html;
+  } catch (e) {
+    console.error(e);
+    host.innerHTML = `<div class="empty"><div class="empty-ico">⚠️</div><div class="empty-h">Ошибка</div>
+      <button class="empty-btn" onclick="loadCodes()">Повторить</button></div>`;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
    PRODUCT MODAL
    ══════════════════════════════════════════════════════════════ */
 let modalProduct = null;
@@ -1289,6 +1348,9 @@ function route() {
     showScreen('games', 'games');
     loadGamesChips();
     loadGames();
+  } else if (root === 'codes') {
+    showScreen('codes', 'codes');
+    loadCodes();
   } else if (root === 'wish') {
     showScreen('wish', 'wish');
     renderWish();
@@ -1296,7 +1358,7 @@ function route() {
     showScreen('cart', 'cart');
     renderCart();
   } else if (root === 'bonus') {
-    showScreen('bonus', 'bonus');
+    showScreen('bonus', 'profile');
     renderBonus();
   } else if (root === 'profile') {
     showScreen('profile', 'profile');
@@ -1710,6 +1772,7 @@ Object.assign(window, {
   openProduct, closeModal, buyFromModal, quickAdd, toggleWish, setPeriod,
   loadSubs, selectSubPeriod, addSubToCart,
   loadGames, onGamesSearch, gamesGoPage, resetGames, setGamesCat,
+  loadCodes,
   renderWish, removeWish, wishToCart,
   renderCart, removeCart, checkout,
   openCheckout, openCheckoutDirect, closeCheckout, _forceCloseCheckout,

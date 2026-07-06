@@ -35,7 +35,7 @@ function toastLoad(msg) {
 }
 
 /* ── Состояние ──────────────────────────────────────────────── */
-const S = { products: [], categories: [], media: [], tab: 'dash', filter: '', editing: null, settings: {} };
+const S = { products: [], categories: [], media: [], tab: 'dash', filter: '', sort: '', editing: null, settings: {} };
 
 /* ── Авторизация ────────────────────────────────────────────── */
 async function doLogin() {
@@ -97,7 +97,7 @@ function updateCounts() {
 
 /* ── Navigation ─────────────────────────────────────────────── */
 function tab(name) {
-  S.tab = name; S.filter = '';
+  S.tab = name; S.filter = ''; S.sort = '';
   document.querySelectorAll('[data-tab]').forEach(n => n.classList.toggle('on', n.dataset.tab===name));
   const r = {
     dash: renderDash, products: () => renderProducts('game'),
@@ -182,7 +182,12 @@ function renderProducts(type) {
     </div>
     <div class="bar">
       <input class="inp" style="max-width:280px;height:42px" placeholder="Поиск по названию…" oninput="S.filter=this.value;renderList('${type}')">
-      <div class="bar-hint">Перетащите ⠿ для изменения порядка</div>
+      <select class="inp" style="max-width:220px;height:42px" onchange="S.sort=this.value;renderList('${type}')">
+        <option value=""${S.sort===''?' selected':''}>По порядку (вручную)</option>
+        <option value="price_asc"${S.sort==='price_asc'?' selected':''}>Цена: по возрастанию ↑</option>
+        <option value="price_desc"${S.sort==='price_desc'?' selected':''}>Цена: по убыванию ↓</option>
+      </select>
+      <div class="bar-hint">${S.sort?'Сортировка по цене — перетаскивание отключено':'Перетащите ⠿ для изменения порядка'}</div>
     </div>
     <div class="panel" id="plist"></div>`;
   renderList(type);
@@ -192,12 +197,15 @@ function renderList(type) {
   let items = S.products.filter(p => p.type===type);
   const q = (S.filter||'').trim().toLowerCase();
   if (q) items = items.filter(p => p.name.toLowerCase().includes(q) || (p.platform||'').toLowerCase().includes(q));
-  items.sort((a,b) => a.position-b.position || a.id-b.id);
+  if (S.sort === 'price_asc')       items.sort((a,b) => a.price-b.price || a.position-b.position || a.id-b.id);
+  else if (S.sort === 'price_desc') items.sort((a,b) => b.price-a.price || a.position-b.position || a.id-b.id);
+  else                              items.sort((a,b) => a.position-b.position || a.id-b.id);
   const host = el('plist'); if (!host) return;
   host.innerHTML = items.length
     ? items.map(rowHTML).join('')
     : emptyMini('🔍', q ? 'Ничего не найдено' : 'Пока пусто', q ? 'Измените запрос' : 'Добавьте первый товар');
-  if (!q) enableDrag(host, type);
+  // Перетаскивание доступно только в ручном порядке и без активного поиска/сортировки
+  if (!q && !S.sort) enableDrag(host, type);
 }
 
 function tags(p) {
@@ -208,6 +216,7 @@ function tags(p) {
   if (p.isSale||p.oldPrice) t += '<span class="tag tag-sale">sale</span>';
   if (p.isPreorder)t += '<span class="tag tag-pre">pre</span>';
   if (!p.inStock)  t += '<span class="tag" style="background:rgba(255,69,58,.14);color:var(--red)">нет</span>';
+  if (p.meta && p.meta.autoAdded) t += '<span class="tag tag-auto" title="Добавлено из магазина автоматически — проверьте цену">⚠️ из магазина</span>';
   return t;
 }
 
@@ -215,8 +224,10 @@ function rowHTML(p) {
   const cov = p.image
     ? `<img src="${p.image}" onerror="this.style.display='none'">`
     : (p.emoji||'🎮');
-  return `<div class="prow" data-id="${p.id}" ${S.tab!=='dash'&&!S.filter?'draggable="true"':''}>
-    <span class="drag-h" style="${S.tab==='dash'?'visibility:hidden':''}">⠿</span>
+  const auto = p.meta && p.meta.autoAdded ? ' auto-added' : '';
+  const canDrag = S.tab!=='dash' && !S.filter && !S.sort;
+  return `<div class="prow${auto}" data-id="${p.id}" ${canDrag?'draggable="true"':''}>
+    <span class="drag-h" style="${S.tab==='dash'||S.sort?'visibility:hidden':''}">⠿</span>
     <div class="p-cover">${cov}</div>
     <div class="p-main">
       <div class="p-name">${esc(p.name)} ${tags(p)}</div>

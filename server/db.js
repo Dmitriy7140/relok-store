@@ -959,4 +959,69 @@ function backfillImages() {
 }
 try { backfillImages(); } catch (e) { console.error('[IMAGES] ошибка дозаполнения:', e.message); }
 
+/* ── Сверка каталога магазина с БД ───────────────────────────────
+   В офлайн-каталоге витрины (public/js/seed.js → window.SEED.products)
+   могут быть товары, которых нет в БД (напр. каталог расширяли, а seed()
+   пропускает пересев из-за guard). Такие товары видны в магазине, но
+   недоступны в админке. Здесь мы находим отсутствующие в БД товары и
+   добавляем их, помечая meta.autoAdded=true — админка подсветит их,
+   чтобы владелец вручную проверил цены. Операция идемпотентна и
+   НЕ изменяет существующие товары (только добавляет недостающие). */
+function reconcileStoreCatalog() {
+  const seedPath = path.join(__dirname, '..', 'public', 'js', 'seed.js');
+  let raw;
+  try { raw = fs.readFileSync(seedPath, 'utf8'); }
+  catch (e) { console.warn('[RECONCILE] seed.js не найден — пропуск:', e.message); return; }
+
+  // Извлекаем массивы products и categories (чистый JSON внутри seed.js)
+  const pm = raw.match(/products\s*:\s*(\[[\s\S]*?\])\s*,\s*settings\s*:/);
+  if (!pm) { console.warn('[RECONCILE] не удалось извлечь products из seed.js'); return; }
+  let seedProducts, seedCats = [];
+  try { seedProducts = JSON.parse(pm[1]); }
+  catch (e) { console.warn('[RECONCILE] ошибка парсинга products:', e.message); return; }
+  const cm = raw.match(/categories\s*:\s*(\[[\s\S]*?\])\s*,\s*products\s*:/);
+  try { if (cm) seedCats = JSON.parse(cm[1]); } catch {}
+
+  const REGION = 'tr'; // офлайн-каталог витрины = магазин Турции
+  const seedSlugById = {};
+  seedCats.forEach(c => { seedSlugById[c.id] = c.slug; });
+  const dbCatIdBySlug = {};
+  all('SELECT id, slug FROM categories WHERE region=?', [REGION])
+    .forEach(c => { dbCatIdBySlug[c.slug] = c.id; });
+
+  const norm = s => String(s || '').trim().toLowerCase();
+  const keyOf = (name, platform, type) => `${norm(name)}|${norm(platform)}|${norm(type)}`;
+  const existing = new Set();
+  all('SELECT name, platform, type FROM products WHERE region=?', [REGION])
+    .forEach(r => existing.add(keyOf(r.name, r.platform, r.type)));
+
+  let maxPos = get('SELECT COALESCE(MAX(position),-1) AS p FROM products WHERE region=?', [REGION]).p;
+  let added = 0;
+  for (const p of seedProducts) {
+    if (p.hidden) continue;
+    const key = keyOf(p.name, p.platform, p.type);
+    if (existing.has(key)) continue;
+    existing.add(key); // защита от дублей внутри самого seed
+    const slug = seedSlugById[p.categoryId];
+    const catId = (slug && dbCatIdBySlug[slug] != null) ? dbCatIdBySlug[slug] : null;
+    const meta = (p.meta && typeof p.meta === 'object') ? { ...p.meta } : {};
+    meta.autoAdded = true; // маркер для подсветки в админке
+    run(`INSERT INTO products
+      (type,category_id,name,description,emoji,image,platform,edition,
+       price,old_price,in_stock,popularity,is_new,is_sale,is_preorder,is_featured,
+       position,hidden,meta,region)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [p.type || 'game', catId, p.name, p.description || '', p.emoji || '🎮', p.image || '',
+       p.platform || '', p.edition || '', Math.round(+p.price || 0),
+       p.oldPrice ? Math.round(+p.oldPrice) : null,
+       p.inStock === false ? 0 : 1, +p.popularity || 0,
+       p.isNew ? 1 : 0, (p.isSale || (p.oldPrice && +p.oldPrice > +p.price)) ? 1 : 0,
+       p.isPreorder ? 1 : 0, p.isFeatured ? 1 : 0,
+       ++maxPos, 0, JSON.stringify(meta), REGION]);
+    added++;
+  }
+  if (added) console.log(`[RECONCILE] Добавлено недостающих товаров из магазина: ${added} (помечены как autoAdded)`);
+}
+try { reconcileStoreCatalog(); } catch (e) { console.error('[RECONCILE] ошибка сверки каталога:', e.message); }
+
 module.exports = { db, all, get, run, tx, generateOrderId, shapeOrder };
