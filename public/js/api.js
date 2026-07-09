@@ -69,12 +69,20 @@ window.API = (function () {
     // ── Products / Categories / Settings ──────────────────────
     async products(params) {
       const p = { region, ...(params || {}) };
+      // Витрина = только админка: показываем ТОЛЬКО товары из БД.
+      // Офлайн-подмену из seed.js не используем, чтобы в магазине не появлялись
+      // «фантомные» товары, которых нет в админ-панели.
       try { return await req('GET', '/products' + qs(p)); }
-      catch (e) { offline = true; markOffline(); return window.queryLocal(p); }
+      catch (e) {
+        offline = true; markOffline();
+        const limit = +(p.limit || p.pageSize || 24) || 24;
+        return { items: [], total: 0, page: +(p.page || 1) || 1, limit, pages: 0 };
+      }
     },
     async product(id) {
+      // Витрина = только админка: карточка товара только из БД.
       try { return await req('GET', '/products/' + id); }
-      catch (e) { offline = true; markOffline(); return SEED.products.find(p => p.id === +id); }
+      catch (e) { offline = true; markOffline(); return null; }
     },
     async categories() {
       try { return await req('GET', '/categories' + qs({ region })); }

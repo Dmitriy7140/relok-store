@@ -452,6 +452,7 @@ async function openProduct(id) {
 
   try {
     const p = await API.product(id);
+    _pCache[id] = p;               // синхронизируем цену корзины с карточкой товара
     modalProduct = p; modalPeriod = 1;
     renderModal(p);
   } catch (e) {
@@ -643,14 +644,16 @@ const _pCache = {};
 
 async function productInfo(id) {
   if (_pCache[id]) return _pCache[id];
-  // Try seed first (instant)
-  const fromSeed = (window.SEED?.products || []).find(p => p.id === id);
-  if (fromSeed) { _pCache[id] = fromSeed; return fromSeed; }
-  // Fetch from server
+  // Сначала берём АКТУАЛЬНЫЕ данные с сервера (цена из БД, как в карточке товара).
+  // Раньше здесь первым читался офлайн-снапшот SEED со старыми ценами — из-за этого
+  // в корзине цена отличалась от цены в карточке. Теперь SEED — только офлайн-фолбэк.
   try {
     const p = await API.product(id);
     if (p) { _pCache[id] = p; return p; }
   } catch {}
+  // Офлайн-фолбэк — снапшот витрины (может содержать устаревшие цены)
+  const fromSeed = (window.SEED?.products || []).find(p => p.id === id);
+  if (fromSeed) return fromSeed;
   return { id, name: 'Товар #' + id, price: 0, emoji: '📦', platform: '', meta: {} };
 }
 
