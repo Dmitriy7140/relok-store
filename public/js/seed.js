@@ -653,33 +653,6 @@ window.SEED={
     }
   },
   {
-    "id": 25,
-    "type": "game",
-    "categoryId": 3,
-    "name": "Resident Evil 4 Remake",
-    "emoji": "🧟",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 860,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 88,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Леон Кеннеди, Испания и культисты. Культовый хоррор переделан с нуля. Лучший ремейк в серии и один из лучших шутеров пос",
-    "originalPriceTRY": 999,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "60 ГБ",
-      "rating": "18+",
-      "lang": "RU субтитры",
-      "players": "1"
-    }
-  },
-  {
     "id": 26,
     "type": "game",
     "categoryId": 3,
@@ -707,33 +680,6 @@ window.SEED={
     }
   },
   {
-    "id": 27,
-    "type": "game",
-    "categoryId": 3,
-    "name": "Hogwarts Legacy",
-    "emoji": "🪄",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 860,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 87,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Открытый мир волшебства в XIX веке. Хогвартс, магические существа и тёмные секреты. 40 часов в любимой вселенной Гарри П",
-    "originalPriceTRY": 999,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "65 ГБ",
-      "rating": "12+",
-      "lang": "RU субтитры",
-      "players": "1"
-    }
-  },
-  {
     "id": 28,
     "type": "game",
     "categoryId": 3,
@@ -758,60 +704,6 @@ window.SEED={
       "rating": "16+",
       "lang": "RU субтитры",
       "players": "1"
-    }
-  },
-  {
-    "id": 29,
-    "type": "game",
-    "categoryId": 4,
-    "name": "God of War Ragnarök: Valhalla",
-    "emoji": "⚡",
-    "platform": "PS4/PS5",
-    "edition": "Valhalla DLC",
-    "price": 0,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 88,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": true,
-    "description": "Бесплатное DLC к Ragnarök. Рогалик с Кратосом. Вальгалла ждёт — это 10+ часов дополнительного контента абсолютно бесплат",
-    "originalPriceTRY": 0,
-    "exchangeMultiplier": 0,
-    "lastPriceUpdate": null,
-    "meta": {
-      "size": "10 ГБ",
-      "rating": "18+",
-      "lang": "RU субтитры",
-      "players": "1"
-    }
-  },
-  {
-    "id": 30,
-    "type": "game",
-    "categoryId": 4,
-    "name": "Demon's Souls Remake",
-    "emoji": "💀",
-    "platform": "PS5",
-    "edition": "Standard",
-    "price": 860,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 82,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Реконструкция первого Souls на Unreal Engine 5. Те же боссы, тот же Болетарийский дворец, но в 4K/60. Для фанатов Elden ",
-    "originalPriceTRY": 999,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "66 ГБ",
-      "rating": "16+",
-      "lang": "RU субтитры",
-      "players": "1 / онлайн"
     }
   },
   {
@@ -977,34 +869,6 @@ window.SEED={
     }
   },
   {
-    "id": 37,
-    "type": "game",
-    "categoryId": 6,
-    "name": "GTA V: Premium Edition",
-    "emoji": "🌆",
-    "platform": "PS4/PS5",
-    "edition": "Premium Edition",
-    "price": 180,
-    "oldPrice": 2030,
-    "inStock": true,
-    "popularity": 99,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": true,
-    "description": "Легендарная игра по суперцене. GTA Online, три героя, Лос-Сантос. Premium Edition включает всё. Скидка 70% — самый очеви",
-    "originalPriceTRY": 209,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "100 ГБ",
-      "rating": "18+",
-      "lang": "RU озвучка",
-      "players": "1-30",
-      "discount": "70%"
-    }
-  },
-  {
     "id": 38,
     "type": "game",
     "categoryId": 6,
@@ -1111,34 +975,6 @@ window.SEED={
       "rating": "18+",
       "lang": "RU субтитры",
       "discount": "60%"
-    }
-  },
-  {
-    "id": 42,
-    "type": "game",
-    "categoryId": 6,
-    "name": "Dying Light 2: Ultimate Edition",
-    "emoji": "🧟",
-    "platform": "PS4/PS5",
-    "edition": "Ultimate Edition",
-    "price": 600,
-    "oldPrice": 4800,
-    "inStock": true,
-    "popularity": 80,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Паркур, зомби и моральные выборы, которые меняют мир. Ultimate Edition с сезонным пропуском. Скидка 65% — это почти пода",
-    "originalPriceTRY": 699,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "60 ГБ",
-      "rating": "18+",
-      "lang": "RU озвучка",
-      "players": "1-4",
-      "discount": "65%"
     }
   },
   {
@@ -1619,32 +1455,6 @@ window.SEED={
     "meta": {
       "size": "26 ГБ",
       "rating": "12+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
-    "id": 61,
-    "type": "game",
-    "categoryId": 6,
-    "name": "Marvel's Avengers",
-    "emoji": "🛡️",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 260,
-    "oldPrice": 4120,
-    "inStock": true,
-    "popularity": 65,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Мстители собираются снова. Онлайн-экшн с живым миром и регулярными обновлениями.",
-    "originalPriceTRY": 299,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "80 ГБ",
-      "rating": "16+",
       "lang": "RU субтитры"
     }
   },
@@ -2767,32 +2577,6 @@ window.SEED={
     }
   },
   {
-    "id": 105,
-    "type": "game",
-    "categoryId": 3,
-    "name": "Splitgate",
-    "emoji": "🔵",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 0,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 71,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Бесплатный портал-шутер. Halo встречает Portal в онлайн-мультиплеере — уникальная тактика.",
-    "originalPriceTRY": 0,
-    "exchangeMultiplier": 0,
-    "lastPriceUpdate": null,
-    "meta": {
-      "size": "20 ГБ",
-      "rating": "16+",
-      "lang": "RU интерфейс"
-    }
-  },
-  {
     "id": 106,
     "type": "game",
     "categoryId": 1,
@@ -2894,58 +2678,6 @@ window.SEED={
       "size": "4 ГБ",
       "rating": "18+",
       "lang": "Нет RU"
-    }
-  },
-  {
-    "id": 110,
-    "type": "game",
-    "categoryId": 1,
-    "name": "F1 24",
-    "emoji": "🏎️",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 1120,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 82,
-    "isNew": true,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Официальный симулятор Формулы 1 2024 года. Новая физика, улучшенный режим Моя команда.",
-    "originalPriceTRY": 1299,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "30 ГБ",
-      "rating": "3+",
-      "lang": "RU интерфейс"
-    }
-  },
-  {
-    "id": 111,
-    "type": "game",
-    "categoryId": 6,
-    "name": "F1 23",
-    "emoji": "🏎️",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 600,
-    "oldPrice": 3570,
-    "inStock": true,
-    "popularity": 79,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Сезон 2023 года с Льюисом Хэмилтоном и Максом Ферстаппеном. Режим Braking Point 2.",
-    "originalPriceTRY": 699,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "30 ГБ",
-      "rating": "3+",
-      "lang": "RU интерфейс"
     }
   },
   {
@@ -3053,32 +2785,6 @@ window.SEED={
     }
   },
   {
-    "id": 116,
-    "type": "game",
-    "categoryId": 6,
-    "name": "NBA 2K24",
-    "emoji": "🏀",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 600,
-    "oldPrice": 3570,
-    "inStock": true,
-    "popularity": 78,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Баскетбол нового уровня. MyCareer, MyTeam и ProPlay технология движений звёзд НБА.",
-    "originalPriceTRY": 699,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "75 ГБ",
-      "rating": "3+",
-      "lang": "RU интерфейс"
-    }
-  },
-  {
     "id": 117,
     "type": "game",
     "categoryId": 1,
@@ -3101,32 +2807,6 @@ window.SEED={
     "meta": {
       "size": "80 ГБ",
       "rating": "3+",
-      "lang": "RU интерфейс"
-    }
-  },
-  {
-    "id": 118,
-    "type": "game",
-    "categoryId": 6,
-    "name": "NHL 24",
-    "emoji": "🏒",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 600,
-    "oldPrice": 3570,
-    "inStock": true,
-    "popularity": 74,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Хоккей от EA Sports. Реальные команды, физика шайбы и онлайн-лиги.",
-    "originalPriceTRY": 699,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "40 ГБ",
-      "rating": "10+",
       "lang": "RU интерфейс"
     }
   },
@@ -3180,32 +2860,6 @@ window.SEED={
       "size": "26 ГБ",
       "rating": "12+",
       "lang": "RU субтитры"
-    }
-  },
-  {
-    "id": 121,
-    "type": "game",
-    "categoryId": 6,
-    "name": "PGA Tour 2K23",
-    "emoji": "⛳",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 340,
-    "oldPrice": 2320,
-    "inStock": true,
-    "popularity": 70,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Гольф с Тайгером Вудсом. 20 реальных полей PGA TOUR и онлайн-сезоны.",
-    "originalPriceTRY": 399,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "30 ГБ",
-      "rating": "3+",
-      "lang": "Нет RU"
     }
   },
   {
@@ -3417,58 +3071,6 @@ window.SEED={
     }
   },
   {
-    "id": 130,
-    "type": "game",
-    "categoryId": 3,
-    "name": "Resident Evil 2 Remake",
-    "emoji": "🧟",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 430,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 90,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": true,
-    "description": "Леон Кеннеди и Клэр Редфилд в Raccoon City. Ремейк с видом от третьего лица.",
-    "originalPriceTRY": 499,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "26 ГБ",
-      "rating": "18+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
-    "id": 131,
-    "type": "game",
-    "categoryId": 3,
-    "name": "Resident Evil 3 Remake",
-    "emoji": "🧟",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 430,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 82,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Джилл Валентайн против Немезиды. Rapid-fire экшн против преследователя.",
-    "originalPriceTRY": 499,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "22 ГБ",
-      "rating": "18+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
     "id": 132,
     "type": "game",
     "categoryId": 3,
@@ -3490,32 +3092,6 @@ window.SEED={
     "lastPriceUpdate": "2026-06-26 12:52:29",
     "meta": {
       "size": "30 ГБ",
-      "rating": "18+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
-    "id": 133,
-    "type": "game",
-    "categoryId": 4,
-    "name": "Dead Space Remake",
-    "emoji": "🚀",
-    "platform": "PS5",
-    "edition": "Standard",
-    "price": 690,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 86,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Айзек Кларк на USG Ишимура — ремейк с нуля. Некроморфы, zero-gravity и полный ужас.",
-    "originalPriceTRY": 799,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "50 ГБ",
       "rating": "18+",
       "lang": "RU субтитры"
     }
@@ -3573,32 +3149,6 @@ window.SEED={
     }
   },
   {
-    "id": 136,
-    "type": "game",
-    "categoryId": 6,
-    "name": "Little Nightmares",
-    "emoji": "🔦",
-    "platform": "PS4",
-    "edition": "Standard",
-    "price": 260,
-    "oldPrice": 1650,
-    "inStock": true,
-    "popularity": 84,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Шесть спасается с Чрева. Первый кошмар, определивший серию.",
-    "originalPriceTRY": 299,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "5 ГБ",
-      "rating": "12+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
     "id": 137,
     "type": "game",
     "categoryId": 4,
@@ -3651,32 +3201,6 @@ window.SEED={
     }
   },
   {
-    "id": 139,
-    "type": "game",
-    "categoryId": 3,
-    "name": "Song of Horror Complete Edition",
-    "emoji": "🎵",
-    "platform": "PS4",
-    "edition": "Standard",
-    "price": 260,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 71,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "12 персонажей, одно демоническое присутствие. Survival horror с постоянной смертью.",
-    "originalPriceTRY": 299,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "15 ГБ",
-      "rating": "18+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
     "id": 140,
     "type": "game",
     "categoryId": 6,
@@ -3703,32 +3227,6 @@ window.SEED={
     }
   },
   {
-    "id": 141,
-    "type": "game",
-    "categoryId": 6,
-    "name": "Cities: Skylines",
-    "emoji": "🏙️",
-    "platform": "PS4",
-    "edition": "Standard",
-    "price": 260,
-    "oldPrice": 2030,
-    "inStock": true,
-    "popularity": 80,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Стройте город мечты. Лучший градостроительный симулятор последнего десятилетия.",
-    "originalPriceTRY": 299,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "8 ГБ",
-      "rating": "3+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
     "id": 142,
     "type": "game",
     "categoryId": 3,
@@ -3750,32 +3248,6 @@ window.SEED={
     "lastPriceUpdate": "2026-06-26 12:52:29",
     "meta": {
       "size": "18 ГБ",
-      "rating": "3+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
-    "id": 143,
-    "type": "game",
-    "categoryId": 6,
-    "name": "Two Point Hospital",
-    "emoji": "🏥",
-    "platform": "PS4",
-    "edition": "Standard",
-    "price": 260,
-    "oldPrice": 2030,
-    "inStock": true,
-    "popularity": 79,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Стройте больницы, лечите нелепые болезни. Духовный наследник Theme Hospital.",
-    "originalPriceTRY": 299,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "2 ГБ",
       "rating": "3+",
       "lang": "RU субтитры"
     }
@@ -3933,32 +3405,6 @@ window.SEED={
     "meta": {
       "size": "20 ГБ",
       "rating": "16+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
-    "id": 150,
-    "type": "game",
-    "categoryId": 3,
-    "name": "Hollow Knight",
-    "emoji": "🐛",
-    "platform": "PS4",
-    "edition": "Standard",
-    "price": 170,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 92,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": true,
-    "description": "Рыцарь в царстве заражённых насекомых. Метроидвания с 40+ часами исследований и лором.",
-    "originalPriceTRY": 199,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "9 ГБ",
-      "rating": "7+",
       "lang": "RU субтитры"
     }
   },
@@ -4249,32 +3695,6 @@ window.SEED={
     }
   },
   {
-    "id": 163,
-    "type": "game",
-    "categoryId": 3,
-    "name": "Loop Hero",
-    "emoji": "🔁",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 260,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 77,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Мир без воспоминаний воссоздаётся картами. Уникальный автобатлер в 8-битном стиле.",
-    "originalPriceTRY": 299,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "1 ГБ",
-      "rating": "12+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
     "id": 164,
     "type": "game",
     "categoryId": 3,
@@ -4457,32 +3877,6 @@ window.SEED={
     }
   },
   {
-    "id": 171,
-    "type": "game",
-    "categoryId": 3,
-    "name": "Florence",
-    "emoji": "💙",
-    "platform": "PS4",
-    "edition": "Standard",
-    "price": 130,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 78,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "История любви Флоренс и Криша в интерактивном комиксе. 45 минут, остаются навсегда.",
-    "originalPriceTRY": 149,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "0.3 ГБ",
-      "rating": "3+",
-      "lang": "Без текста"
-    }
-  },
-  {
     "id": 172,
     "type": "game",
     "categoryId": 6,
@@ -4636,32 +4030,6 @@ window.SEED={
       "size": "15 ГБ",
       "rating": "16+",
       "lang": "RU субтитры"
-    }
-  },
-  {
-    "id": 178,
-    "type": "game",
-    "categoryId": 1,
-    "name": "Granblue Fantasy Versus: Rising",
-    "emoji": "⚔️",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 600,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 76,
-    "isNew": true,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Обновлённый файтинг по вселенной Granblue. Доступность для новичков, глубина для ветеранов.",
-    "originalPriceTRY": 699,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "35 ГБ",
-      "rating": "12+",
-      "lang": "Нет RU"
     }
   },
   {
@@ -4986,32 +4354,6 @@ window.SEED={
     }
   },
   {
-    "id": 192,
-    "type": "game",
-    "categoryId": 3,
-    "name": "Lawn Mowing Simulator",
-    "emoji": "🌿",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 170,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 71,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Косить газоны в Британии на реальных газонокосилках. Неожиданно медитативно.",
-    "originalPriceTRY": 199,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "3 ГБ",
-      "rating": "3+",
-      "lang": "Нет RU"
-    }
-  },
-  {
     "id": 193,
     "type": "game",
     "categoryId": 1,
@@ -5138,58 +4480,6 @@ window.SEED={
     "meta": {
       "size": "1 ГБ",
       "rating": "7+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
-    "id": 198,
-    "type": "game",
-    "categoryId": 3,
-    "name": "Garden Story",
-    "emoji": "🍇",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 170,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 70,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Виноград стал хранителем острова. Уютный экшн-RPG о восстановлении сообщества.",
-    "originalPriceTRY": 199,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "1 ГБ",
-      "rating": "3+",
-      "lang": "Нет RU"
-    }
-  },
-  {
-    "id": 199,
-    "type": "game",
-    "categoryId": 6,
-    "name": "Guitar Hero Live",
-    "emoji": "🎸",
-    "platform": "PS4",
-    "edition": "Standard",
-    "price": 170,
-    "oldPrice": 1650,
-    "inStock": true,
-    "popularity": 74,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Гитара от первого лица и живые концерты. Новая кнопочная схема меняет всё.",
-    "originalPriceTRY": 199,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "40 ГБ",
-      "rating": "12+",
       "lang": "RU субтитры"
     }
   },
@@ -5761,188 +5051,6 @@ window.SEED={
     "lastPriceUpdate": "2026-06-26 12:52:29",
     "meta": {
       "size": "40 ГБ",
-      "rating": "18+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
-    "id": 222,
-    "type": "game",
-    "categoryId": 6,
-    "name": "The Outer Worlds",
-    "emoji": "🌌",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 340,
-    "oldPrice": 2320,
-    "inStock": true,
-    "popularity": 82,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Obsidian создали Fallout в космосе. Корпорации, колонии и моральные дилеммы.",
-    "originalPriceTRY": 399,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "20 ГБ",
-      "rating": "16+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
-    "id": 223,
-    "type": "game",
-    "categoryId": 6,
-    "name": "Greedfall",
-    "emoji": "🌿",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 260,
-    "oldPrice": 2030,
-    "inStock": true,
-    "popularity": 76,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Флинт и колонизация фантазийного острова. RPG в духе раннего Dragon Age.",
-    "originalPriceTRY": 299,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "23 ГБ",
-      "rating": "18+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
-    "id": 224,
-    "type": "game",
-    "categoryId": 3,
-    "name": "Elex II",
-    "emoji": "💫",
-    "platform": "PS4/PS5",
-    "edition": "Standard",
-    "price": 340,
-    "oldPrice": null,
-    "inStock": true,
-    "popularity": 68,
-    "isNew": false,
-    "isSale": false,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Постапокалиптическая планета объединяется против нашествия. Жёсткая открытая RPG.",
-    "originalPriceTRY": 399,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "15 ГБ",
-      "rating": "18+",
-      "lang": "Нет RU"
-    }
-  },
-  {
-    "id": 225,
-    "type": "game",
-    "categoryId": 6,
-    "name": "Mafia: Definitive Edition",
-    "emoji": "🎩",
-    "platform": "PS4",
-    "edition": "Standard",
-    "price": 340,
-    "oldPrice": 2320,
-    "inStock": true,
-    "popularity": 83,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Ремейк Mafia 1 с нуля. Томми Анджело в Лост Хэвен 1930-х — история мафиозного возвышения.",
-    "originalPriceTRY": 399,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "30 ГБ",
-      "rating": "18+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
-    "id": 226,
-    "type": "game",
-    "categoryId": 6,
-    "name": "Mafia III: Definitive Edition",
-    "emoji": "🎩",
-    "platform": "PS4",
-    "edition": "Standard",
-    "price": 260,
-    "oldPrice": 2030,
-    "inStock": true,
-    "popularity": 77,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Линкольн Клей против итальянской мафии в Нью-Бордо 1968 года. Атмосфера Юга США.",
-    "originalPriceTRY": 299,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "32 ГБ",
-      "rating": "18+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
-    "id": 227,
-    "type": "game",
-    "categoryId": 6,
-    "name": "Just Cause 4: Reloaded",
-    "emoji": "💨",
-    "platform": "PS4",
-    "edition": "Standard",
-    "price": 170,
-    "oldPrice": 1650,
-    "inStock": true,
-    "popularity": 73,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Рико Родригес и крюк-кошка против Армии Хаоса. Tornado, blizzard и hurricane.",
-    "originalPriceTRY": 199,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "65 ГБ",
-      "rating": "16+",
-      "lang": "RU субтитры"
-    }
-  },
-  {
-    "id": 228,
-    "type": "game",
-    "categoryId": 6,
-    "name": "Rage 2",
-    "emoji": "😡",
-    "platform": "PS4",
-    "edition": "Standard",
-    "price": 170,
-    "oldPrice": 1650,
-    "inStock": true,
-    "popularity": 70,
-    "isNew": false,
-    "isSale": true,
-    "isPreorder": false,
-    "isFeatured": false,
-    "description": "Постапокалипсис + аниматроник. Уокер против Управляющего в безумном мире.",
-    "originalPriceTRY": 199,
-    "exchangeMultiplier": 0.86,
-    "lastPriceUpdate": "2026-06-26 12:52:29",
-    "meta": {
-      "size": "60 ГБ",
       "rating": "18+",
       "lang": "RU субтитры"
     }
