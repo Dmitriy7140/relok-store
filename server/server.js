@@ -399,6 +399,10 @@ async function api(req, res, url) {
     id: r.id, title: r.title, position: r.position, hidden: !!r.hidden,
     url: r.media_id ? `/api/media/${r.media_id}` : (r.url || ''),
   });
+  const shapeTextReview = (r) => ({
+    id: r.id, author: r.author || '', text: r.text || '',
+    rating: r.rating || 5, position: r.position, hidden: !!r.hidden,
+  });
 
   // GET /api/me — профиль + баланс текущего пользователя
   if (seg[1] === 'me' && seg.length === 2 && method === 'GET') {
@@ -456,6 +460,12 @@ async function api(req, res, url) {
   if (seg[1] === 'videos' && seg.length === 2 && method === 'GET') {
     const rows = all('SELECT * FROM video_reviews WHERE hidden=0 ORDER BY position,id');
     return ok(res, rows.map(shapeVideo));
+  }
+
+  // GET /api/text-reviews — публичный список текстовых отзывов
+  if (seg[1] === 'text-reviews' && seg.length === 2 && method === 'GET') {
+    const rows = all('SELECT * FROM text_reviews WHERE hidden=0 ORDER BY position,id');
+    return ok(res, rows.map(shapeTextReview));
   }
 
   /* ══════════════════════════════════════════════════════════════
@@ -611,6 +621,40 @@ async function api(req, res, url) {
         return ok(res, shapeVideo(get('SELECT * FROM video_reviews WHERE id=?', [id])));
       }
       if (method === 'DELETE') { run('DELETE FROM video_reviews WHERE id=?', [id]); return ok(res, { ok: true }); }
+    }
+
+    // ── Текстовые отзывы ──
+    if (seg[2] === 'text-reviews' && seg.length === 3) {
+      if (!needAdmin()) return;
+      if (method === 'GET') return ok(res, all('SELECT * FROM text_reviews ORDER BY position,id').map(shapeTextReview));
+      if (method === 'POST') {
+        let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+        if (!b.text || !String(b.text).trim()) return bad(res, 'Введите текст отзыва');
+        const pos = get('SELECT COALESCE(MAX(position),-1)+1 AS p FROM text_reviews').p;
+        const rating = Math.min(5, Math.max(1, +b.rating || 5));
+        const info = run('INSERT INTO text_reviews (author,text,rating,position) VALUES (?,?,?,?)',
+          [String(b.author || '').trim(), String(b.text).trim(), rating, pos]);
+        return ok(res, shapeTextReview(get('SELECT * FROM text_reviews WHERE id=?', [info.lastInsertRowid])));
+      }
+    }
+    if (seg[2] === 'text-reviews' && seg[3] === 'reorder' && method === 'POST') {
+      if (!needAdmin()) return;
+      let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+      (b.ids || []).forEach((id, i) => run('UPDATE text_reviews SET position=? WHERE id=?', [i, +id]));
+      return ok(res, { ok: true });
+    }
+    if (seg[2] === 'text-reviews' && seg.length === 4) {
+      if (!needAdmin()) return;
+      const id = +seg[3];
+      if (method === 'PATCH') {
+        let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+        if (b.hidden !== undefined) run('UPDATE text_reviews SET hidden=? WHERE id=?', [intBool(b.hidden), id]);
+        if (b.author !== undefined) run('UPDATE text_reviews SET author=? WHERE id=?', [String(b.author), id]);
+        if (b.text !== undefined)   run('UPDATE text_reviews SET text=? WHERE id=?', [String(b.text), id]);
+        if (b.rating !== undefined) run('UPDATE text_reviews SET rating=? WHERE id=?', [Math.min(5, Math.max(1, +b.rating || 5)), id]);
+        return ok(res, shapeTextReview(get('SELECT * FROM text_reviews WHERE id=?', [id])));
+      }
+      if (method === 'DELETE') { run('DELETE FROM text_reviews WHERE id=?', [id]); return ok(res, { ok: true }); }
     }
   }
 

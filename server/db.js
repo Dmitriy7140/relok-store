@@ -209,12 +209,23 @@ CREATE TABLE IF NOT EXISTS case_openings (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
--- Видеоотзывы (страница «Гарантии»)
+-- Видеоотзывы (страница «Отзывы» / «Гарантии»)
 CREATE TABLE IF NOT EXISTS video_reviews (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   title      TEXT DEFAULT '',
   media_id   INTEGER,                       -- ссылка на media (если загружено)
   url        TEXT DEFAULT '',               -- либо внешний URL
+  position   INTEGER NOT NULL DEFAULT 0,
+  hidden     INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Текстовые отзывы (страница «Отзывы»)
+CREATE TABLE IF NOT EXISTS text_reviews (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  author     TEXT DEFAULT '',               -- имя автора
+  text       TEXT NOT NULL DEFAULT '',      -- текст отзыва
+  rating     INTEGER NOT NULL DEFAULT 5,    -- оценка 1..5
   position   INTEGER NOT NULL DEFAULT 0,
   hidden     INTEGER NOT NULL DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now'))
@@ -231,6 +242,25 @@ try {
   const c = db.prepare('SELECT COUNT(*) AS c FROM cases').get().c;
   if (!c) db.prepare("INSERT INTO cases (name,cost,enabled) VALUES ('Бонусный кейс',3000,1)").run();
 } catch {}
+
+/* Готовые текстовые отзывы по умолчанию (если таблица пуста) */
+try {
+  const c = db.prepare('SELECT COUNT(*) AS c FROM text_reviews').get().c;
+  if (!c) {
+    const DEFAULT_REVIEWS = [
+      { author: 'Анна',    text: 'Купила себе игру Just Cause 4, быстро помогли поставить на консоль — всё супер! Спасибо за поддержку 🙌', rating: 5 },
+      { author: 'Дмитрий', text: 'Брал GTA V: Premium Edition. Всё оформили за пару минут, объяснили каждый шаг активации. Рекомендую!',           rating: 5 },
+      { author: 'Ольга',   text: 'Оформила подписку PS Plus — активировали моментально, цена приятно удивила. Буду заказывать ещё.',           rating: 5 },
+      { author: 'Игорь',   text: 'Заказывал код пополнения PSN Турция. Пришёл сразу, кошелёк пополнился без проблем. Всё честно.',            rating: 5 },
+      { author: 'Марина',  text: 'Купила Resident Evil 4 Remake, переживала за установку — ребята всё сделали удалённо и помогли настроить.',   rating: 5 },
+      { author: 'Сергей',  text: 'Отличный магазин! Взял Hogwarts Legacy, поставили на PS5 быстро, поддержка на связи 24/7.',                  rating: 5 },
+      { author: 'Екатерина', text: 'Сначала сомневалась, но всё прошло гладко. Игра работает, аккаунт в порядке. Спасибо большое!',            rating: 5 },
+      { author: 'Алексей', text: 'Быстро, недорого и с сопровождением. Помогли даже с настройкой региона на консоли. Топ!',                    rating: 5 },
+    ];
+    const ins = db.prepare('INSERT INTO text_reviews (author,text,rating,position) VALUES (?,?,?,?)');
+    DEFAULT_REVIEWS.forEach((r, i) => ins.run(r.author, r.text, r.rating, i));
+  }
+} catch (e) { console.error('[SEED] текстовые отзывы:', e.message); }
 
 /* ── Helpers ────────────────────────────────────────────────── */
 function all(sql, params = []) { return db.prepare(sql).all(...params); }

@@ -1369,6 +1369,9 @@ function route() {
   } else if (root === 'guarantees') {
     showScreen('guarantees', null);
     renderGuarantees();
+  } else if (root === 'reviews') {
+    showScreen('reviews', null);
+    renderReviews();
   } else {
     showScreen('home', 'home');
   }
@@ -1468,6 +1471,96 @@ function playGrtVideo(overlay) {
   vid.play().catch(() => {});
   vid.onpause = () => { if (vid.currentTime === 0 || vid.ended) overlay.style.display = 'flex'; };
   vid.onended = () => { overlay.style.display = 'flex'; vid.currentTime = 0; };
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ОТЗЫВЫ — reels (видео) + текстовые отзывы
+   ══════════════════════════════════════════════════════════════ */
+const MUTE_ON  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
+const MUTE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
+let _reelObserver = null;
+
+async function renderReviews() {
+  // 1) Reels — видеоотзывы
+  const reels = el('reelsBox');
+  if (reels) {
+    let vids = [];
+    try { vids = await API.videos(); } catch { vids = []; }
+    vids = (vids || []).filter(v => v.url);
+    if (!vids.length) {
+      reels.innerHTML = '<div class="reels-empty">Видеоотзывы скоро появятся</div>';
+    } else {
+      reels.innerHTML = vids.map(v => `
+        <div class="reel paused">
+          <video src="${esc(v.url)}" muted loop playsinline webkit-playsinline preload="metadata"></video>
+          <div class="reel-tap" onclick="toggleReel(this)"></div>
+          <div class="reel-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+          <button class="reel-mute" onclick="toggleReelMute(this,event)">${MUTE_ON}</button>
+          ${v.title ? `<div class="reel-cap">${esc(v.title)}</div>` : ''}
+        </div>`).join('');
+      setupReelAutoplay(reels);
+    }
+  }
+  // 2) Текстовые отзывы
+  const list = el('trevList');
+  if (list) {
+    let revs = [];
+    try { revs = await API.textReviews(); } catch { revs = []; }
+    if (!revs || !revs.length) {
+      list.innerHTML = '<div class="reels-empty">Отзывов пока нет</div>';
+    } else {
+      list.innerHTML = revs.map(r => {
+        const rating = Math.min(5, Math.max(1, r.rating || 5));
+        const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+        const name = (r.author || 'Покупатель').trim();
+        const initial = name.charAt(0).toUpperCase() || '🙂';
+        return `<div class="trev-card">
+          <div class="trev-top">
+            <div class="trev-ava">${esc(initial)}</div>
+            <div>
+              <div class="trev-name">${esc(name)}</div>
+              <div class="trev-stars">${stars}</div>
+            </div>
+          </div>
+          <div class="trev-text">${esc(r.text || '')}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
+function setupReelAutoplay(box) {
+  if (_reelObserver) { _reelObserver.disconnect(); _reelObserver = null; }
+  if (!('IntersectionObserver' in window)) return;
+  _reelObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const reel = entry.target;
+      const vid = reel.querySelector('video');
+      if (!vid) return;
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+        vid.play().then(() => reel.classList.remove('paused')).catch(() => {});
+      } else {
+        vid.pause();
+      }
+    });
+  }, { threshold: [0, 0.6, 1] });
+  box.querySelectorAll('.reel').forEach(r => _reelObserver.observe(r));
+}
+
+function toggleReel(tap) {
+  const reel = tap.closest('.reel'); if (!reel) return;
+  const vid = reel.querySelector('video'); if (!vid) return;
+  if (vid.paused) { vid.play().then(() => reel.classList.remove('paused')).catch(() => {}); }
+  else { vid.pause(); reel.classList.add('paused'); }
+}
+
+function toggleReelMute(btn, e) {
+  if (e) e.stopPropagation();
+  const reel = btn.closest('.reel'); if (!reel) return;
+  const vid = reel.querySelector('video'); if (!vid) return;
+  vid.muted = !vid.muted;
+  btn.innerHTML = vid.muted ? MUTE_ON : MUTE_OFF;
+  if (vid.paused) { vid.play().then(() => reel.classList.remove('paused')).catch(() => {}); }
 }
 
 window.addEventListener('hashchange', route);
@@ -1783,4 +1876,5 @@ Object.assign(window, {
   startPayment, confirmPayEmail, skipPayEmail,
   renderProfileOrders, repeatOrder, renderGuarantees, playGrtVideo,
   openMessenger, copyOrderMessage,
+  renderReviews, toggleReel, toggleReelMute,
 });

@@ -146,6 +146,7 @@ window.API = (function () {
     bonusTx:          (p)          => req('GET',  '/bonus/tx' + qs(p)),
     bonusOrders:      ()           => req('GET',  '/bonus/orders'),
     videos:           ()           => req('GET',  '/videos'),
+    textReviews:      ()           => req('GET',  '/text-reviews'),
 
     // ── Бонусная система (админ) ──
     adminBonusProducts:   ()       => req('GET',    '/admin/bonus-products'),
@@ -167,5 +168,12 @@ window.API = (function () {
     reorderVideos:        (ids)    => req('POST',   '/admin/videos/reorder', { ids }),
     patchVideo:           (id, b)  => req('PATCH',  '/admin/videos/' + id, b),
     deleteVideo:          (id)     => req('DELETE', '/admin/videos/' + id),
+
+    // ── Текстовые отзывы (админ) ──
+    adminTextReviews:     ()       => req('GET',    '/admin/text-reviews'),
+    createTextReview:     (b)      => req('POST',   '/admin/text-reviews', b),
+    reorderTextReviews:   (ids)    => req('POST',   '/admin/text-reviews/reorder', { ids }),
+    patchTextReview:      (id, b)  => req('PATCH',  '/admin/text-reviews/' + id, b),
+    deleteTextReview:     (id)     => req('DELETE', '/admin/text-reviews/' + id),
   };
 })();
