@@ -1064,4 +1064,57 @@ function reconcileStoreCatalog() {
 }
 try { reconcileStoreCatalog(); } catch (e) { console.error('[RECONCILE] ошибка сверки каталога:', e.message); }
 
+/* ── Клонирование каталога Турции → Индия (одноразово) ──────────
+   Магазин Индии ('in') создаётся как полная копия Турции ('tr'):
+   те же категории, товары, фото, описания, платформы и издания.
+   ЦЕНА НАМЕРЕННО ОБНУЛЕНА (price=0, old_price=NULL, скидки сняты),
+   чтобы владелец выставил стоимость в рупиях вручную через админку.
+   Товары помечены hidden=1 — видны только в админке и скрыты в
+   магазине Индии, пока не проставлена цена и не снят флаг «скрыт».
+   Запускается один раз: если в регионе 'in' уже есть товары — пропуск.
+   Слаги категорий Индии получают префикс 'in-' (slug UNIQUE в БД). */
+function seedIndiaFromTurkey() {
+  const hasRegion = all("PRAGMA table_info(products)").some(c => c.name === 'region');
+  if (!hasRegion) return;
+  const already = get("SELECT COUNT(*) AS n FROM products WHERE region = 'in'").n;
+  if (already > 0) return; // Индия уже наполнена — не трогаем
+
+  const trCats = all("SELECT * FROM categories WHERE region = 'tr' ORDER BY position, id");
+  const trProds = all("SELECT * FROM products WHERE region = 'tr' ORDER BY position, id");
+  if (!trProds.length && !trCats.length) return;
+
+  const catIdMap = {}; // tr category id → in category id
+  for (const c of trCats) {
+    const inSlug = /^in-/.test(c.slug) ? c.slug : 'in-' + c.slug;
+    run(
+      `INSERT INTO categories (slug, title, icon, type, description, position, hidden, region)
+       VALUES (?,?,?,?,?,?,?, 'in')`,
+      [inSlug, c.title, c.icon, c.type, c.description || '', c.position || 0, c.hidden ? 1 : 0]
+    );
+    catIdMap[c.id] = get('SELECT last_insert_rowid() AS id').id;
+  }
+
+  let cloned = 0;
+  for (const p of trProds) {
+    const newCat = p.category_id != null && catIdMap[p.category_id] != null ? catIdMap[p.category_id] : null;
+    run(
+      `INSERT INTO products
+         (type, category_id, name, description, emoji, image, platform, edition,
+          price, old_price, in_stock, popularity, is_new, is_sale, is_preorder,
+          is_featured, position, hidden, meta, region)
+       VALUES (?,?,?,?,?,?,?,?, 0, NULL, ?,?,?, 0, ?,?,?, 1, ?, 'in')`,
+      [
+        p.type || 'game', newCat, p.name, p.description || '', p.emoji || '🎮',
+        p.image || '', p.platform || '', p.edition || '',
+        p.in_stock == null ? 1 : (p.in_stock ? 1 : 0), p.popularity || 0,
+        p.is_new ? 1 : 0, p.is_preorder ? 1 : 0, p.is_featured ? 1 : 0,
+        p.position || 0, p.meta || '{}',
+      ]
+    );
+    cloned++;
+  }
+  console.log(`[INDIA] Каталог Индии создан из Турции: категорий ${trCats.length}, товаров ${cloned} (цена пустая, hidden=1 — задайте цену вручную).`);
+}
+try { seedIndiaFromTurkey(); } catch (e) { console.error('[INDIA] ошибка клонирования каталога:', e.message); }
+
 module.exports = { db, all, get, run, tx, generateOrderId, shapeOrder };
