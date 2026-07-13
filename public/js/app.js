@@ -1288,10 +1288,146 @@ async function _paySuccess(order) {
   host.innerHTML = `<div class="pay-info">${infoFormHtml(full)}</div>`;
 }
 
+let _fulfillPoll = null;
+function _stopFulfillPoll() { if (_fulfillPoll) { clearInterval(_fulfillPoll); _fulfillPoll = null; } }
+
 function _payFinalSuccess(order) {
   const host = el('payContent');
   if (!host) return;
-  renderMessengerHandoff(host, order, 'pay');
+  renderOrderResult(host, order);
+}
+
+const ORD_RESULT_LABEL = { paid:'Оплачен', delivered:'Коды выданы', processing:'В обработке', manual:'Ручная обработка' };
+
+/* Финальный экран заказа: номер, статус, товар, сумма, коды пополнения. */
+function renderOrderResult(host, order) {
+  _stopFulfillPoll();
+  _injectCodesStyles();
+  const statusLbl = order.fulfillment === 'delivered' ? 'Коды выданы'
+    : order.fulfillment === 'manual' ? 'Требуется ручная обработка'
+    : 'Оплачен';
+
+  host.innerHTML = `
+    <div class="order-success" style="text-align:left">
+      <div style="text-align:center">
+        <div class="order-success-ico">✅</div>
+        <div class="order-success-ttl">Оплата прошла</div>
+      </div>
+      <div class="tc-summary">
+        <div class="tc-srow"><span>Номер заказа</span><b>#${esc(order.id)}</b></div>
+        <div class="tc-srow"><span>Товар</span><b>${esc(order.productName || '—')}</b></div>
+        <div class="tc-srow"><span>Стоимость</span><b>${fmt(order.amount)}</b></div>
+        <div class="tc-srow"><span>Статус</span><b>${esc(statusLbl)}</b></div>
+      </div>
+      <div id="orderCodesHost">${orderCodesHtml(order)}</div>
+      <button class="submit-btn" style="margin-top:14px" onclick="go('#/')"><span>Вернуться в магазин</span></button>
+      <button class="msgr-copy" style="margin-top:10px" onclick="go('#/profile')">Мои покупки</button>
+    </div>`;
+
+  // Если коды ещё не выданы — фоном опрашиваем заказ, пока не появится результат.
+  if (order.fulfillment !== 'delivered' && order.fulfillment !== 'manual') {
+    _startFulfillPoll(order.id);
+  }
+}
+
+function _startFulfillPoll(orderId) {
+  _stopFulfillPoll();
+  let tries = 0;
+  _fulfillPoll = setInterval(async () => {
+    tries++;
+    if (tries > 20) { _stopFulfillPoll(); return; }
+    try {
+      const o = await API.getOrder(orderId);
+      if (o && (o.fulfillment === 'delivered' || o.fulfillment === 'manual')) {
+        _stopFulfillPoll();
+        const hostBox = el('orderCodesHost');
+        if (hostBox) hostBox.innerHTML = orderCodesHtml(o);
+      }
+    } catch {}
+  }, 3000);
+}
+
+/* HTML блока с кодами / статусом выдачи. */
+function orderCodesHtml(order) {
+  const codes = Array.isArray(order.codes) ? order.codes : [];
+  if (order.fulfillment === 'delivered' && codes.length) {
+    return `<div class="tc-block">
+      <div class="tc-h">🎁 Ваши коды пополнения</div>
+      <div class="tc-sub">Активируйте в PS Store (регион Турция) на сумму ${order.codesSum || ''} TRY.</div>
+      ${codes.map(topupCodeCard).join('')}
+      <div class="tc-instr">📎 Инструкция по активации будет добавлена здесь.</div>
+    </div>`;
+  }
+  if (order.fulfillment === 'manual') {
+    return `<div class="tc-block tc-manual">
+      <div class="tc-h">⏳ Заказ в ручной обработке</div>
+      <div class="tc-sub">Сейчас на складе не оказалось подходящих кодов. Мы подберём их вручную и свяжемся с вами в ближайшее время.</div>
+      <button class="tc-support" onclick="openSupport()">Связаться с поддержкой</button>
+    </div>`;
+  }
+  return `<div class="tc-block">
+    <div class="tc-h">⏳ Готовим ваши коды…</div>
+    <div class="tc-sub">Обычно это занимает несколько секунд.</div>
+    <div class="pay-spin-lg" style="margin:14px auto"></div>
+  </div>`;
+}
+
+function topupCodeCard(c) {
+  const code = typeof c === 'string' ? c : c.code;
+  const denom = typeof c === 'object' ? c.denom : '';
+  const safe = String(code).replace(/'/g, "\\'");
+  return `<div class="tc-code">
+    ${denom ? `<span class="tc-denom">${denom} TRY</span>` : ''}
+    <span class="tc-val">${esc(code)}</span>
+    <button class="tc-copy" onclick="copyTopupCode(this,'${safe}')">Скопировать</button>
+  </div>`;
+}
+
+function copyTopupCode(btn, code) {
+  _copyMsgrText(code);
+  if (btn) {
+    const t = btn.textContent;
+    btn.textContent = 'Скопировано ✓';
+    btn.classList.add('done');
+    setTimeout(() => { btn.textContent = t; btn.classList.remove('done'); }, 1600);
+  }
+}
+
+async function openSupport() {
+  try {
+    const cfg = (await loadAppSettings()).messengers || {};
+    const url = cfg.tg || cfg.wa || cfg.max;
+    if (url) {
+      const tg = window.Telegram && window.Telegram.WebApp;
+      if (tg && tg.openTelegramLink && /t\.me|telegram/.test(url)) tg.openTelegramLink(url);
+      else if (tg && tg.openLink) tg.openLink(url);
+      else window.open(url, '_blank', 'noopener');
+      return;
+    }
+  } catch {}
+  toast('Контакт поддержки скоро будет добавлен');
+}
+
+function _injectCodesStyles() {
+  if (el('codesStyles')) return;
+  const st = document.createElement('style');
+  st.id = 'codesStyles';
+  st.textContent = `
+    .tc-summary{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px 16px;margin:16px 0}
+    .tc-srow{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:5px 0;color:rgba(255,255,255,.55)}
+    .tc-srow b{color:#fff;font-weight:600;text-align:right}
+    .tc-block{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-radius:16px;padding:16px;margin-top:6px}
+    .tc-block.tc-manual{background:rgba(255,176,32,.08);border-color:rgba(255,176,32,.3)}
+    .tc-h{font-size:15px;font-weight:700;color:#fff;margin-bottom:6px}
+    .tc-sub{font-size:13px;color:rgba(255,255,255,.55);line-height:1.5;margin-bottom:12px}
+    .tc-code{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 12px;margin-bottom:8px;flex-wrap:wrap}
+    .tc-denom{font-size:11px;font-weight:800;color:#a5b4fc;background:rgba(99,102,241,.18);padding:3px 8px;border-radius:7px;flex-shrink:0}
+    .tc-val{flex:1;min-width:120px;font-family:monospace;font-size:14px;color:#fff;letter-spacing:.5px;word-break:break-all}
+    .tc-copy{flex-shrink:0;background:#6366f1;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer}
+    .tc-copy.done{background:#30d158}
+    .tc-instr{font-size:12px;color:rgba(255,255,255,.45);margin-top:10px;line-height:1.5}
+    .tc-support{width:100%;background:#ffb020;color:#1a1206;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:700;cursor:pointer}`;
+  document.head.appendChild(st);
 }
 
 function _payError(msg) {
@@ -1403,6 +1539,7 @@ async function renderProfileOrders() {
     box.innerHTML = '<div class="empty-state" style="padding:24px 0"><div class="empty-icon">🧾</div><div class="empty-h">Пока нет покупок</div><div class="empty-p">Здесь появится история ваших заказов.</div></div>';
     return;
   }
+  _injectCodesStyles();
   box.innerHTML = orders.map(o => {
     const { d, t } = ordDateTime(o.createdAt);
     const sc = ORD_STATUS_CLASS[o.status] || 'neutral';
@@ -1410,6 +1547,13 @@ async function renderProfileOrders() {
     const pay = PAY_LABEL[o.payMethod] != null ? PAY_LABEL[o.payMethod] : (o.payMethod || '—');
     const bonus = o.bonusEarned > 0 ? `<span class="ord-bonus">+${fmtBonus(o.bonusEarned)} бонусов</span>` : '';
     const repeat = o.productId ? `<button class="ord-repeat" onclick="repeatOrder('${esc(String(o.productId))}', this)">Повторить заказ</button>` : '';
+    const hasCodes = o.fulfillment === 'delivered' && Array.isArray(o.codes) && o.codes.length;
+    const reopen = (hasCodes || o.fulfillment === 'manual')
+      ? `<button class="ord-repeat" onclick="toggleOrderCodes('${esc(String(o.id))}', this)">${hasCodes ? 'Показать коды' : 'Подробнее'}</button>`
+      : '';
+    const codesBox = (hasCodes || o.fulfillment === 'manual')
+      ? `<div class="ord-codes" id="ordCodes-${esc(String(o.id))}" style="display:none">${orderCodesHtml(o)}</div>`
+      : '';
     return `<div class="ord-card">
       <div class="ord-top">
         <div>
@@ -1422,10 +1566,20 @@ async function renderProfileOrders() {
         <span class="ord-badge ${sc}">${esc(sl)}</span>
         <span class="ord-pay">${esc(pay)}</span>
         ${bonus}
+        ${reopen}
         ${repeat}
       </div>
+      ${codesBox}
     </div>`;
   }).join('');
+}
+
+function toggleOrderCodes(orderId, btn) {
+  const box = el('ordCodes-' + orderId);
+  if (!box) return;
+  const show = box.style.display === 'none';
+  box.style.display = show ? 'block' : 'none';
+  if (btn) btn.textContent = show ? 'Скрыть' : (btn.textContent === 'Подробнее' ? 'Подробнее' : 'Показать коды');
 }
 
 async function repeatOrder(productId, btn) {
@@ -1876,5 +2030,6 @@ Object.assign(window, {
   startPayment, confirmPayEmail, skipPayEmail,
   renderProfileOrders, repeatOrder, renderGuarantees, playGrtVideo,
   openMessenger, copyOrderMessage,
+  copyTopupCode, openSupport, toggleOrderCodes,
   renderReviews, toggleReel, toggleReelMute,
 });

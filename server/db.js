@@ -237,6 +237,36 @@ CREATE INDEX IF NOT EXISTS idx_case_prizes_case ON case_prizes(case_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user      ON orders(user_id);
 `);
 
+/* ── Склад кодов пополнения PlayStation Turkey ──────────────────
+   Отдельное хранилище кодов по номиналам (TRY). Не путать с
+   key_stock (ключи бонусного магазина). Статусы:
+     available — свободен, можно выдать;
+     reserved  — зарезервирован под заказ (оплата подтверждена);
+     sold      — выдан и закреплён за заказом.                    */
+db.exec(`
+CREATE TABLE IF NOT EXISTS topup_codes (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  denom        INTEGER NOT NULL,                 -- номинал TRY (250..5000)
+  code         TEXT NOT NULL UNIQUE,             -- сам код (уникален)
+  status       TEXT NOT NULL DEFAULT 'available',-- available | reserved | sold
+  order_id     TEXT DEFAULT '',                  -- заказ, которому выдан
+  user_id      TEXT DEFAULT '',                  -- покупатель (telegram id)
+  uploaded_at  TEXT DEFAULT (datetime('now')),   -- дата загрузки
+  reserved_at  TEXT DEFAULT NULL,
+  sold_at      TEXT DEFAULT NULL                 -- дата продажи/выдачи
+);
+CREATE INDEX IF NOT EXISTS idx_topup_denom_status ON topup_codes(denom, status);
+CREATE INDEX IF NOT EXISTS idx_topup_order        ON topup_codes(order_id);
+CREATE INDEX IF NOT EXISTS idx_topup_status       ON topup_codes(status);
+`);
+
+/* Поля заказа для авто-выдачи кодов пополнения */
+try { db.exec('ALTER TABLE orders ADD COLUMN price_try REAL DEFAULT 0'); } catch {}        // стоимость в лирах
+try { db.exec("ALTER TABLE orders ADD COLUMN codes_json TEXT DEFAULT '[]'"); } catch {}    // выданные коды [{denom,code}]
+try { db.exec('ALTER TABLE orders ADD COLUMN codes_sum INTEGER DEFAULT 0'); } catch {}     // сумма выданных кодов (TRY)
+try { db.exec("ALTER TABLE orders ADD COLUMN fulfillment TEXT DEFAULT ''"); } catch {}     // '' | delivered | manual
+try { db.exec('ALTER TABLE orders ADD COLUMN delivered_at TEXT DEFAULT NULL'); } catch {}
+
 /* Гарантируем наличие одного кейса по умолчанию */
 try {
   const c = db.prepare('SELECT COUNT(*) AS c FROM cases').get().c;
@@ -298,6 +328,12 @@ function shapeOrder(r) {
     bonusSpent: r.bonus_spent || 0,
     payMethod: r.pay_method || '',
     statusHistory: (() => { try { return JSON.parse(r.status_history || '[]'); } catch { return []; } })(),
+    // Авто-выдача кодов пополнения:
+    priceTry: r.price_try || 0,
+    codes: (() => { try { return JSON.parse(r.codes_json || '[]'); } catch { return []; } })(),
+    codesSum: r.codes_sum || 0,
+    fulfillment: r.fulfillment || '',
+    deliveredAt: r.delivered_at || null,
     paidAt: r.paid_at || null, createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }

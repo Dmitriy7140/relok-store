@@ -8,3 +8,8 @@ server/payment-config.js
 
 # Токен Telegram-бота — не коммитим
 server/tg-config.js
+
+# Синхронизатор цен PS Store → Google Sheets
+tools/ps-price-sync/google-credentials.json
+tools/ps-price-sync/.sheet-id
+tools/ps-price-sync/logs/

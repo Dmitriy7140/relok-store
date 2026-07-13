@@ -169,6 +169,14 @@ window.API = (function () {
     patchVideo:           (id, b)  => req('PATCH',  '/admin/videos/' + id, b),
     deleteVideo:          (id)     => req('DELETE', '/admin/videos/' + id),
 
+    // ── Коды пополнения (админ) ──
+    topupSummary:     ()          => req('GET',    '/codes/summary'),
+    topupList:        (p)         => req('GET',    '/codes' + qs(p)),
+    topupAdd:         (denom, codes) => req('POST', '/codes', { denom, codes }),
+    topupBulk:        (text)      => req('POST',    '/codes/bulk', { text }),
+    topupDelete:      (id)        => req('DELETE',  '/codes/' + id),
+    topupManual:      ()          => req('GET',     '/codes/manual'),
+
     // ── Текстовые отзывы (админ) ──
     adminTextReviews:     ()       => req('GET',    '/admin/text-reviews'),
     createTextReview:     (b)      => req('POST',   '/admin/text-reviews', b),

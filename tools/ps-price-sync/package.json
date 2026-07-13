@@ -1,0 +1,16 @@
+{
+  "name": "ps-price-sync",
+  "version": "1.0.0",
+  "description": "Синхронизация цен игр из официального PlayStation Store (TR) в Google Sheets",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "sync": "node --env-file=../../.env sync.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "googleapis": "^144.0.0"
+  }
+}
