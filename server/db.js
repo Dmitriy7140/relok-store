@@ -267,6 +267,17 @@ try { db.exec('ALTER TABLE orders ADD COLUMN codes_sum INTEGER DEFAULT 0'); } ca
 try { db.exec("ALTER TABLE orders ADD COLUMN fulfillment TEXT DEFAULT ''"); } catch {}     // '' | delivered | manual
 try { db.exec('ALTER TABLE orders ADD COLUMN delivered_at TEXT DEFAULT NULL'); } catch {}
 
+/* Счётчик числовых InvId для Robokassa (её InvId должен быть целым числом,
+   а orders.id у нас строковый). Один InvId на заказ — order_id уникален. */
+db.exec(`
+CREATE TABLE IF NOT EXISTS robokassa_invoices (
+  inv_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_id   TEXT NOT NULL UNIQUE,
+  out_sum    TEXT NOT NULL DEFAULT '',
+  created_at TEXT DEFAULT (datetime('now'))
+);
+`);
+
 /* Гарантируем наличие одного кейса по умолчанию */
 try {
   const c = db.prepare('SELECT COUNT(*) AS c FROM cases').get().c;
@@ -1153,4 +1164,25 @@ function seedIndiaFromTurkey() {
 }
 try { seedIndiaFromTurkey(); } catch (e) { console.error('[INDIA] ошибка клонирования каталога:', e.message); }
 
-module.exports = { db, all, get, run, tx, generateOrderId, shapeOrder };
+/* ── Robokassa InvId ────────────────────────────────────────────
+   Выделяет числовой InvId под заказ. Если для заказа он уже есть —
+   возвращает прежний (повторное создание платежа не плодит счета,
+   Robokassa дедуплицирует по InvId). */
+function allocRobokassaInvId(orderId, outSum) {
+  const oid = String(orderId);
+  const existing = get('SELECT inv_id FROM robokassa_invoices WHERE order_id=?', [oid]);
+  if (existing) return existing.inv_id;
+  const res = run('INSERT INTO robokassa_invoices (order_id, out_sum) VALUES (?,?)', [oid, String(outSum || '')]);
+  return res.lastInsertRowid;
+}
+
+/** Обратный поиск: по InvId → order_id (для аудита / будущего ResultURL). */
+function getOrderIdByInvId(invId) {
+  const row = get('SELECT order_id FROM robokassa_invoices WHERE inv_id=?', [Number(invId)]);
+  return row ? row.order_id : null;
+}
+
+module.exports = {
+  db, all, get, run, tx, generateOrderId, shapeOrder,
+  allocRobokassaInvId, getOrderIdByInvId,
+};
