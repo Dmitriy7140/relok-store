@@ -1100,6 +1100,7 @@ const MIME = {
   '.css': 'text/css; charset=utf-8', '.json': 'application/json',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.ico': 'image/x-icon', '.webp': 'image/webp', '.woff2': 'font/woff2',
+  '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime',
 };
 
 function serveStatic(req, res, url) {

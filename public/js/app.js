@@ -1273,19 +1273,11 @@ async function _paySuccess(order) {
   _stopPayPoll();
   cart = []; saveCart(); updateBadges();
 
-  // Подтягиваем полный заказ (с meta), чтобы понять, заполнены ли данные клиента
+  // Коды пополнения выдаются автоматически — сбор данных PSN больше не нужен.
+  // Сразу показываем экран с кодами.
   let full = order;
   try { if (!API.isOffline()) full = await API.getOrder(order.id); } catch {}
-
-  // Данные уже заполнены — показываем финальный экран
-  if (_orderHasInfo(full)) { _payFinalSuccess(full); return; }
-
-  // Иначе — сразу показываем табло сбора данных прямо на экране оплаты
-  const host = el('payContent');
-  if (!host) return;
-  _infoOrder  = full;
-  _infoOnDone = (o) => _payFinalSuccess(o);
-  host.innerHTML = `<div class="pay-info">${infoFormHtml(full)}</div>`;
+  _payFinalSuccess(full);
 }
 
 let _fulfillPoll = null;
@@ -1355,7 +1347,7 @@ function orderCodesHtml(order) {
       <div class="tc-h">🎁 Ваши коды пополнения</div>
       <div class="tc-sub">Активируйте в PS Store (регион Турция) на сумму ${order.codesSum || ''} TRY.</div>
       ${codes.map(topupCodeCard).join('')}
-      <div class="tc-instr">📎 Инструкция по активации будет добавлена здесь.</div>
+      ${topupInstructionsHtml()}
     </div>`;
   }
   if (order.fulfillment === 'manual') {
@@ -1369,6 +1361,24 @@ function orderCodesHtml(order) {
     <div class="tc-h">⏳ Готовим ваши коды…</div>
     <div class="tc-sub">Обычно это занимает несколько секунд.</div>
     <div class="pay-spin-lg" style="margin:14px auto"></div>
+  </div>`;
+}
+
+const TOPUP_VIDEO_URL = 'video/topup-activation.mp4';
+
+/* Инструкция по активации кода пополнения + обучающее видео. */
+function topupInstructionsHtml() {
+  return `<div class="tc-instr">
+    <div class="tc-instr-h">Как ввести код пополнения через приложение iOS / Android</div>
+    <ol class="tc-steps">
+      <li>Откройте <b>PlayStation App</b>.</li>
+      <li>Нажмите значок <b>PlayStation Store</b>.</li>
+      <li>Меню → <b>Погашение кодов</b>.</li>
+      <li>Вставьте 12-значный код и нажмите «Продолжить» (просто скопируйте и вставьте).</li>
+      <li>Деньги поступят на баланс аккаунта моментально. <span class="tc-dim">(Для проверки баланса: Настройки → Способы оплаты.)</span></li>
+    </ol>
+    <video class="tc-video" src="${TOPUP_VIDEO_URL}" playsinline webkit-playsinline controls preload="metadata"></video>
+    <a class="tc-download" href="${TOPUP_VIDEO_URL}" download="Как-активировать-код.mp4">⬇️ Скачать видео-инструкцию</a>
   </div>`;
 }
 
@@ -1425,7 +1435,15 @@ function _injectCodesStyles() {
     .tc-val{flex:1;min-width:120px;font-family:monospace;font-size:14px;color:#fff;letter-spacing:.5px;word-break:break-all}
     .tc-copy{flex-shrink:0;background:#6366f1;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer}
     .tc-copy.done{background:#30d158}
-    .tc-instr{font-size:12px;color:rgba(255,255,255,.45);margin-top:10px;line-height:1.5}
+    .tc-instr{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1)}
+    .tc-instr-h{font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;line-height:1.4}
+    .tc-steps{margin:0 0 12px;padding-left:20px;display:flex;flex-direction:column;gap:7px}
+    .tc-steps li{font-size:13px;color:rgba(255,255,255,.72);line-height:1.5}
+    .tc-steps li b{color:#fff;font-weight:600}
+    .tc-dim{color:rgba(255,255,255,.4)}
+    .tc-video{width:100%;border-radius:12px;background:#000;margin:6px 0 10px;max-height:420px}
+    .tc-download{display:block;text-align:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:11px;padding:11px;font-size:13px;font-weight:600;text-decoration:none}
+    .tc-download:active{opacity:.85}
     .tc-support{width:100%;background:#ffb020;color:#1a1206;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:700;cursor:pointer}`;
   document.head.appendChild(st);
 }
@@ -1548,8 +1566,9 @@ async function renderProfileOrders() {
     const bonus = o.bonusEarned > 0 ? `<span class="ord-bonus">+${fmtBonus(o.bonusEarned)} бонусов</span>` : '';
     const repeat = o.productId ? `<button class="ord-repeat" onclick="repeatOrder('${esc(String(o.productId))}', this)">Повторить заказ</button>` : '';
     const hasCodes = o.fulfillment === 'delivered' && Array.isArray(o.codes) && o.codes.length;
+    const reopenLabel = hasCodes ? 'Показать коды' : 'Подробнее';
     const reopen = (hasCodes || o.fulfillment === 'manual')
-      ? `<button class="ord-repeat" onclick="toggleOrderCodes('${esc(String(o.id))}', this)">${hasCodes ? 'Показать коды' : 'Подробнее'}</button>`
+      ? `<button class="ord-repeat" data-label="${reopenLabel}" onclick="toggleOrderCodes('${esc(String(o.id))}', this)">${reopenLabel}</button>`
       : '';
     const codesBox = (hasCodes || o.fulfillment === 'manual')
       ? `<div class="ord-codes" id="ordCodes-${esc(String(o.id))}" style="display:none">${orderCodesHtml(o)}</div>`
@@ -1579,7 +1598,7 @@ function toggleOrderCodes(orderId, btn) {
   if (!box) return;
   const show = box.style.display === 'none';
   box.style.display = show ? 'block' : 'none';
-  if (btn) btn.textContent = show ? 'Скрыть' : (btn.textContent === 'Подробнее' ? 'Подробнее' : 'Показать коды');
+  if (btn) btn.textContent = show ? 'Скрыть' : (btn.dataset.label || 'Показать коды');
 }
 
 async function repeatOrder(productId, btn) {
