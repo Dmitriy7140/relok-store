@@ -279,7 +279,6 @@ function gameCard(p) {
           <span class="gcard-price">${p.price === 0 ? 'Бесплатно' : fmt(p.price)}</span>
           ${p.oldPrice && disc >= 5 ? `<span class="gcard-old">${fmt(p.oldPrice)}</span>` : ''}
         </div>
-        ${p.originalPriceTRY > 0 ? `<div class="gcard-try">₺ ${p.originalPriceTRY.toLocaleString('ru')}</div>` : ''}
       </div>
       <div class="gcard-footer">
         <button class="gcard-buy${!p.inStock ? ' oos' : ''}"
@@ -558,9 +557,6 @@ function updateModalPrice(p) {
   const metaEl = el('pmPriceMeta');
   if (metaEl) {
     const parts = [];
-    if (p.originalPriceTRY > 0) {
-      parts.push(`<span class="pm-try">₺ ${p.originalPriceTRY.toLocaleString('ru')} TRY × ${p.exchangeMultiplier}</span>`);
-    }
     if (p.lastPriceUpdate) {
       const d = new Date(p.lastPriceUpdate);
       parts.push(`<span class="pm-updated">Обновлено ${d.toLocaleDateString('ru-RU')}</span>`);

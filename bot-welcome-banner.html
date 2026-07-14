@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Logovo — welcome banner</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:#06040a}
+  .banner{
+    position:relative;width:1280px;height:720px;overflow:hidden;
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:
+      radial-gradient(120% 90% at 78% 18%, rgba(244,172,99,.30), transparent 55%),
+      radial-gradient(110% 100% at 18% 92%, rgba(226,58,74,.32), transparent 58%),
+      radial-gradient(90% 120% at 50% 50%, #1a0e10 0%, #0b0608 60%, #06040a 100%);
+  }
+  /* depth orbs */
+  .orb{position:absolute;border-radius:50%;mix-blend-mode:screen;filter:blur(60px);opacity:.55}
+  .orb.a{width:520px;height:520px;left:62%;top:-160px;background:radial-gradient(circle,#f4ac63,transparent 70%)}
+  .orb.b{width:600px;height:600px;left:-220px;top:55%;background:radial-gradient(circle,#e23a4a,transparent 70%)}
+  .orb.c{width:360px;height:360px;left:40%;top:60%;background:radial-gradient(circle,#2fd6c0,transparent 70%);opacity:.30}
+  /* neon city skyline silhouette */
+  .city{position:absolute;left:0;right:0;bottom:0;height:240px;
+    background:
+      linear-gradient(180deg,transparent,rgba(6,4,10,.85)),
+      repeating-linear-gradient(90deg,#100a12 0 46px,#160d14 46px 92px);
+    -webkit-mask:linear-gradient(180deg,transparent,#000 70%);
+    mask:linear-gradient(180deg,transparent,#000 70%);
+    clip-path:polygon(0 60%,6% 60%,6% 30%,12% 30%,12% 52%,20% 52%,20% 18%,27% 18%,27% 46%,35% 46%,35% 36%,43% 36%,43% 10%,50% 10%,50% 40%,58% 40%,58% 24%,66% 24%,66% 50%,74% 50%,74% 22%,82% 22%,82% 44%,90% 44%,90% 32%,100% 32%,100% 100%,0 100%);
+    opacity:.7}
+  .win{position:absolute;left:0;right:0;bottom:0;height:240px;opacity:.5;
+    background-image:
+      radial-gradient(2px 2px at 70px 60px,#f4ac63,transparent),
+      radial-gradient(2px 2px at 180px 110px,#2fd6c0,transparent),
+      radial-gradient(2px 2px at 300px 80px,#e23a4a,transparent),
+      radial-gradient(2px 2px at 460px 130px,#f4ac63,transparent),
+      radial-gradient(2px 2px at 620px 70px,#2fd6c0,transparent),
+      radial-gradient(2px 2px at 780px 120px,#f4ac63,transparent),
+      radial-gradient(2px 2px at 980px 90px,#e23a4a,transparent),
+      radial-gradient(2px 2px at 1140px 60px,#2fd6c0,transparent);
+    -webkit-mask:linear-gradient(180deg,transparent,#000 70%);mask:linear-gradient(180deg,transparent,#000 70%)}
+  /* content */
+  .wrap{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-bottom:30px}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;padding:9px 20px;border-radius:999px;
+    background:rgba(20,12,10,.5);border:1px solid rgba(244,172,99,.35);backdrop-filter:blur(8px);
+    color:#fbeee6;font-size:18px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;margin-bottom:26px}
+  .eyebrow .dot{width:9px;height:9px;border-radius:50%;background:#34d06b;box-shadow:0 0 12px #34d06b}
+  .logo{font-size:128px;font-weight:800;letter-spacing:-.02em;line-height:.95;
+    background:linear-gradient(150deg,#f4ac63 0%,#e0852f 48%,#e23a4a 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 8px 40px rgba(244,140,60,.45))}
+  .tagline{margin-top:14px;font-size:30px;font-weight:600;color:#fff2e8;letter-spacing:.02em;
+    text-shadow:0 2px 24px rgba(0,0,0,.6)}
+  .sub{margin-top:18px;font-size:21px;color:#cdbcae;max-width:760px;line-height:1.5}
+  .pills{margin-top:30px;display:flex;gap:14px}
+  .pill{padding:12px 22px;border-radius:14px;font-size:19px;font-weight:600;color:#fff;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(10px)}
+  .pill b{color:#34d06b}
+  /* the cat */
+  .cat{position:absolute;right:118px;bottom:150px;width:230px;height:230px;filter:drop-shadow(0 0 26px rgba(244,172,99,.55))}
+  /* vignette */
+  .vig{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 120% at 50% 45%,transparent 55%,rgba(6,4,10,.7) 100%)}
+</style>
+</head>
+<body>
+  <div class="banner">
+    <div class="orb a"></div><div class="orb b"></div><div class="orb c"></div>
+    <div class="city"></div><div class="win"></div>
+
+    <svg class="cat" viewBox="0 0 100 100" fill="none">
+      <g stroke="#f4ac63" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M30 34 L26 14 L40 26" />
+        <path d="M70 34 L74 14 L60 26" />
+        <path d="M28 36 C24 50 26 70 34 80 C44 90 56 90 66 80 C74 70 76 50 72 36" />
+        <path d="M66 80 C82 78 90 64 86 50" />
+        <circle cx="40" cy="50" r="3.2" fill="#2fd6c0" stroke="none"/>
+        <circle cx="60" cy="50" r="3.2" fill="#2fd6c0" stroke="none"/>
+        <path d="M46 60 L50 63 L54 60" />
+      </g>
+    </svg>
+
+    <div class="wrap">
+      <div class="eyebrow"><span class="dot"></span>Добро пожаловать</div>
+      <div class="logo">LOGOVO</div>
+      <div class="tagline">PlayStation · Турция</div>
+      <div class="sub">Игры, подписки и пополнение PSN по лучшим ценам. Оформление за минуту прямо в Telegram.</div>
+      <div class="pills">
+        <div class="pill">🎮 Игры PS4 / PS5</div>
+        <div class="pill">💎 PS Plus</div>
+        <div class="pill"><b>+30%</b> бонусами</div>
+      </div>
+    </div>
+    <div class="vig"></div>
+  </div>
+</body>
+</html>
