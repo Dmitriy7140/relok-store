@@ -9,7 +9,7 @@ const path = require('node:path');
 const { all, get, run, tx, generateOrderId, shapeOrder } = require('./db');
 const notify = require('./notifications');
 const price  = require('./priceService');
-const pay    = require('./payment');
+const pay    = require('./paymentProvider');
 const tgauth = require('./tgauth');
 const bonus  = require('./bonus');
 const fulfillment = require('./codes/fulfillmentService');
@@ -1050,13 +1050,14 @@ async function api(req, res, url) {
     const returnUrl = `${baseUrl(req)}/#/pay/${order.id}`;
     try {
       const p = await pay.createPayment(order, returnUrl, b.receiptEmail);
-      // Сохраняем paymentId в meta заказа
+      // Сохраняем paymentId (у Robokassa это InvId) в meta + провайдера в pay_method
       const meta = order.meta || {}; meta.paymentId = p.id;
-      run('UPDATE orders SET meta=?, updated_at=datetime(\'now\') WHERE id=?', [JSON.stringify(meta), order.id]);
-      log.info('Payment created:', p.id, 'для заказа', order.id, order.amount + '₽');
+      run('UPDATE orders SET meta=?, pay_method=?, updated_at=datetime(\'now\') WHERE id=?',
+        [JSON.stringify(meta), pay.PROVIDER || '', order.id]);
+      log.info('Payment created:', pay.PROVIDER, p.id, 'для заказа', order.id, order.amount + '₽');
       return ok(res, { confirmationUrl: p.confirmationUrl, paymentId: p.id, status: p.status });
     } catch (e) {
-      log.err('ЮKassa create error:', e.message);
+      log.err('Payment create error:', e.message);
       return bad(res, 'Не удалось создать платёж: ' + e.message, 502);
     }
   }
