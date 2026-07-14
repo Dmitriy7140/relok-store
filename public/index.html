@@ -925,6 +925,41 @@ input,select,textarea{font-family:inherit;outline:none;border:none;background:no
 .grt-ico{font-size:22px;margin-bottom:8px}
 .grt-card-h{font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:5px}
 .grt-card-p{font-size:13px;color:var(--tx3);line-height:1.5}
+.grt-card-h::before{content:"";display:inline-block;vertical-align:middle;width:6px;height:6px;border-radius:50%;
+  margin-right:9px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+/* ── Расширенный блок гарантий (solid) ── */
+.grt-hero{position:relative;overflow:hidden;border:1px solid var(--bd);border-radius:20px;padding:22px 20px;margin-bottom:20px;
+  background:linear-gradient(135deg,rgba(59,130,246,.14),rgba(139,92,246,.10) 55%,transparent);}
+.grt-hero::before{content:"";position:absolute;top:-40%;right:-20%;width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(59,130,246,.25),transparent 70%);pointer-events:none}
+.grt-hero-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.06em;
+  text-transform:uppercase;color:#3b82f6;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);
+  padding:5px 11px;border-radius:999px;margin-bottom:12px}
+.grt-hero-title{font-size:24px;font-weight:800;color:var(--tx1);letter-spacing:-.02em;line-height:1.15;margin-bottom:8px}
+.grt-hero-p{font-size:14px;color:var(--tx2);line-height:1.55}
+.grt-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 22px}
+.grt-stat{background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:14px 8px;text-align:center}
+.grt-stat-n{font-size:20px;font-weight:800;color:var(--tx1);letter-spacing:-.02em}
+.grt-stat-l{font-size:11px;color:var(--tx3);margin-top:3px;line-height:1.3}
+.grt-card{display:flex;gap:14px;align-items:flex-start}
+.grt-card .grt-ico{flex:0 0 auto;width:42px;height:42px;display:flex;align-items:center;justify-content:center;
+  font-size:20px;margin:0;border-radius:12px;background:var(--bg1);border:1px solid var(--bd)}
+.grt-card-body{flex:1;min-width:0}
+.grt-steps{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:18px 16px;margin:6px 0 20px}
+.grt-steps-h{font-size:16px;font-weight:800;color:var(--tx1);margin-bottom:14px}
+.grt-step{display:flex;gap:12px;align-items:flex-start;padding-bottom:14px}
+.grt-step:last-child{padding-bottom:0}
+.grt-step-n{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;color:#fff;background:linear-gradient(135deg,#3b82f6,#8b5cf6)}
+.grt-step-h{font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:2px}
+.grt-step-p{font-size:12.5px;color:var(--tx3);line-height:1.5}
+.grt-cta{text-align:center;background:linear-gradient(135deg,rgba(59,130,246,.10),rgba(139,92,246,.08));
+  border:1px solid var(--bd);border-radius:18px;padding:22px 18px;margin-top:8px}
+.grt-cta-h{font-size:17px;font-weight:800;color:var(--tx1);margin-bottom:6px}
+.grt-cta-p{font-size:13px;color:var(--tx3);line-height:1.5;margin-bottom:14px}
+.grt-cta-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+  color:#fff;font-size:14px;font-weight:700;padding:12px 22px;border-radius:12px;text-decoration:none;border:0;cursor:pointer}
+.grt-cta-btn:active{transform:scale(.97)}
 /* ── Кнопки мессенджеров (передача данных менеджеру) ── */
 .msgr-handoff{text-align:center}
 .msgr-hint{font-size:12.5px;color:var(--tx3);line-height:1.5;margin:16px 4px 12px}
@@ -1447,6 +1482,36 @@ nav.bnav{
   nav.bnav{display:none}
   .games-grid{grid-template-columns:repeat(6,1fr)}
 }
+
+/* ═══ ОТЗЫВЫ ═══ */
+.topbar-btn-rev{width:auto;padding:0 12px;gap:6px}
+.topbar-btn-txt{font-size:13px;font-weight:600;letter-spacing:.2px}
+@media(max-width:520px){.topbar-btn-rev .topbar-btn-txt{display:none}.topbar-btn-rev{width:38px;padding:0}}
+.rev-wrap{max-width:720px;margin:0 auto;padding:14px var(--sp8,16px) 40px}
+.rev-title{font-size:26px;font-weight:800;margin-top:10px}
+.rev-sub{color:var(--t2,#9aa);font-size:14px;margin:4px 0 18px}
+/* Reels — вертикальная лента */
+.reels{display:flex;flex-direction:column;gap:14px}
+.reel{position:relative;width:100%;aspect-ratio:9/16;max-height:78vh;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+.reel video{width:100%;height:100%;object-fit:cover;display:block;background:#000}
+.reel-tap{position:absolute;inset:0;cursor:pointer}
+.reel-play{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.25);pointer-events:none}
+.reel.paused .reel-play{display:flex}
+.reel-play svg{width:60px;height:60px;color:#fff;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
+.reel-mute{position:absolute;right:12px;bottom:12px;width:40px;height:40px;border-radius:50%;border:none;background:rgba(0,0,0,.5);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px)}
+.reel-mute svg{width:20px;height:20px}
+.reel-cap{position:absolute;left:12px;bottom:14px;right:60px;color:#fff;font-size:14px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.7);pointer-events:none}
+.reels-empty{color:var(--t2,#9aa);font-size:14px;text-align:center;padding:24px 0}
+/* Текстовые отзывы */
+.trev-sec{margin-top:30px}
+.trev-h2{font-size:19px;font-weight:800;margin-bottom:14px}
+.trev-list{display:flex;flex-direction:column;gap:12px}
+.trev-card{background:var(--s2,#151823);border:1px solid var(--b1,#242836);border-radius:16px;padding:14px 16px}
+.trev-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.trev-ava{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#2b6cff,#7a3cff);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0}
+.trev-name{font-weight:700;font-size:15px}
+.trev-stars{color:#ffb400;font-size:13px;letter-spacing:1px;margin-top:1px}
+.trev-text{color:var(--t1,#eef);font-size:14px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -1472,6 +1537,10 @@ nav.bnav{
         <button class="region-opt" data-region="in" onclick="selectRegion('in')"><span class="region-flag">🇮🇳</span> Индия</button>
       </div>
     </div>
+    <button class="topbar-btn topbar-btn-rev" onclick="go('#/reviews')" aria-label="Отзывы">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="topbar-btn-txt">Отзывы</span>
+    </button>
     <button class="topbar-btn" onclick="go('#/guarantees')" aria-label="Гарантии">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     </button>
@@ -1704,6 +1773,14 @@ nav.bnav{
         <div class="menu-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></div>
       </div>
     </div>
+    <div class="prof-section">Поддержка</div>
+    <div class="menu-block">
+      <a class="menu-item" href="https://t.me/ALEXANDRA_2CHANGE" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+        <div class="menu-ico-wrap">💬</div>
+        <div class="menu-texts"><div class="menu-label">Поддержка</div><div class="menu-sub">Написать в Telegram</div></div>
+        <div class="menu-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></div>
+      </a>
+    </div>
     <div class="prof-section">Настройки</div>
     <div class="menu-block">
       <div class="menu-item" onclick="toggleTheme()">
@@ -1734,33 +1811,98 @@ nav.bnav{
       <div class="grt-vids" id="grtVids"></div>
     </div>
 
-    <div class="grt-title">Гарантии</div>
-    <div class="grt-sub">Мы отвечаем за каждый заказ — от оплаты до полного сопровождения.</div>
+    <div class="grt-hero">
+      <div class="grt-hero-badge">🛡️ Гарантия качества</div>
+      <div class="grt-hero-title">Ваша уверенность — наша репутация</div>
+      <div class="grt-hero-p">Мы работаем с играми и подписками PlayStation не первый год и дорожим каждым клиентом. Покупая у нас, вы получаете не просто товар, а полное сопровождение сделки: от подбора региона и оплаты до успешной активации на вашей консоли. Каждый заказ проходит проверку, а наша поддержка остаётся с вами и после покупки.</div>
+    </div>
+
+    <div class="grt-stats">
+      <div class="grt-stat"><div class="grt-stat-n">3 000+</div><div class="grt-stat-l">довольных клиентов</div></div>
+      <div class="grt-stat"><div class="grt-stat-n">24/7</div><div class="grt-stat-l">живая поддержка</div></div>
+      <div class="grt-stat"><div class="grt-stat-n">100%</div><div class="grt-stat-l">замена при проблеме</div></div>
+    </div>
+
+    <div class="grt-title">Что мы гарантируем</div>
+    <div class="grt-sub">Пять принципов, на которых строится каждая сделка в нашем магазине.</div>
 
     <div class="grt-card">
-      <div class="grt-ico">✅</div>
-      <div class="grt-card-h">Корректная выдача</div>
-      <div class="grt-card-p">Мы гарантируем корректную выдачу товара в соответствии с вашим заказом. Каждая позиция проверяется перед отправкой.</div>
+      <div class="grt-card-body">
+        <div class="grt-card-h">Корректная выдача заказа</div>
+        <div class="grt-card-p">Вы получаете именно тот товар, который заказали — в нужном регионе, издании и платформе. Каждая позиция вручную проверяется перед отправкой, поэтому исключены ошибки с версией игры или неверным ключом. Если что-то не совпало с описанием — мы бесплатно исправим это или вернём средства.</div>
+      </div>
     </div>
     <div class="grt-card">
-      <div class="grt-ico">🎮</div>
-      <div class="grt-card-h">Работоспособность</div>
-      <div class="grt-card-p">Все ключи и аккаунты полностью работоспособны. Если возникнет проблема — мы оперативно её решим или заменим товар.</div>
+      <div class="grt-card-body">
+        <div class="grt-card-h">Гарантированная работоспособность</div>
+        <div class="grt-card-p">Все ключи, коды и аккаунты проверены и полностью рабочие на момент выдачи. Мы предоставляем гарантию на активацию: если ключ по каким-либо причинам не сработал, мы оперативно проведём замену или вернём деньги — без лишних вопросов и переписок на неделю.</div>
+      </div>
     </div>
     <div class="grt-card">
-      <div class="grt-ico">🛡️</div>
-      <div class="grt-card-h">Отсутствие блокировок</div>
-      <div class="grt-card-p">Используются только безопасные и проверенные методы. Риск блокировки сведён к минимуму.</div>
+      <div class="grt-card-body">
+        <div class="grt-card-h">Безопасность и отсутствие блокировок</div>
+        <div class="grt-card-p">Мы используем только легальные и проверенные временем методы покупки через официальные региональные магазины PlayStation. Никаких «серых» схем, взломов или рискованных манипуляций с вашим аккаунтом. Ваши данные защищены, а риск блокировки сведён к минимуму.</div>
+      </div>
     </div>
     <div class="grt-card">
-      <div class="grt-ico">💬</div>
-      <div class="grt-card-h">Поддержка</div>
-      <div class="grt-card-p">Наша поддержка на связи и готова помочь на любом этапе — до, во время и после покупки.</div>
+      <div class="grt-card-body">
+        <div class="grt-card-h">Живая поддержка в любое время</div>
+        <div class="grt-card-p">С вами всегда общается реальный человек, а не бот. Мы на связи до, во время и после покупки: подскажем, какую игру или подписку выбрать, поможем с оплатой и ответим на любой вопрос. Среднее время ответа — несколько минут.</div>
+      </div>
     </div>
     <div class="grt-card">
-      <div class="grt-ico">🤝</div>
-      <div class="grt-card-h">Полное сопровождение</div>
-      <div class="grt-card-p">Мы сопровождаем вас на всех этапах: поможем с активацией, настройкой и любыми вопросами по заказу.</div>
+      <div class="grt-card-body">
+        <div class="grt-card-h">Полное сопровождение до результата</div>
+        <div class="grt-card-p">Наша задача — не просто продать, а сделать так, чтобы игра запустилась на вашей консоли. Мы пошагово поможем с входом в аккаунт, активацией и настройкой, даже если вы делаете это впервые. Доводим каждый заказ до успешного результата.</div>
+      </div>
+    </div>
+
+    <div class="grt-steps">
+      <div class="grt-steps-h">Как проходит покупка</div>
+      <div class="grt-step">
+        <div class="grt-step-n">1</div>
+        <div><div class="grt-step-h">Выбор и оформление</div><div class="grt-step-p">Вы выбираете игру, подписку или код и оформляете заказ. При необходимости — подскажем оптимальный вариант.</div></div>
+      </div>
+      <div class="grt-step">
+        <div class="grt-step-n">2</div>
+        <div><div class="grt-step-h">Оплата и подтверждение</div><div class="grt-step-p">Оплачиваете удобным способом. Мы подтверждаем заказ и приступаем к подготовке товара.</div></div>
+      </div>
+      <div class="grt-step">
+        <div class="grt-step-n">3</div>
+        <div><div class="grt-step-h">Выдача и активация</div><div class="grt-step-p">Передаём товар и сопровождаем активацию на вашей консоли — доводим до запуска игры.</div></div>
+      </div>
+      <div class="grt-step">
+        <div class="grt-step-n">4</div>
+        <div><div class="grt-step-h">Поддержка после покупки</div><div class="grt-step-p">Остаёмся на связи. Возникнут вопросы позже — поможем и решим любую ситуацию.</div></div>
+      </div>
+    </div>
+
+    <div class="grt-cta">
+      <div class="grt-cta-h">Остались вопросы?</div>
+      <div class="grt-cta-p">Напишите нам перед покупкой — поможем выбрать и всё подробно объясним. Мы дорожим вашим доверием.</div>
+      <a class="grt-cta-btn" href="https://t.me/ALEXANDRA_2CHANGE" target="_blank" rel="noopener">💬 Написать в поддержку</a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ОТЗЫВЫ ═══ -->
+<div class="screen" id="screen-reviews">
+  <div class="rev-wrap">
+    <button class="grt-back" onclick="go('#/')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      На главную
+    </button>
+
+    <div class="rev-title">Отзывы</div>
+    <div class="rev-sub">Реальные истории наших покупателей</div>
+
+    <!-- Видеоотзывы — вертикальная лента -->
+    <div class="reels" id="reelsBox"></div>
+
+    <!-- Текстовые отзывы -->
+    <div class="trev-sec">
+      <div class="trev-h2">Что о нас пишут</div>
+      <div class="trev-list" id="trevList"></div>
     </div>
   </div>
 </div>

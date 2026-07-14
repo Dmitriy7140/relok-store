@@ -12,6 +12,8 @@ const price  = require('./priceService');
 const pay    = require('./payment');
 const tgauth = require('./tgauth');
 const bonus  = require('./bonus');
+const fulfillment = require('./codes/fulfillmentService');
+const inventory   = require('./codes/inventoryService');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'logovo-admin';
@@ -128,7 +130,27 @@ function markOrderPaid(id, paymentId) {
   try { bonus.accrueForOrder(updated); } catch (e) { log.err('accrue failed', e.message); }
   log.info('Order PAID:', id, '—', updated.amount + '₽', paymentId ? `(yk:${paymentId})` : '');
   notify.notifyOrderPaid(shapeOrder(get('SELECT * FROM orders WHERE id=?', [id]))).catch(() => {});
+  // Авто-выдача кодов пополнения (не блокирует ответ; ошибки → ручная обработка внутри).
+  fulfillOrderCodes(id);
   return shapeOrder(get('SELECT * FROM orders WHERE id=?', [id]));
+}
+
+/* Асинхронная выдача кодов под заказ. Полностью изолирована:
+   любые сбои не влияют на процесс оплаты — заказ уходит в ручную обработку. */
+function fulfillOrderCodes(id) {
+  Promise.resolve()
+    .then(() => {
+      const order = shapeOrder(get('SELECT * FROM orders WHERE id=?', [id]));
+      if (!order) return null;
+      return fulfillment.fulfill(order);
+    })
+    .then((r) => {
+      if (r && r.fulfillment === 'manual') {
+        const fresh = shapeOrder(get('SELECT * FROM orders WHERE id=?', [id]));
+        if (fresh) notify.notifyOrderData(fresh).catch(() => {});
+      }
+    })
+    .catch((e) => log.err('fulfillOrderCodes failed', id, e && e.message));
 }
 
 /* Проверить один заказ в ЮKassa и обновить статус (для поллинга и /status).
@@ -399,6 +421,10 @@ async function api(req, res, url) {
     id: r.id, title: r.title, position: r.position, hidden: !!r.hidden,
     url: r.media_id ? `/api/media/${r.media_id}` : (r.url || ''),
   });
+  const shapeTextReview = (r) => ({
+    id: r.id, author: r.author || '', text: r.text || '',
+    rating: r.rating || 5, position: r.position, hidden: !!r.hidden,
+  });
 
   // GET /api/me — профиль + баланс текущего пользователя
   if (seg[1] === 'me' && seg.length === 2 && method === 'GET') {
@@ -456,6 +482,12 @@ async function api(req, res, url) {
   if (seg[1] === 'videos' && seg.length === 2 && method === 'GET') {
     const rows = all('SELECT * FROM video_reviews WHERE hidden=0 ORDER BY position,id');
     return ok(res, rows.map(shapeVideo));
+  }
+
+  // GET /api/text-reviews — публичный список текстовых отзывов
+  if (seg[1] === 'text-reviews' && seg.length === 2 && method === 'GET') {
+    const rows = all('SELECT * FROM text_reviews WHERE hidden=0 ORDER BY position,id');
+    return ok(res, rows.map(shapeTextReview));
   }
 
   /* ══════════════════════════════════════════════════════════════
@@ -611,6 +643,40 @@ async function api(req, res, url) {
         return ok(res, shapeVideo(get('SELECT * FROM video_reviews WHERE id=?', [id])));
       }
       if (method === 'DELETE') { run('DELETE FROM video_reviews WHERE id=?', [id]); return ok(res, { ok: true }); }
+    }
+
+    // ── Текстовые отзывы ──
+    if (seg[2] === 'text-reviews' && seg.length === 3) {
+      if (!needAdmin()) return;
+      if (method === 'GET') return ok(res, all('SELECT * FROM text_reviews ORDER BY position,id').map(shapeTextReview));
+      if (method === 'POST') {
+        let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+        if (!b.text || !String(b.text).trim()) return bad(res, 'Введите текст отзыва');
+        const pos = get('SELECT COALESCE(MAX(position),-1)+1 AS p FROM text_reviews').p;
+        const rating = Math.min(5, Math.max(1, +b.rating || 5));
+        const info = run('INSERT INTO text_reviews (author,text,rating,position) VALUES (?,?,?,?)',
+          [String(b.author || '').trim(), String(b.text).trim(), rating, pos]);
+        return ok(res, shapeTextReview(get('SELECT * FROM text_reviews WHERE id=?', [info.lastInsertRowid])));
+      }
+    }
+    if (seg[2] === 'text-reviews' && seg[3] === 'reorder' && method === 'POST') {
+      if (!needAdmin()) return;
+      let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+      (b.ids || []).forEach((id, i) => run('UPDATE text_reviews SET position=? WHERE id=?', [i, +id]));
+      return ok(res, { ok: true });
+    }
+    if (seg[2] === 'text-reviews' && seg.length === 4) {
+      if (!needAdmin()) return;
+      const id = +seg[3];
+      if (method === 'PATCH') {
+        let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+        if (b.hidden !== undefined) run('UPDATE text_reviews SET hidden=? WHERE id=?', [intBool(b.hidden), id]);
+        if (b.author !== undefined) run('UPDATE text_reviews SET author=? WHERE id=?', [String(b.author), id]);
+        if (b.text !== undefined)   run('UPDATE text_reviews SET text=? WHERE id=?', [String(b.text), id]);
+        if (b.rating !== undefined) run('UPDATE text_reviews SET rating=? WHERE id=?', [Math.min(5, Math.max(1, +b.rating || 5)), id]);
+        return ok(res, shapeTextReview(get('SELECT * FROM text_reviews WHERE id=?', [id])));
+      }
+      if (method === 'DELETE') { run('DELETE FROM text_reviews WHERE id=?', [id]); return ok(res, { ok: true }); }
     }
   }
 
@@ -822,6 +888,74 @@ async function api(req, res, url) {
     const paid    = get('SELECT COUNT(*) AS c FROM orders WHERE status=\'paid\'').c;
     const revenue = get('SELECT COALESCE(SUM(amount),0) AS s FROM orders WHERE status=\'paid\'').s;
     return ok(res, { total, pending, paid, revenue });
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     /api/codes — склад кодов пополнения (админка)
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Сводка остатков: по номиналам available/reserved/sold/total + доступные. */
+  if (seg[1] === 'codes' && seg[2] === 'summary' && method === 'GET') {
+    if (!needAdmin()) return;
+    return ok(res, {
+      summary: inventory.getStockSummary(),
+      available: inventory.getAvailableCounts(),
+    });
+  }
+
+  /* Заказы, требующие ручной обработки (не хватило склада и т.п.). */
+  if (seg[1] === 'codes' && seg[2] === 'manual' && method === 'GET') {
+    if (!needAdmin()) return;
+    const rows = all(
+      "SELECT * FROM orders WHERE fulfillment='manual' ORDER BY paid_at DESC, created_at DESC LIMIT 200"
+    );
+    return ok(res, { items: rows.map(shapeOrder) });
+  }
+
+  /* Массовое добавление разных номиналов из текста «denom;code». */
+  if (seg[1] === 'codes' && seg[2] === 'bulk' && method === 'POST') {
+    if (!needAdmin()) return;
+    let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+    if (!b.text || !String(b.text).trim()) return bad(res, 'Пустой список кодов');
+    const r = inventory.bulkAddFromText(String(b.text));
+    log.info('Codes bulk add:', JSON.stringify(r));
+    return ok(res, r);
+  }
+
+  /* Список / добавление кодов. */
+  if (seg[1] === 'codes' && seg.length === 2) {
+    if (method === 'GET') {
+      if (!needAdmin()) return;
+      const q = url.searchParams;
+      return ok(res, inventory.listCodes({
+        denom:  q.get('denom'),
+        status: q.get('status'),
+        q:      q.get('q'),
+        limit:  q.get('limit'),
+        offset: q.get('offset'),
+      }));
+    }
+    if (method === 'POST') {
+      if (!needAdmin()) return;
+      let b; try { b = await readBody(req); } catch (e) { return bad(res, e.message); }
+      const denom = Number(b.denom);
+      const codes = b.codes ?? b.code;
+      if (codes == null || (Array.isArray(codes) && codes.length === 0))
+        return bad(res, 'Не указаны коды');
+      try {
+        const r = inventory.addCodes(denom, codes);
+        log.info('Codes add:', denom, JSON.stringify(r));
+        return ok(res, r);
+      } catch (e) { return bad(res, e.message); }
+    }
+  }
+
+  /* Удаление свободного кода по id. */
+  if (seg[1] === 'codes' && seg.length === 3 && method === 'DELETE') {
+    if (!needAdmin()) return;
+    const okDel = inventory.deleteCode(seg[2]);
+    if (!okDel) return bad(res, 'Код не найден или уже выдан', 409);
+    return ok(res, { ok: true });
   }
 
   /* ══════════════════════════════════════════════════════════════

@@ -656,11 +656,99 @@ async function delVideo(id) {
   catch (e) { toast(e.message, 'err'); }
 }
 
+/* ════════════ ТЕКСТОВЫЕ ОТЗЫВЫ ════════════════════════════════ */
+const TREV = { items: [] };
+
+async function renderTextReviewsAdmin() {
+  el('view').innerHTML = `
+    <div class="head">
+      <div class="head-txt"><h1>Отзывы</h1><div class="sub">Текстовые отзывы под видео на странице «Отзывы»</div></div>
+      <div class="spacer"></div>
+      <button class="btn btn-blue btn-sm" onclick="addTextReview()">＋ Добавить отзыв</button>
+    </div>
+    <div class="bar"><div class="bar-hint">Перетащите ⠿ для изменения порядка</div></div>
+    <div class="panel" id="trevList"><div class="empty-mini"><div class="ic">⏳</div><p>Загрузка…</p></div></div>`;
+  try {
+    TREV.items = await API.adminTextReviews();
+    if (el('cnt-treviews')) el('cnt-treviews').textContent = TREV.items.length;
+    renderTrevList();
+  } catch (e) { el('trevList').innerHTML = `<div class="empty-mini"><div class="ic">⚠️</div><p>Ошибка</p><small>${esc(e.message)}</small></div>`; }
+}
+
+function renderTrevList() {
+  const host = el('trevList'); if (!host) return;
+  if (!TREV.items.length) { host.innerHTML = emptyMini('💬', 'Отзывов нет', 'Добавьте первый отзыв'); return; }
+  host.innerHTML = TREV.items.map(r => `
+    <div class="prow" data-id="${r.id}" draggable="true" style="align-items:flex-start">
+      <span class="drag-h">⠿</span>
+      <div class="p-main" style="gap:6px">
+        <input class="inp" style="height:34px;max-width:220px" value="${esc(r.author || '')}" placeholder="Имя автора…"
+          onchange="patchTextReview(${r.id}, {author: this.value})">
+        <textarea class="inp" style="min-height:56px;resize:vertical" placeholder="Текст отзыва…"
+          onchange="patchTextReview(${r.id}, {text: this.value})">${esc(r.text || '')}</textarea>
+        <div class="p-meta">
+          Оценка:
+          <select class="inp" style="height:30px;width:70px;display:inline-block" onchange="patchTextReview(${r.id}, {rating:+this.value})">
+            ${[5,4,3,2,1].map(n => `<option value="${n}" ${r.rating===n?'selected':''}>${n}★</option>`).join('')}
+          </select>
+          &nbsp;·&nbsp;${r.hidden ? 'Скрыто' : 'Опубликовано'}
+        </div>
+      </div>
+      <div class="p-acts">
+        <button class="iconbtn" title="Вкл/выкл" onclick="toggleTextReview(${r.id})">${r.hidden ? '⬜' : '✅'}</button>
+        <button class="iconbtn danger" title="Удалить" onclick="delTextReview(${r.id})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+        </button>
+      </div>
+    </div>`).join('');
+  enableTrevDrag(host);
+}
+
+function enableTrevDrag(host) {
+  let dragEl = null;
+  host.querySelectorAll('.prow[draggable]').forEach(row => {
+    row.addEventListener('dragstart', () => { dragEl = row; row.classList.add('dragging'); });
+    row.addEventListener('dragend', async () => {
+      row.classList.remove('dragging');
+      host.querySelectorAll('.prow').forEach(r => r.classList.remove('drag-over'));
+      const ids = [...host.querySelectorAll('.prow')].map(r => +r.dataset.id);
+      try { await API.reorderTextReviews(ids); toast('Порядок сохранён'); } catch { toast('Ошибка', 'err'); }
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      const after = e.clientY - row.getBoundingClientRect().top > row.offsetHeight / 2;
+      host.querySelectorAll('.prow').forEach(r => r.classList.remove('drag-over'));
+      row.classList.add('drag-over');
+      if (dragEl && dragEl !== row) host.insertBefore(dragEl, after ? row.nextSibling : row);
+    });
+  });
+}
+
+async function addTextReview() {
+  try { await API.createTextReview({ author: '', text: 'Новый отзыв', rating: 5 }); await renderTextReviewsAdmin(); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function patchTextReview(id, body) {
+  try { await API.patchTextReview(id, body); const r = TREV.items.find(x => x.id === id); if (r) Object.assign(r, body); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function toggleTextReview(id) {
+  const r = TREV.items.find(x => x.id === id); if (!r) return;
+  try { await API.patchTextReview(id, { hidden: !r.hidden }); await renderTextReviewsAdmin(); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function delTextReview(id) {
+  if (!confirm('Удалить отзыв?')) return;
+  try { await API.deleteTextReview(id); await renderTextReviewsAdmin(); toast('Удалено'); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
 Object.assign(window, {
   renderOrders, reloadOrders, renderOrdersList, openOrder, saveOrderStatus, delOrder, exportOrdersCSV,
   renderBonusAdmin, openBonusEditor, pickBonusImage, uploadBonusImage, saveBonusProduct, delBonusProduct,
   openKeys, addKeysToStock, delKey,
   renderCaseAdmin, saveCase, openPrizeEditor, prizeTypeChange, pickPrizeImage, uploadPrizeImage, savePrize, togglePrize, delPrize,
   renderVideosAdmin, uploadVideo, renameVideo, toggleVideo, delVideo,
-  O, BP, CASE, VID,
+  renderTextReviewsAdmin, addTextReview, patchTextReview, toggleTextReview, delTextReview,
+  O, BP, CASE, VID, TREV,
 });

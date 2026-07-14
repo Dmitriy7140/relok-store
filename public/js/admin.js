@@ -104,6 +104,7 @@ function tab(name) {
     subs: () => renderProducts('sub'), codes: () => renderProducts('code'),
     categories: renderCategories, media: renderMedia, settings: renderSettings,
     orders: renderOrders, bonus: renderBonusAdmin, case: renderCaseAdmin, videos: renderVideosAdmin,
+    treviews: renderTextReviewsAdmin, topup: renderTopupAdmin,
   };
   (r[name] || renderDash)();
   window.scrollTo(0,0);

@@ -209,12 +209,23 @@ CREATE TABLE IF NOT EXISTS case_openings (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
--- Видеоотзывы (страница «Гарантии»)
+-- Видеоотзывы (страница «Отзывы» / «Гарантии»)
 CREATE TABLE IF NOT EXISTS video_reviews (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   title      TEXT DEFAULT '',
   media_id   INTEGER,                       -- ссылка на media (если загружено)
   url        TEXT DEFAULT '',               -- либо внешний URL
+  position   INTEGER NOT NULL DEFAULT 0,
+  hidden     INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Текстовые отзывы (страница «Отзывы»)
+CREATE TABLE IF NOT EXISTS text_reviews (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  author     TEXT DEFAULT '',               -- имя автора
+  text       TEXT NOT NULL DEFAULT '',      -- текст отзыва
+  rating     INTEGER NOT NULL DEFAULT 5,    -- оценка 1..5
   position   INTEGER NOT NULL DEFAULT 0,
   hidden     INTEGER NOT NULL DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now'))
@@ -226,11 +237,60 @@ CREATE INDEX IF NOT EXISTS idx_case_prizes_case ON case_prizes(case_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user      ON orders(user_id);
 `);
 
+/* ── Склад кодов пополнения PlayStation Turkey ──────────────────
+   Отдельное хранилище кодов по номиналам (TRY). Не путать с
+   key_stock (ключи бонусного магазина). Статусы:
+     available — свободен, можно выдать;
+     reserved  — зарезервирован под заказ (оплата подтверждена);
+     sold      — выдан и закреплён за заказом.                    */
+db.exec(`
+CREATE TABLE IF NOT EXISTS topup_codes (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  denom        INTEGER NOT NULL,                 -- номинал TRY (250..5000)
+  code         TEXT NOT NULL UNIQUE,             -- сам код (уникален)
+  status       TEXT NOT NULL DEFAULT 'available',-- available | reserved | sold
+  order_id     TEXT DEFAULT '',                  -- заказ, которому выдан
+  user_id      TEXT DEFAULT '',                  -- покупатель (telegram id)
+  uploaded_at  TEXT DEFAULT (datetime('now')),   -- дата загрузки
+  reserved_at  TEXT DEFAULT NULL,
+  sold_at      TEXT DEFAULT NULL                 -- дата продажи/выдачи
+);
+CREATE INDEX IF NOT EXISTS idx_topup_denom_status ON topup_codes(denom, status);
+CREATE INDEX IF NOT EXISTS idx_topup_order        ON topup_codes(order_id);
+CREATE INDEX IF NOT EXISTS idx_topup_status       ON topup_codes(status);
+`);
+
+/* Поля заказа для авто-выдачи кодов пополнения */
+try { db.exec('ALTER TABLE orders ADD COLUMN price_try REAL DEFAULT 0'); } catch {}        // стоимость в лирах
+try { db.exec("ALTER TABLE orders ADD COLUMN codes_json TEXT DEFAULT '[]'"); } catch {}    // выданные коды [{denom,code}]
+try { db.exec('ALTER TABLE orders ADD COLUMN codes_sum INTEGER DEFAULT 0'); } catch {}     // сумма выданных кодов (TRY)
+try { db.exec("ALTER TABLE orders ADD COLUMN fulfillment TEXT DEFAULT ''"); } catch {}     // '' | delivered | manual
+try { db.exec('ALTER TABLE orders ADD COLUMN delivered_at TEXT DEFAULT NULL'); } catch {}
+
 /* Гарантируем наличие одного кейса по умолчанию */
 try {
   const c = db.prepare('SELECT COUNT(*) AS c FROM cases').get().c;
   if (!c) db.prepare("INSERT INTO cases (name,cost,enabled) VALUES ('Бонусный кейс',3000,1)").run();
 } catch {}
+
+/* Готовые текстовые отзывы по умолчанию (если таблица пуста) */
+try {
+  const c = db.prepare('SELECT COUNT(*) AS c FROM text_reviews').get().c;
+  if (!c) {
+    const DEFAULT_REVIEWS = [
+      { author: 'Анна',    text: 'Купила себе игру Just Cause 4, быстро помогли поставить на консоль — всё супер! Спасибо за поддержку 🙌', rating: 5 },
+      { author: 'Дмитрий', text: 'Брал GTA V: Premium Edition. Всё оформили за пару минут, объяснили каждый шаг активации. Рекомендую!',           rating: 5 },
+      { author: 'Ольга',   text: 'Оформила подписку PS Plus — активировали моментально, цена приятно удивила. Буду заказывать ещё.',           rating: 5 },
+      { author: 'Игорь',   text: 'Заказывал код пополнения PSN Турция. Пришёл сразу, кошелёк пополнился без проблем. Всё честно.',            rating: 5 },
+      { author: 'Марина',  text: 'Купила Resident Evil 4 Remake, переживала за установку — ребята всё сделали удалённо и помогли настроить.',   rating: 5 },
+      { author: 'Сергей',  text: 'Отличный магазин! Взял Hogwarts Legacy, поставили на PS5 быстро, поддержка на связи 24/7.',                  rating: 5 },
+      { author: 'Екатерина', text: 'Сначала сомневалась, но всё прошло гладко. Игра работает, аккаунт в порядке. Спасибо большое!',            rating: 5 },
+      { author: 'Алексей', text: 'Быстро, недорого и с сопровождением. Помогли даже с настройкой региона на консоли. Топ!',                    rating: 5 },
+    ];
+    const ins = db.prepare('INSERT INTO text_reviews (author,text,rating,position) VALUES (?,?,?,?)');
+    DEFAULT_REVIEWS.forEach((r, i) => ins.run(r.author, r.text, r.rating, i));
+  }
+} catch (e) { console.error('[SEED] текстовые отзывы:', e.message); }
 
 /* ── Helpers ────────────────────────────────────────────────── */
 function all(sql, params = []) { return db.prepare(sql).all(...params); }
@@ -268,6 +328,12 @@ function shapeOrder(r) {
     bonusSpent: r.bonus_spent || 0,
     payMethod: r.pay_method || '',
     statusHistory: (() => { try { return JSON.parse(r.status_history || '[]'); } catch { return []; } })(),
+    // Авто-выдача кодов пополнения:
+    priceTry: r.price_try || 0,
+    codes: (() => { try { return JSON.parse(r.codes_json || '[]'); } catch { return []; } })(),
+    codesSum: r.codes_sum || 0,
+    fulfillment: r.fulfillment || '',
+    deliveredAt: r.delivered_at || null,
     paidAt: r.paid_at || null, createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
@@ -1033,5 +1099,58 @@ function reconcileStoreCatalog() {
   if (added) console.log(`[RECONCILE] Досеяно недостающих товаров из витрины: ${added} (префикс «! », autoAdded, hidden=1 — скрыты в магазине)`);
 }
 try { reconcileStoreCatalog(); } catch (e) { console.error('[RECONCILE] ошибка сверки каталога:', e.message); }
+
+/* ── Клонирование каталога Турции → Индия (одноразово) ──────────
+   Магазин Индии ('in') создаётся как полная копия Турции ('tr'):
+   те же категории, товары, фото, описания, платформы и издания.
+   ЦЕНА НАМЕРЕННО ОБНУЛЕНА (price=0, old_price=NULL, скидки сняты),
+   чтобы владелец выставил стоимость в рупиях вручную через админку.
+   Товары помечены hidden=1 — видны только в админке и скрыты в
+   магазине Индии, пока не проставлена цена и не снят флаг «скрыт».
+   Запускается один раз: если в регионе 'in' уже есть товары — пропуск.
+   Слаги категорий Индии получают префикс 'in-' (slug UNIQUE в БД). */
+function seedIndiaFromTurkey() {
+  const hasRegion = all("PRAGMA table_info(products)").some(c => c.name === 'region');
+  if (!hasRegion) return;
+  const already = get("SELECT COUNT(*) AS n FROM products WHERE region = 'in'").n;
+  if (already > 0) return; // Индия уже наполнена — не трогаем
+
+  const trCats = all("SELECT * FROM categories WHERE region = 'tr' ORDER BY position, id");
+  const trProds = all("SELECT * FROM products WHERE region = 'tr' ORDER BY position, id");
+  if (!trProds.length && !trCats.length) return;
+
+  const catIdMap = {}; // tr category id → in category id
+  for (const c of trCats) {
+    const inSlug = /^in-/.test(c.slug) ? c.slug : 'in-' + c.slug;
+    run(
+      `INSERT INTO categories (slug, title, icon, type, description, position, hidden, region)
+       VALUES (?,?,?,?,?,?,?, 'in')`,
+      [inSlug, c.title, c.icon, c.type, c.description || '', c.position || 0, c.hidden ? 1 : 0]
+    );
+    catIdMap[c.id] = get('SELECT last_insert_rowid() AS id').id;
+  }
+
+  let cloned = 0;
+  for (const p of trProds) {
+    const newCat = p.category_id != null && catIdMap[p.category_id] != null ? catIdMap[p.category_id] : null;
+    run(
+      `INSERT INTO products
+         (type, category_id, name, description, emoji, image, platform, edition,
+          price, old_price, in_stock, popularity, is_new, is_sale, is_preorder,
+          is_featured, position, hidden, meta, region)
+       VALUES (?,?,?,?,?,?,?,?, 0, NULL, ?,?,?, 0, ?,?,?, 1, ?, 'in')`,
+      [
+        p.type || 'game', newCat, p.name, p.description || '', p.emoji || '🎮',
+        p.image || '', p.platform || '', p.edition || '',
+        p.in_stock == null ? 1 : (p.in_stock ? 1 : 0), p.popularity || 0,
+        p.is_new ? 1 : 0, p.is_preorder ? 1 : 0, p.is_featured ? 1 : 0,
+        p.position || 0, p.meta || '{}',
+      ]
+    );
+    cloned++;
+  }
+  console.log(`[INDIA] Каталог Индии создан из Турции: категорий ${trCats.length}, товаров ${cloned} (цена пустая, hidden=1 — задайте цену вручную).`);
+}
+try { seedIndiaFromTurkey(); } catch (e) { console.error('[INDIA] ошибка клонирования каталога:', e.message); }
 
 module.exports = { db, all, get, run, tx, generateOrderId, shapeOrder };
