@@ -410,6 +410,91 @@ async function loadCodes() {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   ГЛАВНАЯ — блок пополнения кошелька PSN (те же номиналы, что в «Кодах»)
+   ══════════════════════════════════════════════════════════════ */
+let _htuItems = [];
+let _htuSel   = null;
+
+// Извлекаем номинал в лирах (₺) из edition/name товара-кода.
+function htuTry(p) {
+  const s = String(p.edition || p.name || '');
+  const m = s.match(/(\d[\d\s]*)\s*(?:₺|tl|try|лир)/i);
+  const raw = m ? m[1] : (s.match(/\d[\d\s]*/) || [''])[0];
+  return parseInt(String(raw).replace(/\s+/g, ''), 10) || 0;
+}
+
+async function loadHomeTopup() {
+  const chips = el('htuChips');
+  if (!chips) return;
+  if (_htuItems.length) return; // уже загружено
+
+  try {
+    const data = await API.products({ type: 'code', sort: 'popular', limit: 200 });
+    let items = (data.items || [])
+      .map(p => ({ ...p, tryVal: htuTry(p) }))
+      .filter(p => p.tryVal > 0 && p.inStock !== false);
+
+    // Уникальные номиналы, по возрастанию
+    const seen = new Set();
+    items = items.filter(p => (seen.has(p.tryVal) ? false : (seen.add(p.tryVal), true)))
+                 .sort((a, b) => a.tryVal - b.tryVal);
+    _htuItems = items;
+
+    if (!items.length) { chips.innerHTML = '<div class="htu-loading">Номиналы скоро появятся</div>'; return; }
+
+    const def = items.find(p => p.tryVal === 500) || items[Math.floor(items.length / 2)];
+    renderHtuChips(def.id);
+    htuSelect(def.id, false);
+  } catch (e) {
+    chips.innerHTML = '<div class="htu-loading">Не удалось загрузить номиналы</div>';
+  }
+}
+
+function renderHtuChips(popularId) {
+  const chips = el('htuChips');
+  if (!chips) return;
+  chips.innerHTML = _htuItems.map(p => `
+    <div class="htu-chip" id="htuChip-${p.id}" onclick="htuSelect(${p.id})">
+      ${p.id === popularId ? '<div class="htu-chip-badge">🔥 Популярный</div>' : ''}
+      <div class="htu-chip-try">${p.tryVal} ₺</div>
+      <div class="htu-chip-rub">${fmt(p.price)}</div>
+    </div>`).join('');
+}
+
+function htuSelect(id, scroll = true) {
+  const p = _htuItems.find(x => x.id === id);
+  if (!p) return;
+  _htuSel = p;
+  document.querySelectorAll('.htu-chip').forEach(c => c.classList.remove('sel'));
+  const chip = el('htuChip-' + id);
+  if (chip) {
+    chip.classList.add('sel');
+    if (scroll) chip.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }
+  const price = el('htuPrice'); if (price) price.textContent = fmt(p.price);
+  const cta = el('htuCta');
+  if (cta) { cta.disabled = false; cta.textContent = `Получить за ${fmt(p.price)} →`; }
+}
+
+function htuScroll(dir) {
+  const chips = el('htuChips');
+  if (chips) chips.scrollBy({ left: dir * 180, behavior: 'smooth' });
+}
+
+// Выбор номинала → сразу к оплате выбранного кода.
+function htuBuy() {
+  if (!_htuSel) { toast('Выберите номинал'); return; }
+  startOrder({
+    name:      _htuSel.name,
+    price:     _htuSel.price,
+    productId: _htuSel.id,
+    platform:  _htuSel.platform || 'PSN Турция',
+    type:      'code',
+    emoji:     _htuSel.emoji || '💳',
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
    PRODUCT MODAL
    ══════════════════════════════════════════════════════════════ */
 let modalProduct = null;
@@ -1522,8 +1607,12 @@ function route() {
   } else if (root === 'reviews') {
     showScreen('reviews', null);
     renderReviews();
+  } else if (LEGAL_PAGES[root]) {
+    showScreen('info', 'profile');
+    renderInfoPage(root);
   } else {
     showScreen('home', 'home');
+    loadHomeTopup();
   }
 }
 
@@ -1608,6 +1697,121 @@ async function repeatOrder(productId, btn) {
     btn.textContent = '✓ В корзине';
     setTimeout(() => { btn.textContent = orig; }, 1600);
   }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ИНФОРМАЦИЯ — о компании / реквизиты / оферта / политика
+
+   Контент правится прямо здесь. Реквизиты — в объекте COMPANY,
+   тексты оферты/политики/о компании — в html-полях. Пока стоят
+   заготовки-плейсхолдеры: замените текст на реальный.
+   ══════════════════════════════════════════════════════════════ */
+
+// Реквизиты продавца (источник: https://2pay.money/rekvizity).
+const COMPANY = {
+  name: 'ООО «АЛЬТРОН»',
+  inn: '7804721291',
+  kpp: '780401001',
+  ogrn: '1267800044313',
+  address: 'г. Санкт-Петербург, Кушелевская дорога, д. 1, к. 2, стр. 1, помещ. 51Н',
+  bank: 'АО «АЛЬФА-БАНК»',
+  bik: '044525593',
+  account: '40702810911660000000',
+  corr: '30101810200000000593',
+  email: 'support2pay@gmail.com',
+};
+
+// Дополнительный реквизит (Турция).
+const COMPANY_TR = {
+  name: 'Altın Döviz ve Finans Hizmetleri Anonim Şirketi',
+  address: 'Büyükdere Cad. No: 145, Şişli, 34394 İstanbul, Türkiye',
+  reg: 'TCMB-EXC-2023-7784',
+};
+
+function reqRows(pairs) {
+  const rows = pairs
+    .filter(([, v]) => v)
+    .map(([k, v]) => `<div class="info-req-row"><span class="k">${k}</span><span class="v">${esc(v)}</span></div>`)
+    .join('');
+  if (!rows) return '<div class="info-todo">Реквизиты пока не заполнены. Пришлите данные — добавим их сюда.</div>';
+  return `<div class="info-req">${rows}</div>`;
+}
+
+const LEGAL_PAGES = {
+  about: {
+    title: 'О компании',
+    sub: 'Кто мы и чем занимаемся',
+    html: () => `
+      <p>Мы — магазин цифровых товаров для PlayStation: игры, подписки PS Plus и коды пополнения кошелька PSN (регион Турция).</p>
+      <p>Работаем с проверенными региональными магазинами, сопровождаем каждую покупку от оформления до активации на вашей консоли и остаёмся на связи после сделки.</p>
+    `,
+  },
+  requisites: {
+    title: 'Реквизиты',
+    sub: 'Юридические данные продавца',
+    html: () => `
+      <h3>Продавец (Россия)</h3>
+      ${reqRows([
+        ['Наименование', COMPANY.name],
+        ['ИНН', COMPANY.inn],
+        ['КПП', COMPANY.kpp],
+        ['ОГРН', COMPANY.ogrn],
+        ['Юридический адрес', COMPANY.address],
+        ['Банк', COMPANY.bank],
+        ['БИК', COMPANY.bik],
+        ['Расчётный счёт', COMPANY.account],
+        ['Корр. счёт', COMPANY.corr],
+        ['E-mail', COMPANY.email],
+      ])}
+      <h3>Дополнительный реквизит (Турция)</h3>
+      ${reqRows([
+        ['Наименование', COMPANY_TR.name],
+        ['Адрес', COMPANY_TR.address],
+        ['Реестровый номер', COMPANY_TR.reg],
+      ])}
+    `,
+  },
+  oferta: {
+    title: 'Публичная оферта',
+    sub: 'Договор купли-продажи цифровых товаров',
+    html: () => `
+      <div class="info-todo">Здесь будет текст публичной оферты. Пришлите его — вставлю. Ниже — примерная структура-заготовка.</div>
+      <h3>1. Общие положения</h3>
+      <p>Настоящий документ является публичной офертой и определяет условия продажи цифровых товаров.</p>
+      <h3>2. Предмет договора</h3>
+      <p>Продавец обязуется передать покупателю цифровой товар (игру, подписку или код пополнения), а покупатель — оплатить его.</p>
+      <h3>3. Оплата и выдача</h3>
+      <p>Оплата производится доступными в магазине способами. Товар выдаётся после подтверждения оплаты.</p>
+      <h3>4. Возврат и гарантия</h3>
+      <p>Условия замены и возврата описаны в разделе «Гарантии».</p>
+      <div class="info-updated" id="infoUpdated"></div>
+    `,
+  },
+  policy: {
+    title: 'Политика конфиденциальности',
+    sub: 'Как мы обрабатываем ваши данные',
+    html: () => `
+      <div class="info-todo">Здесь будет текст политики конфиденциальности. Пришлите его — вставлю. Ниже — примерная структура-заготовка.</div>
+      <h3>1. Какие данные мы собираем</h3>
+      <p>Мы обрабатываем данные, необходимые для оформления и выдачи заказа: идентификатор Telegram, контакт для связи, историю покупок.</p>
+      <h3>2. Цели обработки</h3>
+      <p>Данные используются для выполнения заказа, поддержки и информирования о статусе покупки.</p>
+      <h3>3. Передача третьим лицам</h3>
+      <p>Мы не передаём ваши данные третьим лицам, кроме случаев, необходимых для проведения оплаты.</p>
+      <h3>4. Ваши права</h3>
+      <p>Вы можете запросить удаление своих данных, написав в поддержку.</p>
+      <div class="info-updated" id="infoUpdated"></div>
+    `,
+  },
+};
+
+function renderInfoPage(key) {
+  const page = LEGAL_PAGES[key];
+  if (!page) return;
+  const t = el('infoTitle'); if (t) t.textContent = page.title;
+  const s = el('infoSub');   if (s) s.textContent = page.sub || '';
+  const body = el('infoBody');
+  if (body) body.innerHTML = typeof page.html === 'function' ? page.html() : page.html;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -2038,6 +2242,7 @@ Object.assign(window, {
   loadSubs, selectSubPeriod, addSubToCart,
   loadGames, onGamesSearch, gamesGoPage, resetGames, setGamesCat,
   loadCodes,
+  loadHomeTopup, htuSelect, htuScroll, htuBuy,
   renderWish, removeWish, wishToCart,
   renderCart, removeCart, checkout,
   openCheckout, openCheckoutDirect, closeCheckout, _forceCloseCheckout,
